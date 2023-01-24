@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="loggermanager" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Debug">
+				<Option output="bin/Debug/loggermanager" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Debug/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Option parameters="/home/matt/loggermanager.ini" />
+				<Compiler>
+					<Add option="-g" />
+				</Compiler>
+				<Linker>
+					<Add library="pml_logd" />
+					<Add library="restgoose" />
+				</Linker>
+			</Target>
+			<Target title="Release">
+				<Option output="bin/Release/loggermanager" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Release/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Option parameters="/home/matt/loggermanager.ini" />
+				<Compiler>
+					<Add option="-O2" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+					<Add library="pml_log" />
+					<Add library="restgoose" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+			<Add option="-fexceptions" />
+			<Add directory="./include" />
+			<Add directory="$(#json.INCLUDE)" />
+			<Add directory="$(#log.INCLUDE)" />
+			<Add directory="$(#restgoose.INCLUDE)" />
+			<Add directory="../common/include" />
+		</Compiler>
+		<Linker>
+			<Add directory="$(#log.LIB)" />
+			<Add directory="$(#restgoose.LIB)" />
+		</Linker>
+		<Unit filename="../../jsoncpp/dist/jsoncpp.cpp" />
+		<Unit filename="../common/include/aoiputils.h" />
+		<Unit filename="../common/include/inimanager.h" />
+		<Unit filename="../common/include/inisection.h" />
+		<Unit filename="../common/include/jsonconsts.h" />
+		<Unit filename="../common/src/aoiputils.cpp" />
+		<Unit filename="../common/src/inimanager.cpp" />
+		<Unit filename="../common/src/inisection.cpp" />
+		<Unit filename="../common/src/jsonconsts.cpp" />
+		<Unit filename="include/launcher.h" />
+		<Unit filename="include/launchmanager.h" />
+		<Unit filename="include/ntpstatus.h" />
+		<Unit filename="include/proccheck.h" />
+		<Unit filename="include/server.h" />
+		<Unit filename="include/sysinfomanager.h" />
+		<Unit filename="src/launcher.cpp" />
+		<Unit filename="src/launchmanager.cpp" />
+		<Unit filename="src/main.cpp" />
+		<Unit filename="src/ntpstatus.cpp" />
+		<Unit filename="src/proccheck.cpp" />
+		<Unit filename="src/server.cpp" />
+		<Unit filename="src/sysinfomanager.cpp" />
+		<Extensions />
+	</Project>
+</CodeBlocks_project_file>

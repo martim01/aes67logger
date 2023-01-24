@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="AudioLogger" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Debug">
+				<Option output="bin/Debug/AudioLogger" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Debug/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Option parameters="whga.ini" />
+				<Compiler>
+					<Add option="-g" />
+					<Add option="-DLOG_LEVEL_DEBUG" />
+				</Compiler>
+				<Linker>
+					<Add library="snmp++d" />
+				</Linker>
+			</Target>
+			<Target title="Release">
+				<Option output="bin/Release/AudioLogger" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Release/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Option parameters="/home/matt/aoip.ini" />
+				<Compiler>
+					<Add option="-O2" />
+					<Add option="-g" />
+				</Compiler>
+				<Linker>
+					<Add option="-Wl,-Map=aoip.map" />
+					<Add library="pml_log" />
+					<Add library="aoip" />
+					<Add library="sndfile" />
+					<Add library="snmp++" />
+					<Add library="agent++" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+			<Add option="-pipe" />
+			<Add option="-pthread" />
+			<Add option="-D__GNU__" />
+			<Add option="-D_SNMP_" />
+			<Add directory="$(#snmp__.include)" />
+			<Add directory="$(#snmp__)" />
+			<Add directory="include" />
+			<Add directory="$(#log.INCLUDE)" />
+			<Add directory="../include" />
+			<Add directory="$(#agent__.INCLUDE)" />
+			<Add directory="../common/include" />
+			<Add directory="$(#json.INCLUDE)" />
+		</Compiler>
+		<Linker>
+			<Add directory="$(#snmp__.lib)" />
+			<Add directory="$(#log.LIB)" />
+			<Add directory="../lib" />
+			<Add directory="$(#agent__.LIB)" />
+		</Linker>
+		<Unit filename="../../jsoncpp/dist/jsoncpp.cpp" />
+		<Unit filename="../common/include/aoiputils.h" />
+		<Unit filename="../common/include/inimanager.h" />
+		<Unit filename="../common/include/inisection.h" />
+		<Unit filename="../common/include/jsonconsts.h" />
+		<Unit filename="../common/src/aoiputils.cpp" />
+		<Unit filename="../common/src/inimanager.cpp" />
+		<Unit filename="../common/src/inisection.cpp" />
+		<Unit filename="../common/src/jsonconsts.cpp" />
+		<Unit filename="include/agentthread.h" />
+		<Unit filename="include/inimanager.h" />
+		<Unit filename="include/inisection.h" />
+		<Unit filename="include/jsonlog.h" />
+		<Unit filename="include/jsonwriter.h" />
+		<Unit filename="include/loggerapp.h" />
+		<Unit filename="include/mibwritabletable.h" />
+		<Unit filename="include/soundfile.h" />
+		<Unit filename="src/jsonlog.cpp" />
+		<Unit filename="src/jsonwriter.cpp" />
+		<Unit filename="src/loggerapp.cpp" />
+		<Unit filename="src/main.cpp" />
+		<Unit filename="src/soundfile.cpp" />
+		<Extensions>
+			<lib_finder disable_auto="1" />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>
