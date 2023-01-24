@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>aes67Logger Dashboard</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="uikit/css/uikit.min.css" />
+        <script src="uikit/js/uikit.min.js"></script>
+        <script src="uikit/js/uikit-icons.min.js"></script>
+        <script src="js/ajax.js"></script>
+        <script type="text/javascript">
+                              
+            
+        </script>
+    </head>
+    <body onload="dashboard()">
+        <nav class="uk-navbar-container" uk-navbar style="background: #ffffff; border-bottom: 1px solid #a8a8d8;">
+		<div class="uk-navbar-left">
+			<ul class="uk-navbar-nav">
+				<li class="uk-parent"><a href="../" class="uk-logo"><img src="images/loopi.png"></a></li>
+				<li class="uk-active"><a href=""><span class="uk-h1" id="hostname">Logger Dashboard</span></a></li>
+			</ul>
+		</div>
+		<div class="uk-navbar-center">
+			<ul class="uk-navbar-nav">
+				<li><span class="uk-h3" id="current_time"></span></li>
+			</ul>
+		</div>
+		<div class="uk-navbar-right">
+            <ul class="uk-navbar-nav">
+            <li class="uk-parent"><a href="info" class="uk-logo">Info</a></li>
+            <li class="uk-parent"><a href="config" class="uk-logo">Config</a></li>
+            <li class="uk-parent"><a href="update" class="uk-logo">Update</a></li>
+		</div>
+        </nav>
+        <div class="uk-section uk-section-xsmall uk-section-muted">
+            <div class="uk-grid-column-small uk-grid-row-small uk-grid-match uk-text-center" uk-grid id="logger_grid">
+<!--
+            <div  id="logger_add">
+                <div class="uk-width-large@l uk-width-medium@m uk-card uk-card-default uk-card-body uk-card-hover uk-card-small" onclick="addLogger()">
+                   <div class='uk-card-header'><h3 class="uk-card-title">Add Logger</h3></div>
+                   <div class='uk-card-body uk-background-norepeat uk-background-center-center' style="background-image: url(images/add.png)"></div>
+                   <div class='uk-card-footer'></div>
+                </div>
+        -->
+            </div>
+          </div>
+        </div>
+    </body>
+</html>

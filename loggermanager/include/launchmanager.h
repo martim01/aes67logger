@@ -32,6 +32,7 @@ class LaunchManager
 
         const std::map<std::string, std::shared_ptr<Launcher>>& GetLaunchers() const {return m_mLaunchers;}
 
+        Json::Value GetStatusSummary() const;
 
     private:
         void PipeThread();

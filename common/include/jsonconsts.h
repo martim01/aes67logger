@@ -99,5 +99,6 @@ struct jsonConsts
     static const std::string aoip;
     static const std::string general;
     static const std::string audio;
+    static const std::string running;
 
 };

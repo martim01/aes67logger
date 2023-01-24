@@ -18,7 +18,7 @@ class Launcher
         int LaunchLogger();
         bool StopLogger();
 
-        bool IsRecording() const;
+        bool IsRunning() const;
 
         int GetReadPipe() const;
         void PipeRead();
@@ -26,11 +26,13 @@ class Launcher
         void Read();
 
         const Json::Value& GetJsonStatus() const { return m_jsStatus;}
+        const Json::Value& GetStatusSummary() const;
 
         enum exitCode{PIPE_OPEN_ERROR=-4, FORK_ERROR=-3, PIPE_CLOSED=-1};
     private:
 
         void CloseLogger();
+        void CreateSummary();
 
 
         pid_t m_pid;
@@ -52,5 +54,6 @@ class Launcher
         std::function<void(const std::string&, int)> m_exitCallback;
 
         Json::Value m_jsStatus;
+        Json::Value m_jsStatusSummary;
 };
 

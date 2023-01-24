@@ -90,3 +90,4 @@ const std::string jsonConsts::general           = "general";
 const std::string jsonConsts::path              = "path";
 const std::string jsonConsts::aoip              = "aoip";
 const std::string jsonConsts::audio             = "audio";
+const std::string jsonConsts::running           = "running";

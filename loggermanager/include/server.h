@@ -90,6 +90,7 @@ class Server
         static const endpoint EP_WS;
         static const endpoint EP_WS_LOGGERS;
         static const endpoint EP_WS_INFO;
+        static const endpoint EP_WS_STATUS;
 
         static const std::string ROOT;
         static const std::string API;

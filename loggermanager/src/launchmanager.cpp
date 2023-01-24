@@ -82,7 +82,7 @@ void LaunchManager::LaunchAll()
 
 void LaunchManager::LaunchLogger(std::shared_ptr<Launcher> pLauncher)
 {
-    if(pLauncher->IsRecording() == false)
+    if(pLauncher->IsRunning() == false)
     {
         pLauncher->LaunchLogger();
     }
@@ -185,7 +185,7 @@ pml::restgoose::response LaunchManager::RemoveLogger(const std::string& sName)
     auto itLogger = m_mLaunchers.find(sName);
     if(itLogger != m_mLaunchers.end())
     {
-        if(itLogger->second->IsRecording())
+        if(itLogger->second->IsRunning())
         {
             itLogger->second->StopLogger();
         }
@@ -336,4 +336,13 @@ pml::restgoose::response LaunchManager::UpdateLoggerConfig(const std::string& sN
     return GetLoggerConfig(sName);
 }
 
+Json::Value LaunchManager::GetStatusSummary() const
+{
+    Json::Value jsValue(Json::arrayValue);
+    for(const auto& [sName, pLauncher] : m_mLaunchers)
+    {
+        jsValue.append(pLauncher->GetStatusSummary());
+    }
+    return jsValue;
+}
 

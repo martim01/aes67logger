@@ -65,7 +65,7 @@ Launcher::~Launcher()
 
 
 
-bool Launcher::IsRecording() const
+bool Launcher::IsRunning() const
 {
     return (m_pid!=0);
 }
@@ -202,6 +202,7 @@ void Launcher::Read()
             if(jsValue.isMember(jsonConsts::event) && jsValue.isMember(jsonConsts::data))
             {
                 m_jsStatus[jsValue[jsonConsts::event].asString()] = jsValue[jsonConsts::data];
+                CreateSummary();
             }
         }
         if(m_statusCallback)
@@ -215,4 +216,37 @@ void Launcher::Read()
         pmlLog(pml::LOG_ERROR) << m_pathConfig << "\tEOF or Read Error: Logger closed" << std::endl;
         LaunchLogger();
     }
+}
+
+void Launcher::CreateSummary()
+{
+    m_jsStatusSummary.clear();
+    m_jsStatusSummary[jsonConsts::name] = m_pathConfig.stem().string();
+    m_jsStatusSummary[jsonConsts::running] = IsRunning();
+
+    if(m_jsStatus.isMember(jsonConsts::streaming))
+    {
+        m_jsStatusSummary[jsonConsts::streaming] = m_jsStatus[jsonConsts::streaming];
+    }
+    if(m_jsStatus.isMember(jsonConsts::session))
+    {
+        m_jsStatusSummary[jsonConsts::session] = m_jsStatus[jsonConsts::session][jsonConsts::name];
+    }
+
+    if(m_jsStatus.isMember(jsonConsts::heartbeat))
+    {
+        m_jsStatusSummary[jsonConsts::timestamp] = m_jsStatus[jsonConsts::heartbeat][jsonConsts::timestamp];
+        m_jsStatusSummary[jsonConsts::up_time] = m_jsStatus[jsonConsts::heartbeat][jsonConsts::up_time];
+    }
+
+    if(m_jsStatus.isMember(jsonConsts::file) && m_jsStatus[jsonConsts::file].isMember(jsonConsts::filename))
+    {
+        std::filesystem::path file = m_jsStatus[jsonConsts::file][jsonConsts::filename].asString();
+        m_jsStatusSummary[jsonConsts::filename] = file.stem().string();
+    }
+
+}
+const Json::Value& Launcher::GetStatusSummary() const
+{
+    return m_jsStatusSummary;
 }

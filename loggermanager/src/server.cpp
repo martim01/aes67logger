@@ -41,6 +41,7 @@ const endpoint Server::EP_INFO        = endpoint(EP_API.Get()+"/"+INFO);
 const endpoint Server::EP_WS          = endpoint(EP_API.Get()+"/"+WS);
 const endpoint Server::EP_WS_LOGGERS  = endpoint(EP_WS.Get()+"/"+LOGGERS);
 const endpoint Server::EP_WS_INFO     = endpoint(EP_WS.Get()+"/"+INFO);
+const endpoint Server::EP_WS_STATUS   = endpoint(EP_WS.Get()+"/"+STATUS);
 
 
 static pml::restgoose::response ConvertPostDataToJson(const postData& vData)
@@ -145,8 +146,9 @@ void Server::Run(const std::string& sConfigFile)
 
     m_info.SetDiskPath(m_config.Get("paths", "audio", "/var/loggers"));
 
-    if(m_server.Init(fileLocation(m_config.Get("api", "sslCert", "")), fileLocation(m_config.Get("api", "ssKey", "")), ipAddress("0.0.0.0"), m_config.Get("api", "port", 8080), endpoint(""), true))
+    if(m_server.Init(fileLocation(m_config.Get("api", "sslCert", "")), fileLocation(m_config.Get("api", "ssKey", "")), ipAddress("0.0.0.0"), m_config.Get("api", "port", 8080), EP_API, true))
     {
+        m_server.SetStaticDirectory("/home/matt/aes67logger/www");
         //add luauncher callbacks
         m_launcher.Init(m_config.Get("paths", "loggers", "/usr/local/etc/loggers"), std::bind(&Server::StatusCallback, this, _1,_2), std::bind(&Server::ExitCallback, this, _1,_2));
 
@@ -163,7 +165,7 @@ bool Server::CreateEndpoints()
 
     pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "CreateEndpoints" ;
 
-    m_server.AddEndpoint(pml::restgoose::GET, EP_ROOT, std::bind(&Server::GetRoot, this, _1,_2,_3,_4));
+    //m_server.AddEndpoint(pml::restgoose::GET, EP_ROOT, std::bind(&Server::GetRoot, this, _1,_2,_3,_4));
     m_server.AddEndpoint(pml::restgoose::GET, EP_API, std::bind(&Server::GetApi, this, _1,_2,_3,_4));
 
     m_server.AddEndpoint(pml::restgoose::GET, EP_LOGGERS, std::bind(&Server::GetLoggers, this, _1,_2,_3,_4));
@@ -183,6 +185,7 @@ bool Server::CreateEndpoints()
 
     m_server.AddWebsocketEndpoint(EP_WS, std::bind(&Server::WebsocketAuthenticate, this, _1,_2,_3,_4), std::bind(&Server::WebsocketMessage, this, _1,_2), std::bind(&Server::WebsocketClosed, this, _1,_2));
     m_server.AddWebsocketEndpoint(EP_WS_INFO, std::bind(&Server::WebsocketAuthenticate, this, _1,_2,_3,_4), std::bind(&Server::WebsocketMessage, this, _1,_2), std::bind(&Server::WebsocketClosed, this, _1,_2));
+    m_server.AddWebsocketEndpoint(EP_WS_STATUS, std::bind(&Server::WebsocketAuthenticate, this, _1,_2,_3,_4), std::bind(&Server::WebsocketMessage, this, _1,_2), std::bind(&Server::WebsocketClosed, this, _1,_2));
 
     //now add all the dynamic methodpoints
     for(const auto& [sName, pLauncher] : m_launcher.GetLaunchers())
@@ -557,6 +560,7 @@ void Server::LoopCallback(std::chrono::milliseconds durationSince)
     if(m_nTimeSinceLastCall > 2000)
     {
         m_server.SendWebsocketMessage({EP_WS_INFO}, m_info.GetInfo());
+        m_server.SendWebsocketMessage({EP_WS_STATUS}, m_launcher.GetStatusSummary());
         m_nTimeSinceLastCall = 0;
     }
 
