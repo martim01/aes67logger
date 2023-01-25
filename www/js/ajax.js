@@ -16,6 +16,26 @@ const CLR_CONNECTING = "#ffff00";
 const CLR_SYNC = "#008000";
 
 
+function login()
+{
+	var play = { "username" : document.getElementById('username').value,
+                 "password" : document.getElementById('password').value};
+
+    ajaxPostPutPatch("POST", "/x-api/login", JSON.stringify(play), handleLogin);
+}
+
+function handleLogin(status, jsonObj)
+{
+    if(status !== 200)
+    {
+        UIkit.notification({message: jsonObj["reason"], status: 'danger', timeout: 3000})
+    }
+    else
+    {
+        console.log(jsonObj);   
+    }
+}
+
 function showLogger(logger)
 {
     var grid = document.getElementById('logger_grid');
@@ -305,6 +325,40 @@ function ajaxGet(endpoint, callback)
 	ajax.send();
 }
 
+function ajaxPostPutPatch(method, endpoint, jsonData, callback)
+{
+	var ajax = new XMLHttpRequest();
+	ajax.onreadystatechange = function()
+	{
+		
+		if(this.readyState == 4)
+		{
+			var jsonObj = JSON.parse(this.responseText);
+			callback(this.status, jsonObj);
+		}
+	}
+	
+	ajax.open(method, "http://127.0.0.1:8080/"+endpoint, true);
+	ajax.setRequestHeader("Content-type", "application/json");
+	ajax.send(jsonData);
+}
+
+function ajaxDelete(endpoint, callback)
+{
+	var ajax = new XMLHttpRequest();
+	ajax.onreadystatechange = function()
+	{
+		
+		if(this.readyState == 4)
+		{
+			var jsonObj = JSON.parse(this.responseText);
+			callback(this.status, jsonObj);
+		}
+	}
+	
+	ajax.open("DELETE", "http://127.0.0.1:8080/"+endpoint, true);
+	ajax.send(null);
+}
 
 
 function millisecondsToTime(milliseconds)
@@ -361,5 +415,200 @@ function createBodyGrid(name, id)
 	return body_grid;
 }
 */	
-	
 
+function system()
+{
+    getUpdate(handleSystemGetUpdate);
+}
+
+function handleGetUpdate(status, jsonObj)
+{
+    if(status == 200)
+    {
+        if('server' in jsonObj)
+        {
+            if('version' in jsonObj.server)
+            {
+                document.getElementById('loggermanager-version').innerHTML = jsonObj.server.version;
+            }
+            if('date' in jsonObj.server)
+            {
+                document.getElementById('loggermanager-date').innerHTML = jsonObj.server.date;
+            }
+        }
+        if('logger' in jsonObj)
+        {
+            if('version' in jsonObj.server)
+            {
+                document.getElementById('logger-version').innerHTML = jsonObj.server.version;
+            }
+            if('date' in jsonObj.server)
+            {
+                document.getElementById('logger-date').innerHTML = jsonObj.server.date;
+            }
+        }
+    }
+}
+
+function handleSystemGetUpdate(status, jsonObj)
+{
+    handleGetUpdate(status, jsonObj);
+
+    ws_connect('info', updateInfo_System);
+}
+
+function updateInfo_System(jsonObj)
+{
+    console.log(jsonObj);
+	document.getElementById('application-start_time').innerHTML = jsonObj.application.start_time;
+	document.getElementById('application-up_time').innerHTML = millisecondsToTime(jsonObj.application.up_time*1000);
+	
+	document.getElementById('system-uptime').innerHTML = millisecondsToTime(jsonObj.system.uptime*1000);
+	document.getElementById('system-procs').innerHTML = jsonObj.system.procs;
+	document.getElementById('temperature-cpu').innerHTML = jsonObj.temperature.cpu;
+	
+	document.getElementById('cpu-cpu').innerHTML = jsonObj.cpu.cpu;
+	document.getElementById('cpu-cpu0').innerHTML = jsonObj.cpu.cpu0;
+	document.getElementById('cpu-cpu1').innerHTML = jsonObj.cpu.cpu1;
+	document.getElementById('cpu-cpu2').innerHTML = jsonObj.cpu.cpu2;
+	document.getElementById('cpu-cpu3').innerHTML = jsonObj.cpu.cpu3;
+	
+	document.getElementById('disk-bytes-total').innerHTML = Math.round(jsonObj.disk.bytes.total/1073741824);
+	document.getElementById('disk-bytes-free').innerHTML = Math.round(jsonObj.disk.bytes.free/1073741824);
+	document.getElementById('disk-bytes-available').innerHTML = Math.round(jsonObj.disk.bytes.available/1073741824);
+	
+	document.getElementById('disk-inodes-total').innerHTML = jsonObj.disk.inodes.total;
+	document.getElementById('disk-inodes-free').innerHTML = jsonObj.disk.inodes.free;
+	document.getElementById('disk-inodes-available').innerHTML = jsonObj.disk.inodes.available;
+	
+	document.getElementById('system-loads-1').innerHTML = Math.round(jsonObj.system.loads["1"]*100)/100;
+	document.getElementById('system-loads-5').innerHTML = Math.round(jsonObj.system.loads["5"]*100)/100;
+	document.getElementById('system-loads-15').innerHTML = Math.round(jsonObj.system.loads["15"]*100)/100;
+	
+	document.getElementById('system-ram-total').innerHTML = Math.round(jsonObj.system.ram.total/1048576);
+	document.getElementById('system-ram-buffered').innerHTML = Math.round(jsonObj.system.ram.buffered/1048576);
+	document.getElementById('system-ram-shared').innerHTML = Math.round(jsonObj.system.ram.shared/1048576);
+	document.getElementById('system-ram-free').innerHTML = Math.round(jsonObj.system.ram.free/1048576);	
+	
+	if(jsonObj.process !== undefined)
+	{
+		document.getElementById('process-rs').innerHTML = Math.round(jsonObj.process.rs/1024);
+		document.getElementById('process-vm').innerHTML = Math.round(jsonObj.process.vm/1024);
+	}
+	
+	
+	if(jsonObj.ntp !== undefined)
+	{
+		if(jsonObj.ntp.error !== undefined)
+		{
+			document.getElementById("ntp-sync").innerHTML = jsonObj.ntp.error;
+			document.getElementById("current_time").style.color = CLR_ERROR;
+		}
+		else
+		{
+			if(jsonObj.ntp.synchronised == true)
+			{
+				document.getElementById("current_time").style.color = CLR_SYNC;
+			}
+			else
+			{
+				document.getElementById("current_time").style.color = CLR_WARNING;
+			}
+			document.getElementById("ntp-sync").innerHTML = jsonObj.ntp.synchronised;
+			document.getElementById("ntp-clock").innerHTML = jsonObj.ntp.source;
+			document.getElementById("ntp-refid").innerHTML = jsonObj.ntp.refid;
+			document.getElementById("ntp-stratum").innerHTML = jsonObj.ntp.stratum;
+			document.getElementById("ntp-precision").innerHTML = Math.round(Math.pow(2, jsonObj.ntp.precision)*1000000)+"us";
+			document.getElementById("ntp-offset").innerHTML = jsonObj.ntp.offset+"s";
+			document.getElementById("ntp-jitter").innerHTML = jsonObj.ntp.sys_jitter+"s";
+			document.getElementById("ntp-poll").innerHTML = Math.pow(2, jsonObj.ntp.tc)+"s";
+		}
+	}
+	else
+	{
+		document.getElementById("current_time").style.color = CLR_UNKNOWN;
+	}
+}
+
+function restart(command)
+{
+	UIkit.modal.confirm('Are you sure?').then(function() 
+	{
+		var play = { "command" : command};
+		ajaxPostPutPatch("PUT", "/x-api/power", JSON.stringify(play), handleRestartPut);
+	}, function () {});	
+}
+
+
+function handleRestartPut(status, jsonObj)
+{
+	if(status != 200)
+	{
+		UIkit.notification({message: jsonObj["reason"], status: 'danger', timeout: 3000})
+	}
+
+}
+
+
+function showUpdate(application)
+{
+	document.getElementById('update_application_title').innerHTML = application;
+	document.getElementById('update_application').value = application;
+	UIkit.modal(document.getElementById('update_modal')).show();
+}
+
+function updateApp()
+{
+	if(document.getElementById('filename').value != document.getElementById('update_application').value)
+	{
+		UIkit.modal.confirm('File chosen has different name to application. Continue?').then(function() 
+		{
+			doUpdate();
+		}, function () {
+		});
+	}
+	else
+	{
+		doUpdate();
+	}
+}
+
+function doUpdate()
+{
+	var fd = new FormData(document.getElementById('update_form'));
+	
+	var ajax = new XMLHttpRequest();
+
+		
+	ajax.onreadystatechange = function()
+	{
+		
+		if(this.readyState == 4)
+		{
+			var jsonObj = JSON.parse(this.responseText);
+			
+			
+			if(this.status != 200)
+			{
+				UIkit.notification({message: jsonObj["reason"], status: 'danger', timeout: 4000});
+			}
+			else if(jsonObj["restart"] == true)
+			{
+				UIkit.notification({message: document.getElementById('update_application').value+" has been updated but needs restarting.", status: 'danger', timeout: 3000});
+				
+				getUpdate(0, showVersion);
+			}
+			else
+			{
+				UIkit.notification({message: document.getElementById('update_application').value+" has been updated", status: 'danger', timeout: 3000});
+				getUpdate(0, showVersion);
+			}
+		}
+	}
+
+	UIkit.modal(document.getElementById('update_modal')).hide();
+	
+	
+	ajax.open('PUT',"http://"+g_loopi_array[0].url+"/x-epi/update");
+	ajax.send(fd);
+}

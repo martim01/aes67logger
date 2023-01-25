@@ -5,6 +5,8 @@
 #include "json/json.h"
 #include "RestGoose.h"
 #include "inimanager.h"
+#include <set>
+
 
 using postData = std::vector<pml::restgoose::partData>;
 class Server
@@ -39,6 +41,8 @@ class Server
         pml::restgoose::response GetUpdate(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
         pml::restgoose::response PutUpdate(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
 
+        pml::restgoose::response PostLogin(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
+
 
         void StatusCallback(const std::string& sLoggerId, const Json::Value& jsStatus);
         void ExitCallback(const std::string& sLoggerId, int nPid);
@@ -58,12 +62,14 @@ class Server
         void InitLogging();
         bool CreateEndpoints();
 
+        void DeleteEndpoints();
         pml::restgoose::response Reboot(int nCommand);
 
         void GetInitialLoggerStatus();
 
         void PatchServerConfig(const Json::Value& jsData);
         Json::Value m_jsStatus;
+        bool AuthenticateToken(const std::string& sToken);
 
          /**
         x-epi                               GET
@@ -81,6 +87,7 @@ class Server
 
         static const endpoint EP_ROOT;
         static const endpoint EP_API;
+        static const endpoint EP_LOGIN;
         static const endpoint EP_LOGGERS;
         static const endpoint EP_STATUS;
         static const endpoint EP_POWER;
@@ -94,6 +101,7 @@ class Server
 
         static const std::string ROOT;
         static const std::string API;
+        static const std::string LOGIN;
         static const std::string LOGGERS;
         static const std::string POWER;
         static const std::string CONFIG;
@@ -109,4 +117,6 @@ class Server
         int m_nLogToConsole;
         int m_nLogToFile;
         bool m_bLoggedThisHour;
+
+        std::set<std::string> m_setTokens;
 };

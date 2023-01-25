@@ -101,4 +101,7 @@ struct jsonConsts
     static const std::string audio;
     static const std::string running;
 
+    static const std::string username;
+    static const std::string password;
+
 };

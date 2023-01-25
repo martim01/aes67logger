@@ -23,6 +23,7 @@ using namespace pml;
 
 const std::string Server::ROOT        = "/";             //GET
 const std::string Server::API         = "x-api";          //GET
+const std::string Server::LOGIN       = "login";
 const std::string Server::LOGGERS     = "loggers";
 const std::string Server::POWER       = "power";
 const std::string Server::CONFIG      = "config";
@@ -33,6 +34,7 @@ const std::string Server::WS          = "ws";        //GET PUT
 
 const endpoint Server::EP_ROOT        = endpoint("");
 const endpoint Server::EP_API         = endpoint(ROOT+API);
+const endpoint Server::EP_LOGIN       = endpoint(EP_API.Get()+"/"+LOGIN);
 const endpoint Server::EP_LOGGERS     = endpoint(EP_API.Get()+"/"+LOGGERS);
 const endpoint Server::EP_POWER       = endpoint(EP_API.Get()+"/"+POWER);
 const endpoint Server::EP_CONFIG      = endpoint(EP_API.Get()+"/"+CONFIG);
@@ -148,7 +150,18 @@ void Server::Run(const std::string& sConfigFile)
 
     if(m_server.Init(fileLocation(m_config.Get("api", "sslCert", "")), fileLocation(m_config.Get("api", "ssKey", "")), ipAddress("0.0.0.0"), m_config.Get("api", "port", 8080), EP_API, true))
     {
-        m_server.SetStaticDirectory("/home/matt/aes67logger/www");
+
+        m_server.SetAuthorizationTypeBearer(std::bind(&Server::AuthenticateToken, this, _1), true);
+        m_server.SetUnprotectedEndpoints({methodpoint(pml::restgoose::GET, endpoint("")),
+                                          methodpoint(pml::restgoose::GET, endpoint("/index.html")),
+                                          methodpoint(pml::restgoose::POST, EP_LOGIN),
+                                          methodpoint(pml::restgoose::GET, endpoint("/js/*")),
+                                          methodpoint(pml::restgoose::GET, endpoint("/uikit/*")),
+                                          methodpoint(pml::restgoose::GET, endpoint("/images/*"))});
+
+        m_server.SetStaticDirectory(m_config.Get("api","static","/home/matt/aes67logger/www"));
+
+
         //add luauncher callbacks
         m_launcher.Init(m_config.Get("paths", "loggers", "/usr/local/etc/loggers"), std::bind(&Server::StatusCallback, this, _1,_2), std::bind(&Server::ExitCallback, this, _1,_2));
 
@@ -157,6 +170,9 @@ void Server::Run(const std::string& sConfigFile)
 
         //start the server loop
         m_server.Run(false, std::chrono::milliseconds(50));
+
+        pmlLog() << "Core\tStop" ;
+        DeleteEndpoints();
     }
 }
 
@@ -165,7 +181,7 @@ bool Server::CreateEndpoints()
 
     pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "CreateEndpoints" ;
 
-    //m_server.AddEndpoint(pml::restgoose::GET, EP_ROOT, std::bind(&Server::GetRoot, this, _1,_2,_3,_4));
+    m_server.AddEndpoint(pml::restgoose::POST, EP_LOGIN, std::bind(&Server::PostLogin, this, _1,_2,_3,_4));
     m_server.AddEndpoint(pml::restgoose::GET, EP_API, std::bind(&Server::GetApi, this, _1,_2,_3,_4));
 
     m_server.AddEndpoint(pml::restgoose::GET, EP_LOGGERS, std::bind(&Server::GetLoggers, this, _1,_2,_3,_4));
@@ -208,6 +224,40 @@ bool Server::CreateEndpoints()
     m_server.SetLoopCallback(std::bind(&Server::LoopCallback, this, _1));
 
     return true;
+}
+
+void Server::DeleteEndpoints()
+{
+
+    pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "DeleteEndpoints" ;
+
+    m_server.DeleteEndpoint(pml::restgoose::GET, EP_API);
+
+    m_server.DeleteEndpoint(pml::restgoose::GET, EP_LOGGERS);
+    m_server.DeleteEndpoint(pml::restgoose::POST, EP_LOGGERS);
+
+    m_server.DeleteEndpoint(pml::restgoose::GET, EP_CONFIG);
+    m_server.DeleteEndpoint(pml::restgoose::PATCH, EP_CONFIG);
+
+    m_server.DeleteEndpoint(pml::restgoose::GET, EP_POWER);
+    m_server.DeleteEndpoint(pml::restgoose::PUT, EP_POWER);
+
+    m_server.DeleteEndpoint(pml::restgoose::GET, EP_INFO);
+
+    m_server.DeleteEndpoint(pml::restgoose::GET, EP_UPDATE);
+    m_server.DeleteEndpoint(pml::restgoose::PUT, EP_UPDATE);
+
+    //now Delete all the dynamic methodpoints
+    for(const auto& [sName, pLauncher] : m_launcher.GetLaunchers())
+    {
+        m_server.DeleteEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName));
+        m_server.DeleteEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName+"/"+STATUS));
+        m_server.DeleteEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName+"/"+CONFIG));
+
+        m_server.DeleteEndpoint(pml::restgoose::HTTP_DELETE, endpoint(EP_LOGGERS.Get()+"/"+sName));
+        m_server.DeleteEndpoint(pml::restgoose::PUT, endpoint(EP_LOGGERS.Get()+"/"+sName+"/"+CONFIG));
+
+    }
 }
 
 pml::restgoose::response Server::GetRoot(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
@@ -364,6 +414,7 @@ pml::restgoose::response Server::GetUpdate(const query& theQuery, const postData
     theResponse.jsonData[jsonConsts::server][jsonConsts::minor] = pml::loggermanager::VERSION_MINOR;
     theResponse.jsonData[jsonConsts::server][jsonConsts::patch] = pml::loggermanager::VERSION_PATCH;
     theResponse.jsonData[jsonConsts::server][jsonConsts::version] = pml::loggermanager::VERSION_STRING;
+    theResponse.jsonData[jsonConsts::server][jsonConsts::date] = pml::loggermanager::BUILD_DATE;
 
     theResponse.jsonData[jsonConsts::logger] = ConvertToJson(Exec("logger -v"));
 
@@ -618,3 +669,26 @@ void Server::WebsocketClosed(const endpoint& theEndpoint, const ipAddress& peer)
     pmlLog() << "Websocket closed from " << peer;
 }
 
+bool Server::AuthenticateToken(const std::string& sToken)
+{
+    return (m_setTokens.find(sToken) != m_setTokens.end());
+}
+
+pml::restgoose::response Server::PostLogin(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
+{
+    auto theResponse = ConvertPostDataToJson(vData);
+    if(theResponse.nHttpCode == 200)
+    {
+        if(theResponse.jsonData.isMember(jsonConsts::username) && theResponse.jsonData.isMember(jsonConsts::password) && theResponse.jsonData[jsonConsts::password].asString().empty() == false)
+        {
+            if(m_config.Get("users", theResponse.jsonData[jsonConsts::username].asString(), "") == theResponse.jsonData[jsonConsts::password].asString())
+            {
+                pml::restgoose::response resp;
+                resp.jsonData["token"] = "thetoken";
+                m_setTokens.insert("thetoken");
+                return resp;
+            }
+        }
+    }
+    return pml::restgoose::response(401, "Username or password incorrect");
+}
