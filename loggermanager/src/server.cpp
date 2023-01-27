@@ -30,6 +30,7 @@ const std::string Server::CONFIG      = "config";
 const std::string Server::STATUS      = "status";
 const std::string Server::INFO        = "info";
 const std::string Server::UPDATE      = "update";
+const std::string Server::LOGS        = "logs";
 const std::string Server::WS          = "ws";        //GET PUT
 
 const endpoint Server::EP_ROOT        = endpoint("");
@@ -40,6 +41,7 @@ const endpoint Server::EP_POWER       = endpoint(EP_API.Get()+"/"+POWER);
 const endpoint Server::EP_CONFIG      = endpoint(EP_API.Get()+"/"+CONFIG);
 const endpoint Server::EP_UPDATE      = endpoint(EP_API.Get()+"/"+UPDATE);
 const endpoint Server::EP_INFO        = endpoint(EP_API.Get()+"/"+INFO);
+const endpoint Server::EP_LOG        = endpoint(EP_API.Get()+"/"+LOGS);
 const endpoint Server::EP_WS          = endpoint(EP_API.Get()+"/"+WS);
 const endpoint Server::EP_WS_LOGGERS  = endpoint(EP_WS.Get()+"/"+LOGGERS);
 const endpoint Server::EP_WS_INFO     = endpoint(EP_WS.Get()+"/"+INFO);
@@ -60,6 +62,7 @@ static pml::restgoose::response ConvertPostDataToJson(const postData& vData)
         resp.jsonData.clear();
         for(size_t i = 0; i < vData.size(); i++)
         {
+            pmlLog() << "ConvertPostDataToJson: data " << i <<"=" << vData[i].data.Get();
             if(vData[i].name.Get().empty() == false)
             {
                 if(vData[i].filepath.Get().empty() == true)
@@ -151,7 +154,7 @@ void Server::Run(const std::string& sConfigFile)
     if(m_server.Init(fileLocation(m_config.Get("api", "sslCert", "")), fileLocation(m_config.Get("api", "ssKey", "")), ipAddress("0.0.0.0"), m_config.Get("api", "port", 8080), EP_API, true))
     {
 
-        m_server.SetAuthorizationTypeBearer(std::bind(&Server::AuthenticateToken, this, _1), true);
+        m_server.SetAuthorizationTypeBearer(std::bind(&Server::AuthenticateToken, this, _1), std::bind(&Server::RedirectToLogin, this), true);
         m_server.SetUnprotectedEndpoints({methodpoint(pml::restgoose::GET, endpoint("")),
                                           methodpoint(pml::restgoose::GET, endpoint("/index.html")),
                                           methodpoint(pml::restgoose::POST, EP_LOGIN),
@@ -182,6 +185,7 @@ bool Server::CreateEndpoints()
     pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "CreateEndpoints" ;
 
     m_server.AddEndpoint(pml::restgoose::POST, EP_LOGIN, std::bind(&Server::PostLogin, this, _1,_2,_3,_4));
+    m_server.AddEndpoint(pml::restgoose::HTTP_DELETE, EP_LOGIN, std::bind(&Server::DeleteLogin, this, _1,_2,_3,_4));
     m_server.AddEndpoint(pml::restgoose::GET, EP_API, std::bind(&Server::GetApi, this, _1,_2,_3,_4));
 
     m_server.AddEndpoint(pml::restgoose::GET, EP_LOGGERS, std::bind(&Server::GetLoggers, this, _1,_2,_3,_4));
@@ -198,6 +202,7 @@ bool Server::CreateEndpoints()
     m_server.AddEndpoint(pml::restgoose::GET, EP_UPDATE, std::bind(&Server::GetUpdate, this, _1,_2,_3,_4));
     m_server.AddEndpoint(pml::restgoose::PUT, EP_UPDATE, std::bind(&Server::PutUpdate, this, _1,_2,_3,_4));
 
+    m_server.AddEndpoint(pml::restgoose::GET, EP_LOGS, std::bind(&Server::GetLogs, this, _1,_2,_3,_4));
 
     m_server.AddWebsocketEndpoint(EP_WS, std::bind(&Server::WebsocketAuthenticate, this, _1,_2,_3,_4), std::bind(&Server::WebsocketMessage, this, _1,_2), std::bind(&Server::WebsocketClosed, this, _1,_2));
     m_server.AddWebsocketEndpoint(EP_WS_INFO, std::bind(&Server::WebsocketAuthenticate, this, _1,_2,_3,_4), std::bind(&Server::WebsocketMessage, this, _1,_2), std::bind(&Server::WebsocketClosed, this, _1,_2));
@@ -558,6 +563,19 @@ void Server::PatchServerConfig(const Json::Value& jsData)
     }
 }
 
+
+
+
+pml::restgoose::response Server::GetLogs(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
+{
+    pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "GetLogs" ;
+    pml::restgoose::response theResponse;
+
+    theResponse.jsonData[jsonConsts::status] = "On";
+
+    return theResponse;
+}
+
 void Server::StatusCallback(const std::string& sLoggerId, const Json::Value& jsStatus)
 {
     //lock as jsStatus can be called by pipe thread and server thread
@@ -671,7 +689,14 @@ void Server::WebsocketClosed(const endpoint& theEndpoint, const ipAddress& peer)
 
 bool Server::AuthenticateToken(const std::string& sToken)
 {
-    return (m_setTokens.find(sToken) != m_setTokens.end());
+    pmlLog() << "AuthenticateToken " << m_server.GetCurrentPeer(false) << "=" << sToken;
+    auto itToken = m_mTokens.find(m_server.GetCurrentPeer(false));
+    if(itToken != m_mTokens.end() && itToken->second->GetId() == sToken)
+    {
+        itToken->second->Accessed();
+        return true;
+    }
+    return false;
 }
 
 pml::restgoose::response Server::PostLogin(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
@@ -683,12 +708,37 @@ pml::restgoose::response Server::PostLogin(const query& theQuery, const postData
         {
             if(m_config.Get("users", theResponse.jsonData[jsonConsts::username].asString(), "") == theResponse.jsonData[jsonConsts::password].asString())
             {
-                pml::restgoose::response resp;
-                resp.jsonData["token"] = "thetoken";
-                m_setTokens.insert("thetoken");
+                auto pCookie = std::make_unique<SessionCookie>(userName(theResponse.jsonData[jsonConsts::username].asString()), m_server.GetCurrentPeer(false));
+
+                auto [itToken, ins] = m_mTokens.insert(std::make_pair(m_server.GetCurrentPeer(false), std::move(pCookie)));
+                if(ins == false)
+                {
+                    itToken->second = std::move(pCookie);
+                }
+
+
+
+                pml::restgoose::response resp(302);
+                resp.mHeaders = {{headerName("Location"), headerValue("/dashboard")},
+                                      {headerName("Set-Cookie"), itToken->second->GetHeaderValue()}};
+
+                pmlLog() << "Login complete: ";
                 return resp;
             }
         }
     }
     return pml::restgoose::response(401, "Username or password incorrect");
+}
+
+pml::restgoose::response Server::DeleteLogin(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
+{
+    m_mTokens.erase(m_server.GetCurrentPeer(false));
+    return RedirectToLogin();
+}
+
+pml::restgoose::response Server::RedirectToLogin()
+{
+    pml::restgoose::response theResponse(302);
+    theResponse.mHeaders = {{headerName("Location"), headerValue("/")}};
+    return theResponse;
 }

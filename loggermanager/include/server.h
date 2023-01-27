@@ -6,7 +6,7 @@
 #include "RestGoose.h"
 #include "inimanager.h"
 #include <set>
-
+#include "session.h"
 
 using postData = std::vector<pml::restgoose::partData>;
 class Server
@@ -35,6 +35,8 @@ class Server
 
         pml::restgoose::response GetInfo(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
 
+        pml::restgoose::response GetLogs(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
+
         pml::restgoose::response GetPower(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
         pml::restgoose::response PutPower(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
 
@@ -42,7 +44,9 @@ class Server
         pml::restgoose::response PutUpdate(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
 
         pml::restgoose::response PostLogin(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
+        pml::restgoose::response DeleteLogin(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
 
+        pml::restgoose::response RedirectToLogin();
 
         void StatusCallback(const std::string& sLoggerId, const Json::Value& jsStatus);
         void ExitCallback(const std::string& sLoggerId, int nPid);
@@ -88,6 +92,8 @@ class Server
         static const endpoint EP_ROOT;
         static const endpoint EP_API;
         static const endpoint EP_LOGIN;
+        static const endpoint EP_LOGS;
+        static const endpoint EP_LOGOUT;
         static const endpoint EP_LOGGERS;
         static const endpoint EP_STATUS;
         static const endpoint EP_POWER;
@@ -101,7 +107,9 @@ class Server
 
         static const std::string ROOT;
         static const std::string API;
+        static const std::string LOGS;
         static const std::string LOGIN;
+        static const std::string LOGOUT;
         static const std::string LOGGERS;
         static const std::string POWER;
         static const std::string CONFIG;
@@ -118,5 +126,5 @@ class Server
         int m_nLogToFile;
         bool m_bLoggedThisHour;
 
-        std::set<std::string> m_setTokens;
+        std::map<ipAddress, std::unique_ptr<SessionCookie>> m_mTokens;
 };

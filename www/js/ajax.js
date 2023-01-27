@@ -2,6 +2,7 @@ var g_loggerArray = new Array();
 var g_ajax = new XMLHttpRequest();
 var g_ws = null;
 g_ajax.timeout = 300;
+var g_cookie_array = [];
 
 const zeroPad = (num,places)=>String(num).padStart(places,'0');
 
@@ -16,12 +17,30 @@ const CLR_CONNECTING = "#ffff00";
 const CLR_SYNC = "#008000";
 
 
+function getCookies()
+{
+	let decodedCookie = decodeURIComponent(document.cookie);
+	decodedCookie.split(';').forEach(function(el){
+		let pos = el.indexOf('=');
+		if(pos != -1)
+		{
+			g_cookie_array[el.substring(0,pos)] = el.substring(pos+1);
+		}
+	});
+}
+
+
 function login()
 {
 	var play = { "username" : document.getElementById('username').value,
                  "password" : document.getElementById('password').value};
 
     ajaxPostPutPatch("POST", "/x-api/login", JSON.stringify(play), handleLogin);
+}
+function logout()
+{
+	ajaxDelete("/x-api/login", handleLogout);
+	window.location  = "/";
 }
 
 function handleLogin(status, jsonObj)
@@ -34,6 +53,11 @@ function handleLogin(status, jsonObj)
     {
         console.log(jsonObj);   
     }
+}
+
+function handleLogout(status, jsonObj)
+{
+
 }
 
 function showLogger(logger)
@@ -63,8 +87,8 @@ function showLogger(logger)
     divHeader.appendChild(titleH3);
     
     var divBadge = document.createElement('div');
-    divBadge.classList.add('uk-card-badge', 'uk-label', 'uk-label-danger');
-    divBadge.innerHTML = "Not Running";
+    divBadge.classList.add('uk-card-badge', 'uk-label', 'uk-label-warning');
+    divBadge.innerHTML = "Unknown";
     divBadge.id = 'running_'+logger; 
     divHeader.appendChild(divBadge);
     
@@ -137,6 +161,31 @@ function dashboard()
 {
     getLoggers(handleLoggers);
     //g_loggerArray.forEach(showLogger);
+}
+
+function logs()
+{
+    getLoggers(populateSelectLoggers);
+    //g_loggerArray.forEach(showLogger);
+}
+
+function populateSelectLoggers(status, jsData)
+{
+    if(status == 200)
+    {
+        g_loggerArray = jsData;
+        if(g_loggerArray !== null)
+        {
+			var select = document.getElementById('select_log');
+            g_loggerArray.forEach(function(el){
+				var opt = document.createElement('option');
+				opt.id = el;
+				opt.name = el;
+				opt.innerHTML = el;
+				select.appendChild(opt);
+			});
+        }
+	}
 }
 
 function handleLoggers(status, jsData)
@@ -238,7 +287,9 @@ function serverOffline()
 
 function ws_connect(endpoint, callbackMessage)
 {
-	g_ws = new WebSocket("ws://127.0.0.1:8080/x-api/ws/"+endpoint);
+	getCookies();
+
+	g_ws = new WebSocket("ws://127.0.0.1:8080/x-api/ws/"+endpoint+"?access_token=");
     g_ws.timeout = true;
 	g_ws.onopen = function(ev)  { this.tm = setTimeout(serverOffline, 4000) };
 	g_ws.onerror = function(ev) { serverOffline(); };
@@ -351,7 +402,11 @@ function ajaxDelete(endpoint, callback)
 		
 		if(this.readyState == 4)
 		{
-			var jsonObj = JSON.parse(this.responseText);
+			var jsonObj = null;
+			if(this.responseText != "")
+			{
+				jsonObj = JSON.parse(this.responseText);
+			}
 			callback(this.status, jsonObj);
 		}
 	}

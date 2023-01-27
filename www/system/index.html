@@ -15,7 +15,7 @@
         <nav class="uk-navbar-container" uk-navbar style="background: #ffffff; border-bottom: 1px solid #a8a8d8;">
 		<div class="uk-navbar-left">
 			<ul class="uk-navbar-nav">
-				<li class="uk-parent"><a href="../" class="uk-logo"><img src="images/loopi.png"></a></li>
+				<li class="uk-parent"><a href="../dashboard/" class="uk-logo"><img src="../images/loopi.png"></a></li>
 				<li class="uk-parent"><a href=""><span class="uk-h1" id="hostname">aes67Logger System Info</span></a></li>
 			</ul>
 		</div>
@@ -26,9 +26,11 @@
 		</div>
 		<div class="uk-navbar-right">
             <ul class="uk-navbar-nav">
-            <li class="uk-active"><a href="system" class="uk-logo">System</a></li>
-            <li class="uk-parent"><a href="config" class="uk-logo">Config</a></li>
-            <li class="uk-parent"><a href="logs" class="uk-logo">Logs</a></li>
+			<li class="uk-parent"><a href="../dashboard" class="uk-logo">Dashboard</a></li>
+            <li class="uk-active"><a href="" class="uk-logo">System</a></li>
+            <li class="uk-parent"><a href="../config" class="uk-logo">Config</a></li>
+            <li class="uk-parent"><a href="../logs" class="uk-logo">Logs</a></li>
+			<li class="uk-parent"><a class="uk-logo" onclick="logout()">Logout</a></li>
 		</div>
         </nav>
 
@@ -37,7 +39,7 @@
 			<div class="uk-grid-small uk-child-width-1-3 uk-text-center uk-grid-match" uk-grid>
 				<div>
 					<div class="uk-card uk-card-default">
-						<div class="uk-card-header"> <h3 class="uk-card-title">server</h3></div>
+						<div class="uk-card-header"> <h3 class="uk-card-title">LoggerManager</h3></div>
 						<div class="uk-card-body">
 							<div class="uk-grid-small uk-text-left" uk-grid>
 								<div><span class='uk-text-bold'>Start Time:</span></div>
@@ -144,9 +146,9 @@
 								<div><span id="system-ram-shared"></span>MB</div>
 								<div><span class='uk-text-bold'>Free:</span></div>
 								<div><span id="system-ram-free"></span>MB</div>
-								<div><span class='uk-text-bold'>episerver RAM:</span></div>
+								<div><span class='uk-text-bold'>LM RAM:</span></div>
 								<div><span id="process-rs"></span>MB</div>
-								<div><span class='uk-text-bold'>episerver VM:</span></div>
+								<div><span class='uk-text-bold'>LM VM:</span></div>
 								<div><span id="process-vm"></span>MB</div>
 								
 							</div>

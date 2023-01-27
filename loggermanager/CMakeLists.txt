@@ -9,6 +9,7 @@ set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 include_directories("include")
 include_directories("../common/include")
+include_directories("uuid")
 include_directories(${DIR_LOG}/include)
 include_directories(${DIR_JSON}/dist)
 include_directories(${DIR_RESTGOOSE}/include)
@@ -18,11 +19,12 @@ link_directories("../lib")
 
 
 add_executable(loggermanager "../common/src/jsonconsts.cpp" "../common/src/inimanager.cpp" "../common/src/aoiputils.cpp" "../common/src/inisection.cpp" "${DIR_JSON}/dist/jsoncpp.cpp"
- "src/launcher.cpp"  "src/launchmanager.cpp" "src/main.cpp" "src/ntpstatus.cpp" "src/proccheck.cpp" "src/server.cpp" "src/sysinfomanager.cpp" ${CMAKE_BINARY_DIR}/src/${PROJECT_NAME}_version.cpp)
+ "src/launcher.cpp"  "src/session.cpp" "src/launchmanager.cpp" "src/main.cpp" "src/ntpstatus.cpp" "src/proccheck.cpp" "src/server.cpp" "src/sysinfomanager.cpp"
+ "uuid/guid.cpp" "uuid/md5.cpp" ${CMAKE_BINARY_DIR}/src/${PROJECT_NAME}_version.cpp)
 
 list(APPEND flags "-fPIC" "-Wall" "-fpermissive"  "-std=c++17")
 if(CMAKE_BUILD_TYPE MATCHES Release)
-    list(APPEND flags "-O3")
+    list(APPEND flags "-g")
 else()
 list(APPEND flags "-g")
 endif()
