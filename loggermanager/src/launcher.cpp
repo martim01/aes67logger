@@ -180,10 +180,11 @@ void Launcher::HandleRead(std::error_code ec, std::size_t nLength)
 
         for(const auto& sLine : vOut)
         {
-            auto jsValue = ConvertToJson(sLine);
-            if(jsValue.isMember(jsonConsts::event) && jsValue.isMember(jsonConsts::data))
+            auto js = ConvertToJson(sLine);
+            if(js)
             {
-                m_jsStatus[jsValue[jsonConsts::event].asString()] = jsValue[jsonConsts::data];
+                m_jsStatus = *js;
+                //pmlLog(pml::LOG_DEBUG) << m_jsStatus;
                 CreateSummary();
             }
         }

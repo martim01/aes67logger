@@ -23,19 +23,17 @@
                 <div class="uk-grid-small uk-text-center uk-grid-match uk-align-center" uk-grid>
                     <div class="uk-card uk-card-default uk-align-center">
                         <div class="uk-card-header"> <h3 class="uk-card-title">Login</h3></div>
-                        <form method="POST" action="/x-api/login">
                             <div class="uk-card-body">
-                                    <div class="uk-margin">
+                                <div class="uk-margin">
                                         <input class="uk-input" name="username" id="username" placeholder="username">
-                                    </div>
-                                    <div class="uk-margin">
-                                        <input class="uk-input" name="password" id="password" type="password" placeholder="password">
-                                    </div>
-                                    <div class="uk-margin">
-                                        <input type="submit" class="uk-button uk-button-primary" value="Login">
-                                    </div>
-                            </div>
-                        </form>
+                                </div>
+                                <div class="uk-margin">
+                                    <input class="uk-input" name="password" id="password" type="password" placeholder="password">
+                                </div>
+                                <div class="uk-margin">
+                                    <button class="uk-button uk-button-primary" onclick="login()">Login</button>
+                                </div>
+                        </div>
                     </div>
                 </div>
             </div>

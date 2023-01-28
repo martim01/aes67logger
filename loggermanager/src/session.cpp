@@ -62,7 +62,7 @@ SessionCookie::~SessionCookie()
 headerValue SessionCookie::GetHeaderValue()
 {
     std::stringstream ss;
-    ss << "access_token=" << std::hex << m_id << "; Path=/;";
+    ss << "access_token=" << std::hex << m_id;
     return headerValue(ss.str());
 }
 

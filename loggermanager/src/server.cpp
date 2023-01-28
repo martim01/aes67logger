@@ -53,8 +53,16 @@ static pml::restgoose::response ConvertPostDataToJson(const postData& vData)
     pml::restgoose::response resp(404, "No data sent or incorrect data sent");
     if(vData.size() == 1)
     {
-        resp.nHttpCode = 200;
-        resp.jsonData = ConvertToJson(vData[0].data.Get());
+        auto js = ConvertToJson(vData[0].data.Get());
+        if(js)
+        {
+            resp.nHttpCode = 200;
+            resp.jsonData = *js;
+        }
+        else
+        {
+            resp.nHttpCode = 400;
+        }
     }
     else if(vData.size() > 1)
     {
@@ -153,7 +161,7 @@ void Server::Run(const std::string& sConfigFile)
 
     m_info.SetDiskPath(m_config.Get(jsonConsts::path, jsonConsts::audio, "/var/loggers"));
 
-    if(m_server.Init(fileLocation(m_config.Get(jsonConsts::api, "sslCert", "")), fileLocation(m_config.Get(jsonConsts::api, "ssKey", "")), ipAddress("0.0.0.0"), m_config.Get(jsonConsts::api, "port", 8080), EP_API, true))
+    if(m_server.Init(fileLocation(m_config.Get(jsonConsts::api, "sslCert", "")), fileLocation(m_config.Get(jsonConsts::api, "ssKey", "")), ipAddress("0.0.0.0"), m_config.Get(jsonConsts::api, "port", 8080), EP_API, true,true))
     {
 
         m_server.SetAuthorizationTypeBearer(std::bind(&Server::AuthenticateToken, this, _1), std::bind(&Server::RedirectToLogin, this), true);
@@ -209,6 +217,7 @@ bool Server::CreateEndpoints()
     m_server.AddWebsocketEndpoint(EP_WS, std::bind(&Server::WebsocketAuthenticate, this, _1,_2,_3,_4), std::bind(&Server::WebsocketMessage, this, _1,_2), std::bind(&Server::WebsocketClosed, this, _1,_2));
     m_server.AddWebsocketEndpoint(EP_WS_INFO, std::bind(&Server::WebsocketAuthenticate, this, _1,_2,_3,_4), std::bind(&Server::WebsocketMessage, this, _1,_2), std::bind(&Server::WebsocketClosed, this, _1,_2));
     m_server.AddWebsocketEndpoint(EP_WS_STATUS, std::bind(&Server::WebsocketAuthenticate, this, _1,_2,_3,_4), std::bind(&Server::WebsocketMessage, this, _1,_2), std::bind(&Server::WebsocketClosed, this, _1,_2));
+    m_server.AddWebsocketEndpoint(EP_WS_LOGGERS, std::bind(&Server::WebsocketAuthenticate, this, _1,_2,_3,_4), std::bind(&Server::WebsocketMessage, this, _1,_2), std::bind(&Server::WebsocketClosed, this, _1,_2));
 
     //now add all the dynamic methodpoints
     for(const auto& [sName, pLauncher] : m_launcher.GetLaunchers())
@@ -220,6 +229,8 @@ bool Server::CreateEndpoints()
         m_server.AddEndpoint(pml::restgoose::HTTP_DELETE, endpoint(EP_LOGGERS.Get()+"/"+sName), std::bind(&Server::DeleteLogger, this, _1,_2,_3,_4));
 
         m_server.AddEndpoint(pml::restgoose::PUT, endpoint(EP_LOGGERS.Get()+"/"+sName+"/"+CONFIG), std::bind(&Server::PutLoggerConfig, this, _1,_2,_3,_4));
+
+        m_server.AddEndpoint(pml::restgoose::PUT, endpoint(EP_LOGGERS.Get()+"/"+sName), std::bind(&Server::PutLoggerPower, this, _1,_2,_3,_4));
 
         m_server.AddWebsocketEndpoint(endpoint(EP_WS_LOGGERS.Get()+"/"+sName), std::bind(&Server::WebsocketAuthenticate, this, _1,_2,_3,_4), std::bind(&Server::WebsocketMessage, this, _1,_2), std::bind(&Server::WebsocketClosed, this, _1,_2));
     }
@@ -373,6 +384,14 @@ pml::restgoose::response Server::PutLoggerConfig(const query& theQuery, const po
     return theResponse;
 }
 
+pml::restgoose::response Server::PutLoggerPower(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
+{
+    auto vPath = SplitString(theEndpoint.Get(),'/');
+    return m_launcher.RestartLogger(vPath[vPath.size()-1]);
+
+}
+
+
 pml::restgoose::response Server::PutUpdate(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
 {
     pml::restgoose::response theResponse(405, "not written yet");
@@ -423,7 +442,11 @@ pml::restgoose::response Server::GetUpdate(const query& theQuery, const postData
     theResponse.jsonData[jsonConsts::server][jsonConsts::version] = pml::loggermanager::VERSION_STRING;
     theResponse.jsonData[jsonConsts::server][jsonConsts::date] = pml::loggermanager::BUILD_DATE;
 
-    theResponse.jsonData[jsonConsts::logger] = ConvertToJson(Exec("logger -v"));
+    auto js = ConvertToJson(Exec("logger -v"));
+    if(js)
+    {
+        theResponse.jsonData[jsonConsts::logger] = *js;
+    }
 
     //get versions of other applications...
     return theResponse;
@@ -716,8 +739,10 @@ bool Server::AuthenticateToken(const std::string& sToken)
     if(itToken != m_mTokens.end() && itToken->second->GetId() == sToken)
     {
         itToken->second->Accessed();
+        pmlLog() << "AuthenticateToken succes";
         return true;
     }
+    pmlLog(pml::LOG_WARN) << "AuthenticateToken failed";
     return false;
 }
 
@@ -730,20 +755,16 @@ pml::restgoose::response Server::PostLogin(const query& theQuery, const postData
         {
             if(m_config.Get("users", theResponse.jsonData[jsonConsts::username].asString(), "") == theResponse.jsonData[jsonConsts::password].asString())
             {
-                auto pCookie = std::make_unique<SessionCookie>(userName(theResponse.jsonData[jsonConsts::username].asString()), m_server.GetCurrentPeer(false));
+                auto pCookie = std::make_shared<SessionCookie>(userName(theResponse.jsonData[jsonConsts::username].asString()), m_server.GetCurrentPeer(false));
 
-                auto [itToken, ins] = m_mTokens.insert(std::make_pair(m_server.GetCurrentPeer(false), std::move(pCookie)));
+                auto [itToken, ins] = m_mTokens.insert(std::make_pair(m_server.GetCurrentPeer(false), pCookie));
                 if(ins == false)
                 {
-                    itToken->second = std::move(pCookie);
+                    itToken->second = pCookie;
                 }
 
-
-
-                pml::restgoose::response resp(302);
-                resp.mHeaders = {{headerName("Location"), headerValue("/dashboard")},
-                                      {headerName("Set-Cookie"), itToken->second->GetHeaderValue()}};
-
+                pml::restgoose::response resp(200);
+                resp.jsonData["token"] = pCookie->GetId();
                 pmlLog() << "Login complete: ";
                 return resp;
             }

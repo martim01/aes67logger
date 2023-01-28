@@ -5,6 +5,7 @@
 #include <chrono>
 #include <queue>
 #include "json/json.h"
+#include <optional>
 
 extern std::vector<std::string> SplitString(std::string str, char cSplit, size_t nMax=0);
 
@@ -27,7 +28,7 @@ extern std::string GetIpAddress(const std::string& sInterface);
 extern std::string Exec(const std::string& sCmd);
 
 
-extern Json::Value ConvertToJson(const std::string& str);
+extern std::optional<Json::Value> ConvertToJson(const std::string& str);
 
 enum enumJsonType{STRING, NUMBER, OBJECT, ARRAY, BOOLEAN, NULL_};
 

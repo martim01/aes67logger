@@ -28,6 +28,7 @@ class LaunchManager
 
         pml::restgoose::response AddLogger(const pml::restgoose::response& theData);
         pml::restgoose::response RemoveLogger(const std::string& sName);
+        pml::restgoose::response RestartLogger(const std::string& sName);
 
         pml::restgoose::response GetLoggerConfig(const std::string& sName);
         pml::restgoose::response UpdateLoggerConfig(const std::string& sName, const Json::Value& jsData);
@@ -35,6 +36,7 @@ class LaunchManager
         const std::map<std::string, std::shared_ptr<Launcher>>& GetLaunchers() const {return m_mLaunchers;}
 
         Json::Value GetStatusSummary() const;
+
 
     private:
         void PipeThread();

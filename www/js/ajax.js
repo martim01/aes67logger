@@ -3,6 +3,8 @@ var g_ajax = new XMLHttpRequest();
 var g_ws = null;
 g_ajax.timeout = 300;
 var g_cookie_array = [];
+var g_logger = null;
+var g_access_token = null;
 
 const zeroPad = (num,places)=>String(num).padStart(places,'0');
 
@@ -27,6 +29,8 @@ function getCookies()
 			g_cookie_array[el.substring(0,pos)] = el.substring(pos+1);
 		}
 	});
+
+	console.log(g_cookie_array);
 }
 
 
@@ -40,18 +44,23 @@ function login()
 function logout()
 {
 	ajaxDelete("/x-api/login", handleLogout);
-	window.location  = "/";
+	window.location.href  = "/";
 }
 
 function handleLogin(status, jsonObj)
 {
-    if(status !== 200)
+    if(status !== 200 || ('token' in jsonObj) == false)
     {
         UIkit.notification({message: jsonObj["reason"], status: 'danger', timeout: 3000})
     }
-    else
+    else 
     {
-        console.log(jsonObj);   
+		console.log(jsonObj);
+		g_access_token = jsonObj.token;
+
+        document.cookie = "access_token="+g_access_token+"; path=/";
+		window.location.pathname = "/dashboard";
+		console.log(window.location);
     }
 }
 
@@ -159,14 +168,13 @@ function showLogger(logger)
 
 function dashboard()
 {
-    getLoggers(handleLoggers);
+	getLoggers(handleLoggers);
     //g_loggerArray.forEach(showLogger);
 }
 
 function logs()
 {
-    getLoggers(populateSelectLoggers);
-    //g_loggerArray.forEach(showLogger);
+	getLoggers(populateSelectLoggers);
 }
 
 function populateSelectLoggers(status, jsData)
@@ -287,9 +295,8 @@ function serverOffline()
 
 function ws_connect(endpoint, callbackMessage)
 {
-	getCookies();
-
-	g_ws = new WebSocket("ws://127.0.0.1:8080/x-api/ws/"+endpoint+"?access_token=");
+	
+	g_ws = new WebSocket("ws://"+location.host+"/x-api/ws/"+endpoint+"?access_token="+g_access_token);
     g_ws.timeout = true;
 	g_ws.onopen = function(ev)  { this.tm = setTimeout(serverOffline, 4000) };
 	g_ws.onerror = function(ev) { serverOffline(); };
@@ -372,7 +379,7 @@ function ajaxGet(endpoint, callback)
 	{
 		callback(this.status, null);
 	}
-	ajax.open("GET", "http://127.0.0.1:8080/"+endpoint, true);
+	ajax.open("GET", "http://"+location.host+"/"+endpoint, true);
 	ajax.send();
 }
 
@@ -389,7 +396,7 @@ function ajaxPostPutPatch(method, endpoint, jsonData, callback)
 		}
 	}
 	
-	ajax.open(method, "http://127.0.0.1:8080/"+endpoint, true);
+	ajax.open(method, "http://"+location.host+"/"+endpoint, true);
 	ajax.setRequestHeader("Content-type", "application/json");
 	ajax.send(jsonData);
 }
@@ -411,7 +418,7 @@ function ajaxDelete(endpoint, callback)
 		}
 	}
 	
-	ajax.open("DELETE", "http://127.0.0.1:8080/"+endpoint, true);
+	ajax.open("DELETE", "http://"+location.host+"/"+endpoint, true);
 	ajax.send(null);
 }
 
@@ -473,7 +480,7 @@ function createBodyGrid(name, id)
 
 function system()
 {
-    getUpdate(handleSystemGetUpdate);
+	getUpdate(handleSystemGetUpdate);
 }
 
 function handleGetUpdate(status, jsonObj)
@@ -684,14 +691,14 @@ function connectToLogger()
 {
 	const params = new Proxy(new URLSearchParams(window.location.search), { get: (searchParams, prop) => searchParams.get(prop)});
 	
-	let logger = params.logger;
+	g_logger = params.logger;
 
-	ws_connect("loggers/"+logger, handleLoggerInfo);
+	ws_connect("loggers/"+g_logger, handleLoggerInfo);
 }
 
 function handleLoggerInfo(jsonObj)
 {
-	
+	console.log(jsonObj);	
 	if("id" in jsonObj)
 	{
 		document.getElementById('logger').innerHTML = jsonObj.id;
@@ -702,9 +709,9 @@ function handleLoggerInfo(jsonObj)
 		document.getElementById('qos-received').innerHTML = jsonObj.qos.packets.received;
 		document.getElementById('qos-lost').innerHTML = jsonObj.qos.packets.lost;
 		document.getElementById('qos-errors').innerHTML = jsonObj.qos.timestamp_errors;
-		document.getElementById('qos-interpacket').innerHTML = (jsonObj.qos.packet_gap*1000).toFixed(2)+" ms";
-		document.getElementById('qos-jitter').innerHTML = (jsonObj.qos.jitter*1000).toFixed(2);
-		document.getElementById('qos-tsdf').innerHTML = (jsonObj.qos['ts-df']*1000).toFixed(2);
+		document.getElementById('qos-interpacket').innerHTML = (jsonObj.qos.packet_gap).toFixed(4)+" ms";
+		document.getElementById('qos-jitter').innerHTML = (jsonObj.qos.jitter.toFixed(4))+" ms";
+		document.getElementById('qos-tsdf').innerHTML = (jsonObj.qos['ts-df'].toFixed(4))+" ms";
 		document.getElementById('qos-duration').innerHTML = jsonObj.qos['duration']+" ms";
 	}
 
@@ -780,6 +787,38 @@ function handleLoggerInfo(jsonObj)
 			elm.className = 'uk-text-danger';
 		}
 	}
+	if('streaming' in jsonObj)
+	{
+		document.getElementById('source-name').innerHTML = jsonObj.streaming.name;
+		document.getElementById('source-type').innerHTML = jsonObj.streaming.type;
+		if(jsonObj.streaming.type == 'RTSP')
+		{
+			document.getElementById('div_source-sdp').style.visibility = 'hidden';
+			var elm = document.getElementById('source-rtsp');
+			elm.style.visibility = '';
+			elm.innerHTML = jsonObj.streaming.source;
+		}
+		else
+		{
+			document.getElementById('source-rtsp').style.visibility = 'hidden';
+			document.getElementById('div_source-sdp').style.visibility = '';
+			document.getElementById('source-sdp').innerHTML = jsonObj.streaming.source;
+		}
+		var elm = document.getElementById('source-connection');
+		elm.className = 'uk-card-badge';
+		elm.classList.add('uk-label');
+
+		if(jsonObj.streaming.streaming)
+		{
+			elm.classList.add('uk-label-success');
+			elm.innerHTML = "Streaming";	
+		}
+		else
+		{
+			elm.classList.add('uk-label-danger');
+			elm.innerHTML = "No Connection";	
+		}
+	}
 }
 
 function ShowClock(jsonObj)
@@ -791,4 +830,87 @@ function ShowClock(jsonObj)
 		document.getElementById('ref-type').innerHTML = jsonObj.ref_clock.type;
 		document.getElementById('ref-version').innerHTML = jsonObj.ref_clock.version;
 	}
+}
+
+function restartLogger()
+{
+	UIkit.modal.confirm('Are you sure?').then(function() 
+	{
+		var play = { "command" : "restart"};
+		ajaxPostPutPatch("PUT", "/x-api/loggers/"+g_logger, JSON.stringify(play), handleRestartLogger);
+	}, function () {});		
+}
+
+function handleRestartLogger(status, jsonObj)
+{
+	if(status != 200)
+	{
+		UIkit.notification({message: jsonObj["reason"], status: 'danger', timeout: 3000})
+	}
+}
+
+function changeSession()
+{
+	UIkit.modal(document.getElementById('update_session_modal')).show();	
+}
+
+var g_method = 'rtsp';
+function showrtsp()
+{
+	g_method = 'rtsp';
+	document.getElementById('div_rtsp').style.visibility = '';
+	document.getElementById('div_sdp').style.visibility = 'hidden';
+}
+
+function showsdp()
+{
+	g_method = 'sdp';
+	document.getElementById('div_rtsp').style.visibility = 'hidden';
+	document.getElementById('div_sdp').style.visibility = '';
+}
+
+function updateLoggerSession()
+{
+	var name = document.getElementById('config_name').value;
+	if(name == '')
+	{
+		UIkit.notification({message: 'Source name may not be empty', status: 'warning', timeout: 2000});
+		return;
+	}
+	var rtsp = '';
+	var sdp = '';
+	if(g_method == 'rtsp')
+	{
+		rtsp = document.getElementById('config_rtsp').value;
+		if(rtsp == '')
+		{
+			UIkit.notification({message: 'RTSP may not be empty', status: 'warning', timeout: 2000});
+			return;
+		}
+	}
+	else
+	{
+		sdp = document.getElementById('config_sdp').value;
+		if(sdp == '')
+		{
+			UIkit.notification({message: 'RTSP may not be empty', status: 'warning', timeout: 2000});
+			return;
+		}
+	}
+	var jsonObj = { "source" : {
+					 "name" : name,
+					 "rtsp" : rtsp,
+					 "sdp"	: sdp}};
+					
+	
+	ajaxPostPutPatch("PUT", "/x-api/loggers/"+g_logger+"/config", JSON.stringify(jsonObj), handleUpdateSession);
+
+}
+
+function handleUpdateSession(status, jsonObj)
+{
+	if(status != 200)
+	{
+		UIkit.notification({message: jsonObj["reason"], status: 'danger', timeout: 3000})
+	}	
 }

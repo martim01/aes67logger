@@ -138,27 +138,30 @@ std::string& trim(std::string& s)
 }
 
 
-Json::Value ConvertToJson(const std::string& str)
+std::optional<Json::Value> ConvertToJson(const std::string& str)
 {
-    Json::Value jsData;
     try
     {
+        Json::Value jsData;
         std::stringstream ss;
         ss.str(str);
 
         ss >> jsData;
 
+        return jsData;
     }
     catch(const Json::RuntimeError& e)
     {
         pmlLog(pml::LOG_ERROR) << "Could not convert '" << str << "' to JSON: " << e.what();
+        return {};
     }
     catch(const Json::LogicError& e)
     {
         pmlLog(pml::LOG_ERROR) << "Could not convert '" << str << "' to JSON: " << e.what();
+        return {};
     }
 
-    return jsData;
+
 }
 
 

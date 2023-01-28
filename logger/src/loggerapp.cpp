@@ -54,6 +54,7 @@ bool LoggerApp::Init(const std::filesystem::path& config)
 
 int LoggerApp::Run()
 {
+    std::this_thread::sleep_for(std::chrono::milliseconds(250));
     StartRecording();
 
     pmlLog() << "Application finished";
@@ -165,7 +166,11 @@ void LoggerApp::StartRecording()
             pmlLog(pml::LOG_WARN) << "Could not load SDP '" << m_config.Get(jsonConsts::source, jsonConsts::sdp,"") << "'";
         }
     }
-    auto pSource = std::make_shared<pml::aoip::AoIPSource>(1, m_config.Get(jsonConsts::source, jsonConsts::name, "test"), m_config.Get(jsonConsts::source, jsonConsts::rtsp, ""), ssSdp.str());
+    m_sSdp = ssSdp.str();
+
+    auto pSource = std::make_shared<pml::aoip::AoIPSource>(1, m_config.Get(jsonConsts::source, jsonConsts::name, "test"), m_config.Get(jsonConsts::source, jsonConsts::rtsp, ""), m_sSdp);
+
+    OutputStreamJson(false);
 
     m_pClient->StreamFromSource(pSource);
     m_pClient->Run();   //does not return until we exit
@@ -190,25 +195,23 @@ void LoggerApp::QoSCallback(std::shared_ptr<pml::aoip::AoIPSource> pSource, std:
 
 void LoggerApp::OutputQoSJson(std::shared_ptr<pml::aoip::qosData> pData)
 {
-    Json::Value jsValue;
-    jsValue[jsonConsts::id] = m_sName;
-    jsValue[jsonConsts::event] = jsonConsts::qos;
-    jsValue[jsonConsts::data][jsonConsts::bitrate] = pData->dkbits_per_second_Now;
-    jsValue[jsonConsts::data][jsonConsts::packets][jsonConsts::received] = pData->nTotNumPacketsReceived;
-    jsValue[jsonConsts::data][jsonConsts::packets][jsonConsts::lost] = pData->nTotNumPacketsLost;
-    jsValue[jsonConsts::data][jsonConsts::timestamp_errors] = pData->nTimestampErrors;
-    jsValue[jsonConsts::data][jsonConsts::packet_gap] = pData->dInter_packet_gap_ms_av;
-    jsValue[jsonConsts::data][jsonConsts::jitter] = pData->dJitter;
-    jsValue[jsonConsts::data][jsonConsts::tsdf] = pData->dTSDF;
-    jsValue[jsonConsts::data][jsonConsts::duration] = m_dFrameDuration;
+    m_jsStatus[jsonConsts::id] = m_sName;
+    m_jsStatus[jsonConsts::qos][jsonConsts::bitrate] = pData->dkbits_per_second_Now;
+    m_jsStatus[jsonConsts::qos][jsonConsts::packets][jsonConsts::received] = pData->nTotNumPacketsReceived;
+    m_jsStatus[jsonConsts::qos][jsonConsts::packets][jsonConsts::lost] = pData->nTotNumPacketsLost;
+    m_jsStatus[jsonConsts::qos][jsonConsts::timestamp_errors] = pData->nTimestampErrors;
+    m_jsStatus[jsonConsts::qos][jsonConsts::packet_gap] = pData->dInter_packet_gap_ms_av;
+    m_jsStatus[jsonConsts::qos][jsonConsts::jitter] = pData->dJitter;
+    m_jsStatus[jsonConsts::qos][jsonConsts::tsdf] = pData->dTSDF;
+    m_jsStatus[jsonConsts::qos][jsonConsts::duration] = m_dFrameDuration;
 
-    JsonWriter::Get().writeToSocket(jsValue, m_pServer);
+    JsonWriter::Get().writeToSocket(m_jsStatus, m_pServer);
 }
 
 
 void LoggerApp::SessionCallback(std::shared_ptr<pml::aoip::AoIPSource> pSource,  const pml::aoip::session& theSession)
 {
-    m_pServer->StartTimer(std::chrono::milliseconds(100), std::bind(&LoggerApp::StreamFail, this));
+    m_pServer->StartTimer(std::chrono::milliseconds(500), std::bind(&LoggerApp::StreamFail, this));
 
     m_session = theSession;
 
@@ -244,27 +247,25 @@ void LoggerApp::SessionCallback(std::shared_ptr<pml::aoip::AoIPSource> pSource, 
 
 void LoggerApp::OutputSessionJson()
 {
-    Json::Value jsValue;
-    jsValue[jsonConsts::id] = m_sName;
-    jsValue[jsonConsts::event] = jsonConsts::session;
+    m_jsStatus[jsonConsts::id] = m_sName;
 
-    jsValue[jsonConsts::data][jsonConsts::sdp] = m_session.sRawSDP;
-    jsValue[jsonConsts::data][jsonConsts::name] = m_session.sName;
-    jsValue[jsonConsts::data][jsonConsts::type] = m_session.sType;
-    jsValue[jsonConsts::data][jsonConsts::description] = m_session.sDescription;
-    jsValue[jsonConsts::data][jsonConsts::groups] = m_session.sGroups;
-    jsValue[jsonConsts::data][jsonConsts::ref_clock][jsonConsts::domain] = m_session.refClock.nDomain;
-    jsValue[jsonConsts::data][jsonConsts::ref_clock][jsonConsts::id] = m_session.refClock.sId;
-    jsValue[jsonConsts::data][jsonConsts::ref_clock][jsonConsts::type] = m_session.refClock.sType;
-    jsValue[jsonConsts::data][jsonConsts::ref_clock][jsonConsts::version] = m_session.refClock.sVersion;
-    jsValue[jsonConsts::data][jsonConsts::audio] = m_bReceivingAudio;
+    m_jsStatus[jsonConsts::session][jsonConsts::sdp] = m_session.sRawSDP;
+    m_jsStatus[jsonConsts::session][jsonConsts::name] = m_session.sName;
+    m_jsStatus[jsonConsts::session][jsonConsts::type] = m_session.sType;
+    m_jsStatus[jsonConsts::session][jsonConsts::description] = m_session.sDescription;
+    m_jsStatus[jsonConsts::session][jsonConsts::groups] = m_session.sGroups;
+    m_jsStatus[jsonConsts::session][jsonConsts::ref_clock][jsonConsts::domain] = m_session.refClock.nDomain;
+    m_jsStatus[jsonConsts::session][jsonConsts::ref_clock][jsonConsts::id] = m_session.refClock.sId;
+    m_jsStatus[jsonConsts::session][jsonConsts::ref_clock][jsonConsts::type] = m_session.refClock.sType;
+    m_jsStatus[jsonConsts::session][jsonConsts::ref_clock][jsonConsts::version] = m_session.refClock.sVersion;
+    m_jsStatus[jsonConsts::session][jsonConsts::audio] = m_bReceivingAudio;
 
-    jsValue[jsonConsts::data][jsonConsts::subsessions] = Json::Value(Json::arrayValue);
+    m_jsStatus[jsonConsts::session][jsonConsts::subsessions] = Json::Value(Json::arrayValue);
     for(const auto& theSubsession : m_session.lstSubsession)
     {
-        jsValue[jsonConsts::data][jsonConsts::subsessions].append(GetSubsessionJson(theSubsession));
+        m_jsStatus[jsonConsts::session][jsonConsts::subsessions].append(GetSubsessionJson(theSubsession));
     }
-    JsonWriter::Get().writeToSocket(jsValue, m_pServer);
+    JsonWriter::Get().writeToSocket(m_jsStatus, m_pServer);
 }
 
 Json::Value LoggerApp::GetSubsessionJson(const pml::aoip::subsession& theSubSession)
@@ -297,11 +298,20 @@ void LoggerApp::StreamCallback(std::shared_ptr<pml::aoip::AoIPSource> pSource, b
 
 void LoggerApp::OutputStreamJson(bool bStreaming)
 {
-    Json::Value jsValue;
-    jsValue[jsonConsts::id] = m_sName;
-    jsValue[jsonConsts::event] = jsonConsts::streaming;
-    jsValue[jsonConsts::data][jsonConsts::streaming] = bStreaming;
-    JsonWriter::Get().writeToSocket(jsValue, m_pServer);
+    m_jsStatus[jsonConsts::id] = m_sName;
+    m_jsStatus[jsonConsts::streaming][jsonConsts::name] = m_config.Get(jsonConsts::source, jsonConsts::name, "test");
+    if(m_config.Get(jsonConsts::source, jsonConsts::rtsp, "").empty() == false)
+    {
+        m_jsStatus[jsonConsts::streaming][jsonConsts::type] = "RTSP";
+        m_jsStatus[jsonConsts::streaming][jsonConsts::source] = m_config.Get(jsonConsts::source, jsonConsts::rtsp, "");
+    }
+    else
+    {
+        m_jsStatus[jsonConsts::streaming][jsonConsts::type] = "SDP";
+        m_jsStatus[jsonConsts::streaming][jsonConsts::source] = m_sSdp;
+    }
+    m_jsStatus[jsonConsts::streaming][jsonConsts::streaming] = bStreaming;
+    JsonWriter::Get().writeToSocket(m_jsStatus, m_pServer);
 }
 
 void LoggerApp::LoopCallback(std::chrono::microseconds duration)
@@ -318,14 +328,12 @@ void LoggerApp::LoopCallback(std::chrono::microseconds duration)
 
 void LoggerApp::OutputHeartbeatJson()
 {
-    Json::Value jsValue;
-    jsValue[jsonConsts::id] = m_sName;
-    jsValue[jsonConsts::event] = jsonConsts::heartbeat;
-    jsValue[jsonConsts::data][jsonConsts::heartbeat] = m_bHeartbeat;
-    jsValue[jsonConsts::data][jsonConsts::timestamp] = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-    jsValue[jsonConsts::data][jsonConsts::start_time] = std::chrono::duration_cast<std::chrono::seconds>(m_tpStart.time_since_epoch()).count();
-    jsValue[jsonConsts::data][jsonConsts::up_time] = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now()-m_tpStart).count();
-    JsonWriter::Get().writeToSocket(jsValue, m_pServer);
+    m_jsStatus[jsonConsts::id] = m_sName;
+    m_jsStatus[jsonConsts::heartbeat][jsonConsts::heartbeat] = m_bHeartbeat;
+    m_jsStatus[jsonConsts::heartbeat][jsonConsts::timestamp] = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    m_jsStatus[jsonConsts::heartbeat][jsonConsts::start_time] = std::chrono::duration_cast<std::chrono::seconds>(m_tpStart.time_since_epoch()).count();
+    m_jsStatus[jsonConsts::heartbeat][jsonConsts::up_time] = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now()-m_tpStart).count();
+    JsonWriter::Get().writeToSocket(m_jsStatus, m_pServer);
 }
 
 void LoggerApp::WriteToSoundFile(std::shared_ptr<pml::aoip::AoIPSource> pSource, std::shared_ptr<pml::aoip::timedbuffer> pBuffer)
@@ -362,19 +370,17 @@ void LoggerApp::WriteToSoundFile(std::shared_ptr<pml::aoip::AoIPSource> pSource,
         }
     }
 
-    m_pServer->StartTimer(std::chrono::milliseconds(100), std::bind(&LoggerApp::StreamFail, this));
+    m_pServer->StartTimer(std::chrono::milliseconds(500), std::bind(&LoggerApp::StreamFail, this));
 }
 
 void LoggerApp::OutputFileJson()
 {
     std::filesystem::path pathWav(m_sf.GetFilename());
-    Json::Value jsValue;
-    jsValue[jsonConsts::id] = m_sName;
-    jsValue[jsonConsts::event] = jsonConsts::file;
-    jsValue[jsonConsts::data][jsonConsts::filename] = pathWav.stem().string();
-    jsValue[jsonConsts::data][jsonConsts::filepath] = pathWav.string();
-    jsValue[jsonConsts::data][jsonConsts::open] = m_sf.IsOpen();
-    JsonWriter::Get().writeToSocket(jsValue, m_pServer);
+    m_jsStatus[jsonConsts::id] = m_sName;
+    m_jsStatus[jsonConsts::file][jsonConsts::filename] = pathWav.stem().string();
+    m_jsStatus[jsonConsts::file][jsonConsts::filepath] = pathWav.string();
+    m_jsStatus[jsonConsts::file][jsonConsts::open] = m_sf.IsOpen();
+    JsonWriter::Get().writeToSocket(m_jsStatus, m_pServer);
 
 }
 

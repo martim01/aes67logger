@@ -278,6 +278,8 @@ pml::restgoose::response LaunchManager::GetLoggerConfig(const std::string& sName
 
 pml::restgoose::response LaunchManager::UpdateLoggerConfig(const std::string& sName, const Json::Value& jsData)
 {
+    //First check if we are updating the config or restarting the logger
+
     iniManager ini;
     if(ini.Read(MakeConfigFullPath(sName)))
     {
@@ -312,3 +314,15 @@ Json::Value LaunchManager::GetStatusSummary() const
     return jsValue;
 }
 
+
+pml::restgoose::response LaunchManager::RestartLogger(const std::string& sName)
+{
+    auto itLauncher = m_mLaunchers.find(sName);
+    if(itLauncher != m_mLaunchers.end())
+    {
+        itLauncher->second->StopLogger();
+        itLauncher->second->LaunchLogger();
+        return pml::restgoose::response(200);
+    }
+    return pml::restgoose::response(404, sName+" not found");
+}

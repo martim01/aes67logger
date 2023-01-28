@@ -28,7 +28,9 @@ class Server
         pml::restgoose::response GetLoggerConfig(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
         pml::restgoose::response GetLoggerStatus(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
         pml::restgoose::response PutLoggerConfig(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
+        pml::restgoose::response PutLoggerPower(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
         pml::restgoose::response DeleteLogger(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
+
 
         pml::restgoose::response GetConfig(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
         pml::restgoose::response PatchConfig(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
@@ -128,5 +130,5 @@ class Server
         int m_nLogToFile;
         bool m_bLoggedThisHour;
 
-        std::map<ipAddress, std::unique_ptr<SessionCookie>> m_mTokens;
+        std::map<ipAddress, std::shared_ptr<SessionCookie>> m_mTokens;
 };

@@ -7,6 +7,7 @@
 #include "session.h"
 #include "aoipclient.h"
 #include <filesystem>
+#include "json/json.h"
 
 class AsioServer;
 
@@ -103,6 +104,8 @@ class LoggerApp
         unsigned int m_nFrameSize = 0;
         double m_dFrameDuration = 0.0;
 
+        std::string m_sSdp;
+        Json::Value m_jsStatus;
 };
 
 
