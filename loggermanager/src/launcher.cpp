@@ -12,43 +12,14 @@
 #include "aoiputils.h"
 #include "jsonconsts.h"
 
+using namespace std::placeholders;
 
-bool ReadFromPipe(int nFd, std::string& sBuffer, std::vector<std::string>& vLines)
-{
-    char buf[5000];
-
-    int nRead=read(nFd, buf, sizeof(buf));
-    if (nRead > 0)
-    {
-        sBuffer.append(buf,nRead);
-
-        //do we have at least \n
-        size_t nLastLineBreak = sBuffer.find_last_of('\n');
-        if(nLastLineBreak != std::string::npos)
-        {
-            std::string sComplete = sBuffer.substr(0, nLastLineBreak);
-            vLines = SplitString(sComplete, '\n');
-
-            if(nLastLineBreak != sBuffer.size()-1)
-            {
-                sBuffer = sBuffer.substr(nLastLineBreak+1);
-            }
-            else
-            {
-                sBuffer.clear();
-            }
-        }
-        return true;
-    }
-    return false;
-}
-
-
-
-Launcher::Launcher(const std::filesystem::path& pathConfig, std::function<void(const std::string&, const Json::Value&)> statusCallback, std::function<void(const std::string&, int)> exitCallback) :
+Launcher::Launcher(asio::io_context& context, const std::filesystem::path& pathConfig, const std::filesystem::path& pathSocket, std::function<void(const std::string&, const Json::Value&)> statusCallback, std::function<void(const std::string&, int)> exitCallback) :
     m_pid(0),
-    m_nPipe{-1,-1},
+    m_context(context),
+    m_timer(context),
     m_pathConfig(pathConfig),
+    m_pathSocket(pathSocket),
     m_nExitCode(0),
     m_sLoggerApp("/usr/local/bin/logger"),
     m_statusCallback(statusCallback),
@@ -59,10 +30,7 @@ Launcher::Launcher(const std::filesystem::path& pathConfig, std::function<void(c
 
 Launcher::~Launcher()
 {
-    CloseLogger();
 }
-
-
 
 
 bool Launcher::IsRunning() const
@@ -70,67 +38,67 @@ bool Launcher::IsRunning() const
     return (m_pid!=0);
 }
 
-int Launcher::GetReadPipe() const
-{
-    return m_nPipe[READ];
-}
-
-
-
 int Launcher::LaunchLogger()
 {
-
     pmlLog(pml::LOG_DEBUG) << "Launcher\tLaunchLogger: " << m_pathConfig;
-
-    int nError = pipe(m_nPipe);
-    if(nError != 0)
+    if(CheckForOrphanedLogger())
     {
-       pmlLog(pml::LOG_ERROR) << "could not open pipe: " << strerror(nError) << std::endl;
-
-        return PIPE_OPEN_ERROR;
-    }
-
-    m_pid = fork();
-    if(m_pid < 0)
-    {
-        close(m_nPipe[WRITE]);
-        close(m_nPipe[READ]);
-
-        pmlLog(pml::LOG_ERROR) << "could not fork: " << strerror(nError) << std::endl;
-
-        return FORK_ERROR;
-    }
-    else if(m_pid > 0)
-    {   // Parent
-        close(m_nPipe[WRITE]);  //close write end
-        PipeRead();
-        return m_nPipe[READ];
+        return m_pid;
     }
     else
-    {   //child
-
-        close(m_nPipe[READ]);   //close read end
-        dup2(m_nPipe[WRITE],STDOUT_FILENO); //redirect stdout to the pipe
-
-        //redirect stderr to /dev/null
-        int fderr = open("/dev/null", O_WRONLY);
-        if(fderr >= 0)
+    {
+        m_pid = fork();
+        if(m_pid < 0)
         {
-            dup2(fderr, STDERR_FILENO);
+            pmlLog(pml::LOG_ERROR) << "could not fork: " << strerror(errno) << std::endl;
+
+            return FORK_ERROR;
         }
+        else if(m_pid > 0)
+        {   // Parent
+            pmlLog() << "Logger launched";
+            m_pathSocket.replace_extension(std::to_string(m_pid));
+            m_pSocket = std::make_shared<asio::local::stream_protocol::socket>(m_context);
+            Connect(std::chrono::milliseconds(50));
+            return m_pid;
+        }
+        else
+        {   //child
 
-        //create the args and launch the logger
-        m_sConfigArg = m_pathConfig.string();
-        char* args[] = {&m_sLoggerApp[0], &m_sConfigArg[0], nullptr};
+            //create the args and launch the logger
+            m_sConfigArg = m_pathConfig.string();
+            char* args[] = {&m_sLoggerApp[0], &m_sConfigArg[0], nullptr};
 
-        nError = execv(m_sLoggerApp.c_str(), args);
+            if(execv(m_sLoggerApp.c_str(), args) != 0)
+            {
+                std::cout << "Exec failed: " << m_sLoggerApp << std::endl;
+                exit(-1);
+            }
+            return 0;
+        }
+    }
+}
 
-        if(nError)
+void Launcher::Connect(const std::chrono::milliseconds& wait)
+{
+    try
+    {
+        m_timer.expires_from_now(wait);
+        m_timer.async_wait([this](const asio::error_code& e)
         {
-            std::cout << "Exec failed: " << m_sLoggerApp << std::endl;
-            exit(-1);
-        }
-        return 0;
+            if(!e)
+            {
+                m_pSocket->async_connect(asio::local::stream_protocol::endpoint(m_pathSocket.string()), std::bind(&Launcher::HandleConnect, this, _1));
+            }
+            else if(e != asio::error::operation_aborted)
+            {
+                pmlLog(pml::LOG_ERROR) << "deadline timer failed!";
+            }
+         });
+    }
+    catch(asio::system_error& e)
+    {
+        pmlLog(pml::LOG_ERROR) << "Could not connect create timer to connect to logger!";
     }
 }
 
@@ -159,22 +127,7 @@ bool Launcher::StopLogger()
 
 }
 
-void Launcher::PipeRead()
-{
-    m_tpLastMessage = std::chrono::system_clock::now();
-}
 
-bool Launcher::ClosePipeIfInactive()
-{
-    //@todo possibly allow setting of timeout
-    if((std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now()-m_tpLastMessage)).count() > 30)
-    {
-        CloseLogger();
-        pmlLog(pml::LOG_ERROR) << m_pathConfig << "\tTimeout - closed" << std::endl;
-        return true;
-    }
-    return false;
-}
 
 void Launcher::CloseLogger()
 {
@@ -183,19 +136,48 @@ void Launcher::CloseLogger()
         kill(m_pid, SIGKILL);
         int nStatus;
         waitpid(m_pid, &nStatus,0);
-        close(m_nPipe[READ]);
-        m_nPipe[READ] = PIPE_CLOSED;
+        if(m_pathSocket.has_extension())
+        {
+            std::filesystem::remove(m_pathSocket);
+            m_pathSocket.replace_extension();
+        }
+        m_pSocket = nullptr;
     }
+    //@todo tell the manager to relaunch
 }
 
 void Launcher::Read()
 {
-    PipeRead();
+    if(!m_pSocket) return;
 
-    std::vector<std::string> vOut;
-
-    if(ReadFromPipe(m_nPipe[READ], m_sOut, vOut))
+    m_timer.cancel();
+    m_timer.expires_from_now(std::chrono::seconds(10));         //@todo this should be double the heartbeat rate or something
+    m_timer.async_wait([this](const asio::error_code& e)
     {
+        if(!e)
+        {
+            pmlLog(pml::LOG_ERROR) << m_pathConfig << "\tTimeout - close logger and relaunch" << std::endl;
+            CloseLogger();
+            LaunchLogger();
+
+        }
+        else if(e != asio::error::operation_aborted)
+        {
+            pmlLog(pml::LOG_ERROR) << "deadline timer failed!";
+        }
+    });
+
+    m_pSocket->async_read_some(asio::buffer(m_data), std::bind(&Launcher::HandleRead, this, _1, _2));
+}
+
+void Launcher::HandleRead(std::error_code ec, std::size_t nLength)
+{
+    m_timer.cancel();
+
+    if (!ec)
+    {
+        auto vOut = ExtractReadBuffer(nLength);
+
         for(const auto& sLine : vOut)
         {
             auto jsValue = ConvertToJson(sLine);
@@ -209,14 +191,57 @@ void Launcher::Read()
         {
             m_statusCallback(m_pathConfig.stem(), m_jsStatus);
         }
+
+        Read();
     }
     else
     {
+        pmlLog(pml::LOG_ERROR) << m_pathConfig << "\tEOF or Read Error: " << ec.message();
         CloseLogger();
-        pmlLog(pml::LOG_ERROR) << m_pathConfig << "\tEOF or Read Error: Logger closed" << std::endl;
         LaunchLogger();
     }
 }
+std::vector<std::string> Launcher::ExtractReadBuffer(size_t nLength)
+{
+    //std::lock_guard<std::mutex> lg(m_mutex);
+
+    m_sOut.append(m_data.begin(), m_data.begin()+nLength);
+
+    std::vector<std::string> vLines;
+
+    //do we have at least \n
+    size_t nLastLineBreak = m_sOut.find_last_of('\n');
+    if(nLastLineBreak != std::string::npos)
+    {
+        std::string sComplete = m_sOut.substr(0, nLastLineBreak);
+        vLines = SplitString(sComplete, '\n');
+
+        if(nLastLineBreak != m_sOut.size()-1)
+        {
+            m_sOut = m_sOut.substr(nLastLineBreak+1);
+        }
+        else
+        {
+            m_sOut.clear();
+        }
+    }
+    return vLines;
+}
+
+
+void Launcher::HandleConnect(const asio::error_code& e)
+{
+    if(!e)
+    {
+        Read();
+    }
+    else
+    {
+        pmlLog(pml::LOG_ERROR) << "Could not connect to logger " << m_pathConfig.stem().string() << " " << e.message() << " " << m_pathSocket;
+        Connect(std::chrono::seconds(1));
+    }
+}
+
 
 void Launcher::CreateSummary()
 {
@@ -241,12 +266,53 @@ void Launcher::CreateSummary()
 
     if(m_jsStatus.isMember(jsonConsts::file) && m_jsStatus[jsonConsts::file].isMember(jsonConsts::filename))
     {
-        std::filesystem::path file = m_jsStatus[jsonConsts::file][jsonConsts::filename].asString();
-        m_jsStatusSummary[jsonConsts::filename] = file.stem().string();
+        m_jsStatusSummary[jsonConsts::filename] = m_jsStatus[jsonConsts::file][jsonConsts::filename];
     }
 
 }
 const Json::Value& Launcher::GetStatusSummary() const
 {
     return m_jsStatusSummary;
+}
+
+bool Launcher::CheckForOrphanedLogger()
+{
+    auto pathOrphan = m_pathSocket.parent_path();
+
+    pmlLog() << "CheckForOrphanedLogger in " << pathOrphan;
+
+    for(const auto& entry : std::filesystem::directory_iterator(pathOrphan))
+    {
+        if(entry.path().stem() == m_pathConfig.stem())  //this is a socket with the same name as our logger
+        {
+            int nPid;
+            try
+            {
+                nPid = std::stoul(entry.path().extension().string().substr(1));
+            }
+            catch(...)
+            {
+                nPid  = -1;
+            }
+
+            if(nPid > 0)
+            {
+                if(kill(nPid, 0) == 0)
+                {
+                    pmlLog() << "Logger " << m_pathConfig.stem() << " is still running on pid " << nPid;
+                    m_pid = nPid;
+                    m_pathSocket.replace_extension(std::to_string(m_pid));
+                    m_pSocket = std::make_shared<asio::local::stream_protocol::socket>(m_context);
+                    Connect(std::chrono::milliseconds(5));
+                    return true;
+                }
+                else
+                {
+                    pmlLog() << "Logger " << m_pathConfig.stem() << " was running on pid " << nPid << " and has left socket open. Close it";
+                    std::filesystem::remove(entry.path());
+                }
+            }
+        }
+    }
+    return false;
 }

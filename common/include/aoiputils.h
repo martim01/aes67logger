@@ -13,12 +13,6 @@ extern std::string& rtrim(std::string& s);
 extern std::string& trim(std::string& s);
 
 extern bool CmpNoCase(const std::string& str1, const std::string& str2);
-extern std::string CreatePath(std::string sPath);
-
-extern bool do_mkdir(const std::string& sPath, mode_t mode);
-extern bool mkpath(const std::string& sPath, mode_t mode);
-
-
 
 
 extern std::string ConvertTimeToIsoString(std::time_t theTime);

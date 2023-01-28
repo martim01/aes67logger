@@ -75,6 +75,8 @@ class Server
         Json::Value m_jsStatus;
         bool AuthenticateToken(const std::string& sToken);
 
+        pml::restgoose::response GetLog(const std::string& sLogger, const std::string& sStart, const std::string& sEnd);
+
          /**
         x-epi                               GET
         x-epi/status                        GET PUT

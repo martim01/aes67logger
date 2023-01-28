@@ -71,6 +71,7 @@
 		<Unit filename="../common/src/inisection.cpp" />
 		<Unit filename="../common/src/jsonconsts.cpp" />
 		<Unit filename="include/agentthread.h" />
+		<Unit filename="include/asiosession.h" />
 		<Unit filename="include/inimanager.h" />
 		<Unit filename="include/inisection.h" />
 		<Unit filename="include/jsonlog.h" />
@@ -78,6 +79,7 @@
 		<Unit filename="include/loggerapp.h" />
 		<Unit filename="include/mibwritabletable.h" />
 		<Unit filename="include/soundfile.h" />
+		<Unit filename="src/asiosession.cpp" />
 		<Unit filename="src/jsonlog.cpp" />
 		<Unit filename="src/jsonwriter.cpp" />
 		<Unit filename="src/loggerapp.cpp" />

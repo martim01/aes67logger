@@ -21,14 +21,18 @@ LaunchManager::~LaunchManager()
     //loggers will shutdown in the launcher destructor
 }
 
-void LaunchManager::Init(const std::string& sPath, std::function<void(const std::string&, const Json::Value&)> statusCallback, std::function<void(const std::string&, int)> exitCallback)
+void LaunchManager::Init(const iniManager& iniConfig, std::function<void(const std::string&, const Json::Value&)> statusCallback, std::function<void(const std::string&, int)> exitCallback)
 {
-    m_pathLaunchers.assign(sPath);
+    m_pathLaunchers.assign(iniConfig.Get(jsonConsts::path, jsonConsts::loggers, "/usr/local/etc/loggers"));
+    m_pathSockets.assign(iniConfig.Get(jsonConsts::path, jsonConsts::sockets, "/var/loggers/sockets"));
+    m_pathAudio.assign(iniConfig.Get(jsonConsts::path, jsonConsts::audio, "/var/loggers/wav"));
+
 
     m_statusCallback = statusCallback;
     m_exitCallback = exitCallback;
     EnumLoggers();
-    PipeThread();
+    LaunchAll();
+
 }
 
 void LaunchManager::EnumLoggers()
@@ -47,7 +51,9 @@ void LaunchManager::EnumLoggers()
             {
                 pmlLog() << "Logger: '" << entry.path().stem() << "' found";
 
-                m_mLaunchers.insert({entry.path().stem(), std::make_shared<Launcher>(entry.path(), m_statusCallback, m_exitCallback)});
+                m_mLaunchers.insert({entry.path().stem(), std::make_shared<Launcher>(m_context, entry.path(),
+                                                                                     MakeSocketFullPath(entry.path().stem()),
+                                                                                     m_statusCallback, m_exitCallback)});
             }
         }
         m_pathSdp = m_pathLaunchers;
@@ -68,6 +74,13 @@ std::filesystem::path LaunchManager::MakeConfigFullPath(const std::string& sLogg
     return path;
 }
 
+std::filesystem::path LaunchManager::MakeSocketFullPath(const std::string& sLogger)
+{
+    auto path = m_pathSockets;
+    path /= sLogger;
+    return path;
+}
+
 void LaunchManager::LaunchAll()
 {
     std::lock_guard<std::mutex> lg(m_mutex);
@@ -78,6 +91,8 @@ void LaunchManager::LaunchAll()
     {
         LaunchLogger(pLauncher);
     }
+    PipeThread();
+
 }
 
 void LaunchManager::LaunchLogger(std::shared_ptr<Launcher> pLauncher)
@@ -130,7 +145,11 @@ pml::restgoose::response LaunchManager::AddLogger(const pml::restgoose::response
 
     CreateLoggerConfig(theData.jsonData);
 
-    itLogger = m_mLaunchers.insert({theData.jsonData[jsonConsts::name].asString(), std::make_shared<Launcher>(MakeConfigFullPath(theData.jsonData[jsonConsts::name].asString()), m_statusCallback, m_exitCallback)}).first;
+
+    itLogger = m_mLaunchers.insert({theData.jsonData[jsonConsts::name].asString(),
+                                   std::make_shared<Launcher>(m_context, MakeConfigFullPath(theData.jsonData[jsonConsts::name].asString()),
+                                                              MakeSocketFullPath(theData.jsonData[jsonConsts::name].asString()),
+                                                              m_statusCallback, m_exitCallback)}).first;
     LaunchLogger(itLogger->second);
 
     return pml::restgoose::response(200);
@@ -142,22 +161,25 @@ void LaunchManager::CreateLoggerConfig(const Json::Value& jsData)
     fileSdp /= jsData[jsonConsts::name].asString();
 
     iniManager config;
-    config.Set("logs","console", jsData[jsonConsts::console].asInt());
-    config.Set("logs","file", jsData[jsonConsts::file].asInt());
+    config.Set(jsonConsts::log, jsonConsts::console, jsData[jsonConsts::console].asInt());
+    config.Set(jsonConsts::log, jsonConsts::file, jsData[jsonConsts::file].asInt());
 
-    config.Set("logs", "path", m_sLogPath+jsData[jsonConsts::name].asString());
-    config.Set("heartbeat", "gap", jsData[jsonConsts::gap].asInt());
-    config.Set("aoip", "interface", jsData[jsonConsts::interface].asString());
-    config.Set("general", "name", jsData[jsonConsts::name].asString());
-    config.Get("aoip", "buffer", jsData[jsonConsts::buffer].asInt());
+    config.Set(jsonConsts::path, jsonConsts::logs, m_sLogPath+jsData[jsonConsts::name].asString());
+    config.Set(jsonConsts::path, jsonConsts::sockets, m_pathSockets);
+    config.Set(jsonConsts::path, jsonConsts::audio, m_pathAudio);
+
+    config.Set(jsonConsts::heartbeat, jsonConsts::gap, jsData[jsonConsts::gap].asInt());
+    config.Set(jsonConsts::aoip, jsonConsts::interface, jsData[jsonConsts::interface].asString());
+    config.Set(jsonConsts::general, jsonConsts::name, jsData[jsonConsts::name].asString());
+    config.Get(jsonConsts::aoip, jsonConsts::aoip, jsData[jsonConsts::buffer].asInt());
     if(jsData[jsonConsts::sdp].asString().empty())
     {
-        config.Set("source", "sdp","");
+        config.Set(jsonConsts::source, jsonConsts::sdp,"");
         std::filesystem::remove(fileSdp);
     }
     else
     {
-        config.Set("source", "sdp", fileSdp.string());
+        config.Set(jsonConsts::source, jsonConsts::sdp, fileSdp.string());
         std::ofstream ofs(fileSdp.string(), std::fstream::trunc);
         if(ofs.is_open())
         {
@@ -170,8 +192,8 @@ void LaunchManager::CreateLoggerConfig(const Json::Value& jsData)
 
     }
 
-    config.Set("source", "name", jsData[jsonConsts::source].asString());
-    config.Get("source", "rtsp", jsData[jsonConsts::rtsp].asString());
+    config.Set(jsonConsts::source, jsonConsts::name, jsData[jsonConsts::source].asString());
+    config.Get(jsonConsts::source, jsonConsts::rtsp, jsData[jsonConsts::rtsp].asString());
 
     config.Write(MakeConfigFullPath(jsData[jsonConsts::name].asString()));
 }
@@ -202,83 +224,27 @@ pml::restgoose::response LaunchManager::RemoveLogger(const std::string& sName)
 
 void LaunchManager::PipeThread()
 {
+    pmlLog() << "Pipe Thread check if running";
     if(m_pThread)
     {
-        m_bRun = false;
+        m_context.stop();
         m_pThread->join();
-        m_bRun = true;
+
         m_pThread = nullptr;
     }
+
+    pmlLog() << "Pipe Thread now start";
     m_pThread = std::make_unique<std::thread>([this]()
     {
-        fd_set read_set;
-        timespec timeout = {1,0};
-
-        while(m_bRun)
+        pmlLog() << "Pipe Thread started";
+        if(m_context.stopped())
         {
-            int nMaxFd = CreateReadSet(read_set);
-            int nSelect = pselect(nMaxFd+1, &read_set, NULL, NULL, &timeout, NULL);
-            if(nSelect == 0)
-            {
-                //no messages since timeout
-                CheckForClosedLoggers();
-            }
-            else if(nSelect > 0)
-            {
-                ReadFromLoggers(read_set);
-            }
-            else    //error
-            {
-                pmlLog(pml::LOG_CRITICAL) << "PipeThreadtSelect Error" << std::endl;
-                //break;
-            }
+            m_context.restart();
         }
+        m_context.run();
+
+        pmlLog() << "Pipe Thread stopped";
     });
-}
-
-int LaunchManager::CreateReadSet(fd_set& read_set)
-{
-    std::lock_guard<std::mutex> lg(m_mutex);
-
-    int nMaxFd=0;
-    FD_ZERO(&read_set);
-
-    //create a read_set from all launchers with a read pipe
-    for(const auto& [sName, pLauncher] : m_mLaunchers)
-    {
-        if(pLauncher->GetReadPipe() > 0)
-        {
-            nMaxFd = std::max(nMaxFd, pLauncher->GetReadPipe());
-            FD_SET(pLauncher->GetReadPipe(), &read_set);
-        }
-    }
-    return nMaxFd;
-}
-
-void LaunchManager::CheckForClosedLoggers()
-{
-    std::lock_guard<std::mutex> lg(m_mutex);
-
-    //look at each logger and see when it last sent us a message
-    for(auto& [sName, pLauncher] : m_mLaunchers)
-    {
-        if(pLauncher->ClosePipeIfInactive())
-        {
-            pLauncher->LaunchLogger();
-        }
-    }
-}
-
-void LaunchManager::ReadFromLoggers(fd_set& read_set)
-{
-    std::lock_guard<std::mutex> lg(m_mutex);
-    for(auto& [sName, pLauncher] : m_mLaunchers)
-    {
-        if(FD_ISSET(pLauncher->GetReadPipe(), &read_set))
-        {
-            pLauncher->Read();
-        }
-    }
 }
 
 pml::restgoose::response LaunchManager::GetLoggerConfig(const std::string& sName)

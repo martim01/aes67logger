@@ -1,11 +1,17 @@
 #include "jsonwriter.h"
 #include <iostream>
+#include "asiosession.h"
 
 
 JsonWriter&  JsonWriter::Get()
 {
     static JsonWriter json;
     return json;
+}
+
+JsonWriter::~JsonWriter()
+{
+
 }
 
 
@@ -29,3 +35,10 @@ void JsonWriter::writeToSStream(const Json::Value& jsValue, std::stringstream& s
     m_pWriter->write(jsValue, &ss);
 }
 
+void JsonWriter::writeToSocket(const Json::Value& jsValue, std::shared_ptr<AsioServer> pSocket)
+{
+    std::stringstream ss;
+    writeToSStream(jsValue, ss);
+    ss << std::endl;
+    pSocket->write(ss.str());
+}

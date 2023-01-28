@@ -71,7 +71,7 @@ function showLogger(logger)
     aLogger.classList.add('uk-link-reset', 'uk-display-block', 'uk-width-large@l', 'uk-width-medium@m', 'uk-card', 'uk-card-default', 'uk-card-body',
                             'uk-card-hover', 'uk-card-small');
     aLogger.id = logger;
-    aLogger.href = 'status/?logger='+logger;
+    aLogger.href = '../loggers/index.html?logger='+logger;
     
     
 
@@ -666,4 +666,129 @@ function doUpdate()
 	
 	ajax.open('PUT',"http://"+g_loopi_array[0].url+"/x-epi/update");
 	ajax.send(fd);
+}
+
+
+function getLogs()
+{
+	var dtStart = new Date(document.getElementById('start_time').value);
+	var dtEnd = new Date(document.getElementById('end_time').value);
+
+	var endpoint = "logs?logger="+document.getElementById('select_log').value+"&start_time="+dtStart.getTime()+"&end_time="+dtEnd.getTime();
+
+	console.log(endpoint);
+
+}
+
+function connectToLogger()
+{
+	const params = new Proxy(new URLSearchParams(window.location.search), { get: (searchParams, prop) => searchParams.get(prop)});
+	
+	let logger = params.logger;
+
+	ws_connect("loggers/"+logger, handleLoggerInfo);
+}
+
+function handleLoggerInfo(jsonObj)
+{
+	
+	if("id" in jsonObj)
+	{
+		document.getElementById('logger').innerHTML = jsonObj.id;
+	}
+	if("qos" in jsonObj)
+	{
+		document.getElementById('qos-bitrate').innerHTML = jsonObj.qos.bitrate.toFixed(2) + " kbps";
+		document.getElementById('qos-received').innerHTML = jsonObj.qos.packets.received;
+		document.getElementById('qos-lost').innerHTML = jsonObj.qos.packets.lost;
+		document.getElementById('qos-errors').innerHTML = jsonObj.qos.timestamp_errors;
+		document.getElementById('qos-interpacket').innerHTML = (jsonObj.qos.packet_gap*1000).toFixed(2)+" ms";
+		document.getElementById('qos-jitter').innerHTML = (jsonObj.qos.jitter*1000).toFixed(2);
+		document.getElementById('qos-tsdf').innerHTML = (jsonObj.qos['ts-df']*1000).toFixed(2);
+		document.getElementById('qos-duration').innerHTML = jsonObj.qos['duration']+" ms";
+	}
+
+	if("session" in jsonObj)
+	{
+		document.getElementById('session-sdp').innerHTML = jsonObj.session.sdp;
+		document.getElementById('session-name').innerHTML = jsonObj.session.name;
+		document.getElementById('session-type').innerHTML = jsonObj.session.type;
+		document.getElementById('session-description').innerHTML = jsonObj.session.description;
+		document.getElementById('session-groups').innerHTML = jsonObj.session.groups;
+		ShowClock(jsonObj.session);
+
+		var elm = document.getElementById('session-audio');
+		elm.className = 'uk-card-badge';
+		elm.classList.add('uk-label');
+
+		if(jsonObj.session.audio)
+		{
+			elm.classList.add('uk-label-success');
+			elm.innerHTML = "Audio Incoming";	
+		}
+		else
+		{
+			elm.classList.add('uk-label-danger');
+			elm.innerHTML = "No Audio";	
+		}
+
+		if('subsessions' in jsonObj.session && jsonObj.session.subsessions.length > 0)
+		{
+			document.getElementById('subsession-id').innerHTML = jsonObj.session.subsessions[0].id;
+			document.getElementById('subsession-source_address').innerHTML = jsonObj.session.subsessions[0].source_address;
+			document.getElementById('subsession-medium').innerHTML = jsonObj.session.subsessions[0].medium;
+			document.getElementById('subsession-codec').innerHTML = jsonObj.session.subsessions[0].codec;
+			document.getElementById('subsession-protocol').innerHTML = jsonObj.session.subsessions[0].protocol;
+			document.getElementById('subsession-port').innerHTML = jsonObj.session.subsessions[0].port;
+			document.getElementById('subsession-sample_rate').innerHTML = jsonObj.session.subsessions[0].sample_rate;
+			document.getElementById('subsession-channels').innerHTML = jsonObj.session.subsessions[0].channels;
+			document.getElementById('subsession-sync_timestamp').innerHTML = jsonObj.session.subsessions[0].sync_timestamp;
+
+			ShowClock(jsonObj.session.subsessions[0]);
+		}
+	}
+
+	if('heartbeat' in jsonObj)
+	{
+		var dtT = new Date(jsonObj.heartbeat.timestamp*1000);
+		document.getElementById('application-timestamp').innerHTML = dtT.toISOString();
+        
+		var dtS = new Date(jsonObj.heartbeat.start_time*1000);
+		document.getElementById('application-start_time').innerHTML = dtS.toISOString();
+
+		var up_time = jsonObj.heartbeat.up_time;
+		var days = Math.floor(up_time / 86400);
+		up_time = up_time % 86400;
+		var hours = Math.floor(up_time / 3600);
+		up_time = up_time % 3600;
+		var minutes = Math.floor(up_time / 60);
+		up_time = up_time % 60;
+
+		document.getElementById('application-up_time').innerHTML =  zeroPad(days,4)+" "+zeroPad(hours,2)+":"+zeroPad(minutes,2)+":"+zeroPad(up_time,2);
+            
+	}
+	if('file' in jsonObj)
+	{
+		var elm = document.getElementById('file-filename');
+		elm.innerHTML = jsonObj.file.filename;
+		if(jsonObj.file.open === true)
+		{
+			elm.className = 'uk-text-success';
+		}
+		else
+		{
+			elm.className = 'uk-text-danger';
+		}
+	}
+}
+
+function ShowClock(jsonObj)
+{
+	if('ref_clock' in jsonObj)
+	{
+		document.getElementById('ref-domain').innerHTML = jsonObj.ref_clock.domain;
+		document.getElementById('ref-id').innerHTML = jsonObj.ref_clock.id;
+		document.getElementById('ref-type').innerHTML = jsonObj.ref_clock.type;
+		document.getElementById('ref-version').innerHTML = jsonObj.ref_clock.version;
+	}
 }

@@ -63,14 +63,21 @@
 		<Unit filename="include/ntpstatus.h" />
 		<Unit filename="include/proccheck.h" />
 		<Unit filename="include/server.h" />
+		<Unit filename="include/session.h" />
 		<Unit filename="include/sysinfomanager.h" />
+		<Unit filename="include/uuid.h" />
 		<Unit filename="src/launcher.cpp" />
 		<Unit filename="src/launchmanager.cpp" />
 		<Unit filename="src/main.cpp" />
 		<Unit filename="src/ntpstatus.cpp" />
 		<Unit filename="src/proccheck.cpp" />
 		<Unit filename="src/server.cpp" />
+		<Unit filename="src/session.cpp" />
 		<Unit filename="src/sysinfomanager.cpp" />
+		<Unit filename="uuid/guid.cpp" />
+		<Unit filename="uuid/guid.h" />
+		<Unit filename="uuid/md5.cpp" />
+		<Unit filename="uuid/md5.h" />
 		<Extensions />
 	</Project>
 </CodeBlocks_project_file>

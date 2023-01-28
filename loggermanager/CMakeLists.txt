@@ -13,6 +13,7 @@ include_directories("uuid")
 include_directories(${DIR_LOG}/include)
 include_directories(${DIR_JSON}/dist)
 include_directories(${DIR_RESTGOOSE}/include)
+include_directories(${DIR_ASIO}/include)
 
 link_directories("../lib")
 

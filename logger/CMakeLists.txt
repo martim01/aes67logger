@@ -8,13 +8,14 @@ include_directories(${DIR_AOIP}/include)
 include_directories("include")
 include_directories("../common/include")
 include_directories(${DIR_LOG}/include)
+include_directories(${DIR_ASIO}/include)
 include_directories(${DIR_JSON}/dist)
 
 link_directories(${CMAKE_SOURCE_DIR}/lib)
 
 
 add_executable(logger "../common/src/jsonconsts.cpp" "../common/src/inimanager.cpp" "../common/src/inisection.cpp" "src/jsonwriter.cpp" "${DIR_JSON}/dist/jsoncpp.cpp"
- "src/jsonlog.cpp"  "src/loggerapp.cpp" "src/main.cpp" "src/soundfile.cpp" ${CMAKE_BINARY_DIR}/src/${PROJECT_NAME}_version.cpp)
+ "src/jsonlog.cpp"  "src/loggerapp.cpp" "src/main.cpp" "src/soundfile.cpp" "src/asiosession.cpp" ${CMAKE_BINARY_DIR}/src/${PROJECT_NAME}_version.cpp)
 
 list(APPEND flags "-fPIC" "-Wall" "-fpermissive"  "-std=c++17")
 if(CMAKE_BUILD_TYPE MATCHES Release)

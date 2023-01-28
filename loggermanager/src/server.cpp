@@ -41,7 +41,7 @@ const endpoint Server::EP_POWER       = endpoint(EP_API.Get()+"/"+POWER);
 const endpoint Server::EP_CONFIG      = endpoint(EP_API.Get()+"/"+CONFIG);
 const endpoint Server::EP_UPDATE      = endpoint(EP_API.Get()+"/"+UPDATE);
 const endpoint Server::EP_INFO        = endpoint(EP_API.Get()+"/"+INFO);
-const endpoint Server::EP_LOG        = endpoint(EP_API.Get()+"/"+LOGS);
+const endpoint Server::EP_LOGS        = endpoint(EP_API.Get()+"/"+LOGS);
 const endpoint Server::EP_WS          = endpoint(EP_API.Get()+"/"+WS);
 const endpoint Server::EP_WS_LOGGERS  = endpoint(EP_WS.Get()+"/"+LOGGERS);
 const endpoint Server::EP_WS_INFO     = endpoint(EP_WS.Get()+"/"+INFO);
@@ -123,7 +123,9 @@ void Server::InitLogging()
     {
         if(m_nLogToFile == -1)
         {
-            m_nLogToFile = pmlLog().AddOutput(std::make_unique<pml::LogToFile>(CreatePath(m_config.Get("paths","logs","."))+"loggermanager"));
+            std::filesystem::path pathLog = m_config.Get(jsonConsts::path,jsonConsts::log,".");
+            pathLog /= "loggermanager";
+            m_nLogToFile = pmlLog().AddOutput(std::make_unique<pml::LogToFile>(pathLog));
         }
         pmlLog().SetOutputLevel(m_nLogToFile, pml::enumLevel(m_config.Get("logging", "file", pml::LOG_INFO)));
     }
@@ -149,9 +151,9 @@ void Server::Run(const std::string& sConfigFile)
     pmlLog() << "Core\tStart" ;
 
 
-    m_info.SetDiskPath(m_config.Get("paths", "audio", "/var/loggers"));
+    m_info.SetDiskPath(m_config.Get(jsonConsts::path, jsonConsts::audio, "/var/loggers"));
 
-    if(m_server.Init(fileLocation(m_config.Get("api", "sslCert", "")), fileLocation(m_config.Get("api", "ssKey", "")), ipAddress("0.0.0.0"), m_config.Get("api", "port", 8080), EP_API, true))
+    if(m_server.Init(fileLocation(m_config.Get(jsonConsts::api, "sslCert", "")), fileLocation(m_config.Get(jsonConsts::api, "ssKey", "")), ipAddress("0.0.0.0"), m_config.Get(jsonConsts::api, "port", 8080), EP_API, true))
     {
 
         m_server.SetAuthorizationTypeBearer(std::bind(&Server::AuthenticateToken, this, _1), std::bind(&Server::RedirectToLogin, this), true);
@@ -162,11 +164,11 @@ void Server::Run(const std::string& sConfigFile)
                                           methodpoint(pml::restgoose::GET, endpoint("/uikit/*")),
                                           methodpoint(pml::restgoose::GET, endpoint("/images/*"))});
 
-        m_server.SetStaticDirectory(m_config.Get("api","static","/home/matt/aes67logger/www"));
+        m_server.SetStaticDirectory(m_config.Get(jsonConsts::api,jsonConsts::static_pages, "/var/www"));
 
 
         //add luauncher callbacks
-        m_launcher.Init(m_config.Get("paths", "loggers", "/usr/local/etc/loggers"), std::bind(&Server::StatusCallback, this, _1,_2), std::bind(&Server::ExitCallback, this, _1,_2));
+        m_launcher.Init(m_config, std::bind(&Server::StatusCallback, this, _1,_2), std::bind(&Server::ExitCallback, this, _1,_2));
 
         //add server callbacks
         CreateEndpoints();
@@ -568,13 +570,33 @@ void Server::PatchServerConfig(const Json::Value& jsData)
 
 pml::restgoose::response Server::GetLogs(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
 {
-    pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "GetLogs" ;
-    pml::restgoose::response theResponse;
+    pml::restgoose::response theResponse(404, "Log not defined");
 
-    theResponse.jsonData[jsonConsts::status] = "On";
+    auto itLogger = theQuery.find(queryKey("logger"));
+    auto itStart = theQuery.find(queryKey("start_time"));
+    auto itEnd = theQuery.find(queryKey("end_time"));
 
+    if(itLogger != theQuery.end() && itStart != theQuery.end() && itEnd != theQuery.end())
+    {
+        return GetLog(itLogger->second.Get(), itStart->second.Get(), itEnd->second.Get());
+    }
     return theResponse;
 }
+
+pml::restgoose::response Server::GetLog(const std::string& sLogger, const std::string& sStart, const std::string& sEnd)
+{
+    std::filesystem::path logDir = m_config.Get(jsonConsts::path,jsonConsts::log,".");
+    logDir /= sLogger;
+
+    if(std::filesystem::exists(logDir) == false)
+    {
+        return pml::restgoose::response(404, "Log not found");
+    }
+
+    return pml::restgoose::response(404, "Log not found");
+}
+
+
 
 void Server::StatusCallback(const std::string& sLoggerId, const Json::Value& jsStatus)
 {

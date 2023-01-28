@@ -8,6 +8,8 @@
 #include "aoipclient.h"
 #include <filesystem>
 
+class AsioServer;
+
 namespace Json
 {
     class Value;
@@ -55,18 +57,21 @@ class LoggerApp
         void LoopCallback(std::chrono::microseconds duration);
 
         void OutputQoSJson(std::shared_ptr<pml::aoip::qosData> pData);
-        void OutputSessionJson(const pml::aoip::session& theSession);
+        void OutputSessionJson();
         void OutputStreamJson(bool bStreaming);
         void OutputHeartbeatJson();
         void OutputFileJson();
 
         Json::Value GetSubsessionJson(const pml::aoip::subsession& theSubSession);
 
+        void StreamFail();
+
 
         std::string CreateFileName(const std::chrono::system_clock& tp);
 
         std::string m_sName;
         std::filesystem::path m_pathWav;
+        std::filesystem::path m_pathSockets;
 
         std::string m_sEndpoint;
         std::string m_sInterface;
@@ -83,12 +88,20 @@ class LoggerApp
 
         iniManager m_config;
 
+        pml::aoip::session m_session;
         pml::aoip::subsession m_subsession;
 
         std::unique_ptr<pml::aoip::AoipClient> m_pClient = nullptr;
 
         int m_nLogOutputConsole = -1;
         int m_nLogOutputFile = -1;
+
+        bool m_bReceivingAudio = false;
+
+        std::shared_ptr<AsioServer> m_pServer = nullptr;
+
+        unsigned int m_nFrameSize = 0;
+        double m_dFrameDuration = 0.0;
 
 };
 

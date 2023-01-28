@@ -34,6 +34,7 @@ const std::string jsonConsts::timestamp         = "timestamp";
 const std::string jsonConsts::start_time        = "start_time";
 const std::string jsonConsts::up_time           = "up_time";
 const std::string jsonConsts::filename          = "filename";
+const std::string jsonConsts::filepath          = "filepath";
 const std::string jsonConsts::open              = "open";
 
 const std::string jsonConsts::qos               = "qos";
@@ -64,6 +65,7 @@ const std::string jsonConsts::community         = "community";
 const std::string jsonConsts::gap               = "gap";
 const std::string jsonConsts::interface         = "interface";
 const std::string jsonConsts::buffer            = "buffer";
+const std::string jsonConsts::duration          = "duration";
 const std::string jsonConsts::trap_destinations = "trap_destinations";
 
 const std::string jsonConsts::command           = "command";
@@ -78,6 +80,7 @@ const std::string jsonConsts::date              = "date";
 const std::string jsonConsts::branch            = "branch";
 const std::string jsonConsts::tag               = "tag";
 const std::string jsonConsts::logger            = "logger";
+const std::string jsonConsts::loggers           = "loggers";
 
 const std::string jsonConsts::git               = "git";
 const std::string jsonConsts::rev               = "rev";
@@ -91,6 +94,11 @@ const std::string jsonConsts::path              = "path";
 const std::string jsonConsts::aoip              = "aoip";
 const std::string jsonConsts::audio             = "audio";
 const std::string jsonConsts::running           = "running";
+const std::string jsonConsts::sockets           = "sockets";
+
 
 const std::string jsonConsts::username          = "username";
 const std::string jsonConsts::password          = "password";
+
+const std::string jsonConsts::api                = "api";
+const std::string jsonConsts::static_pages       = "static";

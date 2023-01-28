@@ -40,6 +40,7 @@ struct jsonConsts
     static const std::string up_time;
 
     static const std::string filename;
+    static const std::string filepath;
     static const std::string open;
 
     static const std::string qos;
@@ -73,6 +74,7 @@ struct jsonConsts
     static const std::string gap;
     static const std::string interface;
     static const std::string buffer;
+    static const std::string duration;
     static const std::string trap_destinations;
 
     static const std::string command;
@@ -87,6 +89,7 @@ struct jsonConsts
     static const std::string branch;
     static const std::string tag;
     static const std::string logger;
+    static const std::string loggers;
 
     static const std::string git;
     static const std::string rev;
@@ -100,8 +103,11 @@ struct jsonConsts
     static const std::string general;
     static const std::string audio;
     static const std::string running;
+    static const std::string sockets;
 
     static const std::string username;
     static const std::string password;
 
+    static const std::string api;
+    static const std::string static_pages;
 };

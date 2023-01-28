@@ -9,9 +9,11 @@
 #include <functional>
 #include "json/json.h"
 #include "response.h"
+#include "asio.hpp"
 
 
 class Launcher;
+class iniManager;
 
 class LaunchManager
 {
@@ -19,7 +21,7 @@ class LaunchManager
         LaunchManager();
         ~LaunchManager();
 
-        void Init(const std::string& sPath, std::function<void(const std::string&, const Json::Value&)> statusCallback, std::function<void(const std::string&, int)> exitCallback);
+        void Init(const iniManager& iniConfig, std::function<void(const std::string&, const Json::Value&)> statusCallback, std::function<void(const std::string&, int)> exitCallback);
 
         void LaunchAll();
         void StopAll();
@@ -36,12 +38,10 @@ class LaunchManager
 
     private:
         void PipeThread();
-        int CreateReadSet(fd_set& read_set);
-        void CheckForClosedLoggers();
-        void ReadFromLoggers(fd_set& read_set);
 
         void EnumLoggers();
         std::filesystem::path MakeConfigFullPath(const std::string& sLogger);
+        std::filesystem::path MakeSocketFullPath(const std::string& sLogger);
 
         void LaunchLogger(std::shared_ptr<Launcher> pLauncher);
 
@@ -50,6 +50,9 @@ class LaunchManager
 
         std::filesystem::path m_pathLaunchers;
         std::filesystem::path m_pathSdp;
+        std::filesystem::path m_pathSockets;
+        std::filesystem::path m_pathAudio;
+
         std::map<std::string, std::shared_ptr<Launcher>> m_mLaunchers;
 
 
@@ -70,4 +73,6 @@ class LaunchManager
 
         std::function<void(const std::string&, const Json::Value&)> m_statusCallback = nullptr;
         std::function<void(const std::string&, int)> m_exitCallback = nullptr;
+
+        asio::io_context m_context;
 };
