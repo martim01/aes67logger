@@ -50,6 +50,8 @@ class Server
 
         pml::restgoose::response RedirectToLogin();
 
+
+
         void StatusCallback(const std::string& sLoggerId, const Json::Value& jsStatus);
         void ExitCallback(const std::string& sLoggerId, int nPid);
         void LoopCallback(std::chrono::milliseconds durationSince);
@@ -60,6 +62,9 @@ class Server
 
 
     private:
+
+        void AddLoggerEndpoints(const std::string& sName);
+
         LaunchManager m_launcher;
         pml::restgoose::Server m_server;
         SysInfoManager m_info;
@@ -76,6 +81,9 @@ class Server
         void PatchServerConfig(const Json::Value& jsData);
         Json::Value m_jsStatus;
         bool AuthenticateToken(const std::string& sToken);
+        bool DoAuthenticateToken(const std::string& sToken, const ipAddress& peer);
+
+        time_t GetDateTime(time_t date, const std::vector<std::string>& vLine);
 
         pml::restgoose::response GetLog(const std::string& sLogger, const std::string& sStart, const std::string& sEnd);
 

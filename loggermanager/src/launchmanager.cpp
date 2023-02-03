@@ -152,7 +152,10 @@ pml::restgoose::response LaunchManager::AddLogger(const pml::restgoose::response
                                                               m_statusCallback, m_exitCallback)}).first;
     LaunchLogger(itLogger->second);
 
-    return pml::restgoose::response(200);
+
+    pml::restgoose::response theResponse(200);
+    theResponse.jsonData["logger"] = theData.jsonData[jsonConsts::name].asString();
+    return theResponse;
 }
 
 void LaunchManager::CreateLoggerConfig(const Json::Value& jsData)
@@ -175,7 +178,14 @@ void LaunchManager::CreateLoggerConfig(const Json::Value& jsData)
     if(jsData[jsonConsts::sdp].asString().empty())
     {
         config.Set(jsonConsts::source, jsonConsts::sdp,"");
-        std::filesystem::remove(fileSdp);
+        try
+        {
+            std::filesystem::remove(fileSdp);
+        }
+        catch(std::filesystem::filesystem_error& e)
+        {
+            pmlLog(pml::LOG_WARN) << "SDP file does not exist " << e.what();
+        }
     }
     else
     {
@@ -207,14 +217,22 @@ pml::restgoose::response LaunchManager::RemoveLogger(const std::string& sName)
     auto itLogger = m_mLaunchers.find(sName);
     if(itLogger != m_mLaunchers.end())
     {
-        if(itLogger->second->IsRunning())
+        try
         {
-            itLogger->second->StopLogger();
-        }
-        std::filesystem::remove(MakeConfigFullPath(sName));
+            std::filesystem::remove(MakeConfigFullPath(sName));
 
-        m_mLaunchers.erase(itLogger);
-        return pml::restgoose::response(200);
+            if(itLogger->second->IsRunning())
+            {
+                itLogger->second->StopLogger();
+            }
+
+            m_mLaunchers.erase(itLogger);
+            return pml::restgoose::response(200);
+        }
+        catch(std::filesystem::filesystem_error& e)
+        {
+            pml::restgoose::response(500, e.what());
+        }
     }
     return pml::restgoose::response(404, "logger "+sName+" not found");
 }

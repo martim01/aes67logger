@@ -138,8 +138,15 @@ void Launcher::CloseLogger()
         waitpid(m_pid, &nStatus,0);
         if(m_pathSocket.has_extension())
         {
-            std::filesystem::remove(m_pathSocket);
-            m_pathSocket.replace_extension();
+            try
+            {
+                std::filesystem::remove(m_pathSocket);
+                m_pathSocket.replace_extension();
+            }
+            catch(std::filesystem::filesystem_error& e)
+            {
+                pmlLog(pml::LOG_WARN) << "Could not remove socket " << e.what();
+            }
         }
         m_pSocket = nullptr;
     }
@@ -310,7 +317,14 @@ bool Launcher::CheckForOrphanedLogger()
                 else
                 {
                     pmlLog() << "Logger " << m_pathConfig.stem() << " was running on pid " << nPid << " and has left socket open. Close it";
-                    std::filesystem::remove(entry.path());
+                    try
+                    {
+                        std::filesystem::remove(entry.path());
+                    }
+                    catch(std::filesystem::filesystem_error& e)
+                    {
+                        pmlLog(pml::LOG_WARN) << "Could not remove socket " << e.what();
+                    }
                 }
             }
         }

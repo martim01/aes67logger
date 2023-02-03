@@ -16,6 +16,8 @@
 #include "aoiputils.h"
 #include "launcher.h"
 #include "jsonconsts.h"
+#include <iomanip>
+
 #include "loggermanager_version.h"
 
 using namespace std::placeholders;
@@ -222,17 +224,7 @@ bool Server::CreateEndpoints()
     //now add all the dynamic methodpoints
     for(const auto& [sName, pLauncher] : m_launcher.GetLaunchers())
     {
-        m_server.AddEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName), std::bind(&Server::GetLogger, this, _1,_2,_3,_4));
-        m_server.AddEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName+"/"+STATUS), std::bind(&Server::GetLoggerStatus, this, _1,_2,_3,_4));
-        m_server.AddEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName+"/"+CONFIG), std::bind(&Server::GetLoggerConfig, this, _1,_2,_3,_4));
-
-        m_server.AddEndpoint(pml::restgoose::HTTP_DELETE, endpoint(EP_LOGGERS.Get()+"/"+sName), std::bind(&Server::DeleteLogger, this, _1,_2,_3,_4));
-
-        m_server.AddEndpoint(pml::restgoose::PUT, endpoint(EP_LOGGERS.Get()+"/"+sName+"/"+CONFIG), std::bind(&Server::PutLoggerConfig, this, _1,_2,_3,_4));
-
-        m_server.AddEndpoint(pml::restgoose::PUT, endpoint(EP_LOGGERS.Get()+"/"+sName), std::bind(&Server::PutLoggerPower, this, _1,_2,_3,_4));
-
-        m_server.AddWebsocketEndpoint(endpoint(EP_WS_LOGGERS.Get()+"/"+sName), std::bind(&Server::WebsocketAuthenticate, this, _1,_2,_3,_4), std::bind(&Server::WebsocketMessage, this, _1,_2), std::bind(&Server::WebsocketClosed, this, _1,_2));
+        AddLoggerEndpoints(sName);
     }
 
 
@@ -242,6 +234,20 @@ bool Server::CreateEndpoints()
     m_server.SetLoopCallback(std::bind(&Server::LoopCallback, this, _1));
 
     return true;
+}
+
+void Server::AddLoggerEndpoints(const std::string& sName)
+{
+    m_server.AddEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName), std::bind(&Server::GetLogger, this, _1,_2,_3,_4));
+    m_server.AddEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName+"/"+STATUS), std::bind(&Server::GetLoggerStatus, this, _1,_2,_3,_4));
+    m_server.AddEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName+"/"+CONFIG), std::bind(&Server::GetLoggerConfig, this, _1,_2,_3,_4));
+    m_server.AddEndpoint(pml::restgoose::HTTP_DELETE, endpoint(EP_LOGGERS.Get()+"/"+sName), std::bind(&Server::DeleteLogger, this, _1,_2,_3,_4));
+
+    m_server.AddEndpoint(pml::restgoose::PUT, endpoint(EP_LOGGERS.Get()+"/"+sName+"/"+CONFIG), std::bind(&Server::PutLoggerConfig, this, _1,_2,_3,_4));
+
+    m_server.AddEndpoint(pml::restgoose::PUT, endpoint(EP_LOGGERS.Get()+"/"+sName), std::bind(&Server::PutLoggerPower, this, _1,_2,_3,_4));
+
+    m_server.AddWebsocketEndpoint(endpoint(EP_WS_LOGGERS.Get()+"/"+sName), std::bind(&Server::WebsocketAuthenticate, this, _1,_2,_3,_4), std::bind(&Server::WebsocketMessage, this, _1,_2), std::bind(&Server::WebsocketClosed, this, _1,_2));
 }
 
 void Server::DeleteEndpoints()
@@ -606,6 +612,43 @@ pml::restgoose::response Server::GetLogs(const query& theQuery, const postData& 
     return theResponse;
 }
 
+
+time_t Server::GetDateTime(time_t date, const std::vector<std::string>& vLine)
+{
+    time_t timeMessage(0);
+    std::tm atm= {};
+    atm.tm_isdst = -1;
+
+    if(vLine.empty() == false)
+    {
+        auto sTime = vLine[0];
+        //remove the milliseconds
+        auto nPos = sTime.find('.');
+        if(nPos != std::string::npos)
+        {
+            sTime = sTime.substr(0,nPos);
+        }
+
+        std::stringstream ssDateTime;
+        ssDateTime << std::put_time(localtime(&date), "%Y-%m-%d");
+        ssDateTime << " " << sTime;
+        ssDateTime >> std::get_time(&atm, "%Y-%m-%d %H:%M:%S");
+        if(ssDateTime.fail())
+        {
+            pmlLog(pml::LOG_DEBUG) << "failed to parse date time: " << ssDateTime.str();
+        }
+        else
+        {
+            if(atm.tm_year < 100)
+            {
+                atm.tm_year += 100;
+            }
+            timeMessage = mktime(&atm);
+        }
+    }
+    return timeMessage;
+}
+
 pml::restgoose::response Server::GetLog(const std::string& sLogger, const std::string& sStart, const std::string& sEnd)
 {
     std::filesystem::path logDir = m_config.Get(jsonConsts::path,jsonConsts::log,".");
@@ -613,12 +656,73 @@ pml::restgoose::response Server::GetLog(const std::string& sLogger, const std::s
 
     if(std::filesystem::exists(logDir) == false)
     {
-        return pml::restgoose::response(404, "Log not found");
+        return pml::restgoose::response(404, "Log not found: " + logDir.string());
     }
 
-    return pml::restgoose::response(404, "Log not found");
-}
+    try
+    {
+        unsigned long nTimeFrom = std::stoul(sStart);
+        unsigned long nTimeTo = std::stoul(sEnd);
 
+        std::stringstream ssLog;
+
+        //get an array of the logs we need to open
+        for(time_t nTime = (time_t)nTimeFrom; (nTime/3600) <= ((time_t)nTimeTo/3600); nTime+=3600)
+        {
+            std::stringstream ssDate;
+            ssDate << std::put_time(localtime(&nTime), "%Y-%m-%dT%H.log");
+
+            auto logFile = logDir;
+            logFile /= ssDate.str();
+
+            std::ifstream inFile;
+            inFile.open(logFile,std::ios::in);
+            if(!inFile.is_open())
+            {
+                ssLog << std::put_time(localtime(&nTime), "%Y-%m-%d") << " " << std::put_time(localtime(&nTime), "%H:00:00");
+                ssLog <<  "\tERROR\t------ NO LOG FILE FOUND FOR THIS HOUR ------" << std::endl;
+            }
+            else
+            {
+                pmlLog(pml::LOG_DEBUG) << logFile << " opened";
+                inFile.clear();
+                std::string sLine;
+                while(!inFile.eof())
+                {
+                    getline(inFile,sLine,'\n');
+                    pmlLog(pml::LOG_DEBUG) << "Log\t" << sLine;
+                    if(sLine.empty() == false)
+                    {
+                        auto vSplit = SplitString(sLine, '\t', 3);
+                        if(vSplit.size() > 2)
+                        {
+                            auto timeMessage = GetDateTime(nTime, vSplit);
+
+                            if(timeMessage >= nTimeFrom && timeMessage <= nTimeTo)
+                            {
+                                ssLog << std::put_time(localtime(&nTime), "%Y-%m-%d") << " ";
+                                ssLog << vSplit[0] << "\t" << vSplit[1]  << "\t" << vSplit[2] << std::endl;
+                            }
+                        }
+                    }
+                }
+                inFile.close();
+            }
+        }
+
+        pml::restgoose::response resp(200);
+        //resp.contentType = headerValue("plain/text");
+        resp.jsonData = ssLog.str();
+        //resp.data = textData(ssLog.str());
+        return resp;
+    }
+    catch(std::exception& e)
+    {
+        pmlLog(pml::LOG_WARN) << "Could not convert start and end times " << sStart << " " << sEnd;
+        return pml::restgoose::response(400, "Could not convert start and end times");
+    }
+
+}
 
 
 void Server::StatusCallback(const std::string& sLoggerId, const Json::Value& jsStatus)
@@ -717,8 +821,14 @@ pml::restgoose::response Server::Reboot(int nCommand)
 
 bool Server::WebsocketAuthenticate(const endpoint& theEndpoint, const query& theQuery, const userName& theUser, const ipAddress& peer)
 {
-    pmlLog() << "Websocket connection request from " << peer;
-    return true;
+    ipAddress theSocket = peer;
+    auto nPos = theSocket.Get().find(':');
+    if(nPos != std::string::npos)
+    {
+        theSocket = ipAddress(theSocket.Get().substr(0, nPos));
+    }
+    pmlLog() << "Websocket connection request from " << theSocket;
+    return DoAuthenticateToken(theUser.Get(), theSocket);
 }
 
 bool Server::WebsocketMessage(const endpoint& theEndpoint, const Json::Value& jsData)
@@ -734,8 +844,13 @@ void Server::WebsocketClosed(const endpoint& theEndpoint, const ipAddress& peer)
 
 bool Server::AuthenticateToken(const std::string& sToken)
 {
-    pmlLog() << "AuthenticateToken " << m_server.GetCurrentPeer(false) << "=" << sToken;
-    auto itToken = m_mTokens.find(m_server.GetCurrentPeer(false));
+    return DoAuthenticateToken(sToken, m_server.GetCurrentPeer(false));
+}
+
+bool Server::DoAuthenticateToken(const std::string& sToken, const ipAddress& peer)
+{
+    pmlLog() << "AuthenticateToken " << peer << "=" << sToken;
+    auto itToken = m_mTokens.find(peer);
     if(itToken != m_mTokens.end() && itToken->second->GetId() == sToken)
     {
         itToken->second->Accessed();

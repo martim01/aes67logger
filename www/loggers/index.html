@@ -11,7 +11,7 @@
         <script type="text/javascript">            
         </script>
     </head>
-    <body onload="connectToLogger()">
+    <body onload="loggers()">
         <nav class="uk-navbar-container" uk-navbar style="background: #ffffff; border-bottom: 1px solid #a8a8d8;">
 		<div class="uk-navbar-left">
 			<ul class="uk-navbar-nav">
@@ -55,7 +55,8 @@
 							</div>
 						</div>
 						<div class="uk-card-footer">
-							<button class="uk-button loopi_button_warning" onclick="restartLogger()">Restart Logger</button>
+							<button class="uk-button uk-button-primary" onclick="restartLogger()">Restart</button>
+							<button class="uk-button uk-button-danger" onclick="removeLogger()">Delete</button>
 						</div>
 					</div>
 				</div>

@@ -26,7 +26,13 @@ function getCookies()
 		let pos = el.indexOf('=');
 		if(pos != -1)
 		{
-			g_cookie_array[el.substring(0,pos)] = el.substring(pos+1);
+			var key = el.substring(0,pos);
+			var value = el.substring(pos+1);
+			g_cookie_array[key] = value;
+			if(key == 'access_token')
+			{
+				g_access_token = value;
+			}
 		}
 	});
 
@@ -142,16 +148,7 @@ function showLogger(logger)
     divFile.id = 'file_'+logger; 
     divFileGrid.appendChild(divFileTitle);
     divFileGrid.appendChild(divFile);
-    divBody.appendChild(divFileGrid);
-
-    //session
-    //filename
-    
-    //timestamp
-    
-
-    
-    //divBody.appendChild(divBodySub);
+    divBody.appendChild(divFileGrid)
     aLogger.appendChild(divBody);
 
     var divFooter = document.createElement('div');
@@ -163,17 +160,26 @@ function showLogger(logger)
 
     divMain.appendChild(aLogger);
     
-    grid.append(divMain);
+    grid.insertBefore(divMain, document.getElementById('logger_add'));
 }
 
 function dashboard()
 {
+	getCookies();
+	
 	getLoggers(handleLoggers);
     //g_loggerArray.forEach(showLogger);
 }
 
 function logs()
 {
+	getCookies();
+
+	var now = new Date();
+	now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+	document.getElementById('end_time').value = now.toISOString().slice(0, 16);
+	now.setMinutes(now.getMinutes() - 60);
+	document.getElementById('start_time').value = now.toISOString().slice(0, 16);
 	getLoggers(populateSelectLoggers);
 }
 
@@ -206,6 +212,7 @@ function handleLoggers(status, jsData)
             g_loggerArray.forEach(showLogger);
         }
 
+
         ws_connect('status',statusUpdate)
     }
     else
@@ -220,9 +227,17 @@ function statusUpdate(jsonObj)
 }
 function statusUpdateLogger(jsonObj)
 {
+	if(jsonObj === null)
+		return;
+
     if('name' in jsonObj)
     {
-        console.log(jsonObj);
+		var card = document.getElementById(jsonObj['name']);
+		if(card === null)
+		{	//card not created yet
+			return;
+		}
+
         if('running' in jsonObj)
         {
             var span = document.getElementById('running_'+jsonObj['name']);
@@ -295,7 +310,7 @@ function serverOffline()
 
 function ws_connect(endpoint, callbackMessage)
 {
-	
+	console.log("ws://"+location.host+"/x-api/ws/"+endpoint+"?access_token="+g_access_token);
 	g_ws = new WebSocket("ws://"+location.host+"/x-api/ws/"+endpoint+"?access_token="+g_access_token);
     g_ws.timeout = true;
 	g_ws.onopen = function(ev)  { this.tm = setTimeout(serverOffline, 4000) };
@@ -356,7 +371,7 @@ function getUpdate(callback)
 	ajaxGet("/x-api/update",callback);
 }
 
-function ajaxGet(endpoint, callback)
+function ajaxGet(endpoint, callback, bJson=true)
 {
 	console.log("ajaxGet "+endpoint);
 	var ajax = new XMLHttpRequest();
@@ -367,8 +382,14 @@ function ajaxGet(endpoint, callback)
 		if(this.readyState == 4)
 		{
 			console.log(this.responseText);
-
-            callback(this.status, JSON.parse(this.responseText));
+			if(bJson)
+            {
+				callback(this.status, JSON.parse(this.responseText));
+			}
+			else
+			{
+				callback(this.status, this.responseText);
+			}
 		}
 	}
 	ajax.onerror = function(e)
@@ -480,6 +501,7 @@ function createBodyGrid(name, id)
 
 function system()
 {
+	getCookies();
 	getUpdate(handleSystemGetUpdate);
 }
 
@@ -521,7 +543,6 @@ function handleSystemGetUpdate(status, jsonObj)
 
 function updateInfo_System(jsonObj)
 {
-    console.log(jsonObj);
 	document.getElementById('application-start_time').innerHTML = jsonObj.application.start_time;
 	document.getElementById('application-up_time').innerHTML = millisecondsToTime(jsonObj.application.up_time*1000);
 	
@@ -671,7 +692,7 @@ function doUpdate()
 	UIkit.modal(document.getElementById('update_modal')).hide();
 	
 	
-	ajax.open('PUT',"http://"+g_loopi_array[0].url+"/x-epi/update");
+	ajax.open('PUT',"http://"+g_loopi_array[0].url+"/x-api/update");
 	ajax.send(fd);
 }
 
@@ -681,14 +702,28 @@ function getLogs()
 	var dtStart = new Date(document.getElementById('start_time').value);
 	var dtEnd = new Date(document.getElementById('end_time').value);
 
-	var endpoint = "logs?logger="+document.getElementById('select_log').value+"&start_time="+dtStart.getTime()+"&end_time="+dtEnd.getTime();
+	var endpoint = "/x-api/logs?logger="+document.getElementById('select_log').value+"&start_time="+dtStart.getTime()/1000+
+	"&end_time="+dtEnd.getTime()/1000;
 
-	console.log(endpoint);
-
+	ajaxGet(endpoint, handleGetLogs);
 }
 
-function connectToLogger()
+function handleGetLogs(status, log)
 {
+	if(status == 200)
+	{
+		document.getElementById('log').innerHTML = log;
+	}
+	else
+	{
+		UIkit.notification({message: jsonObj["reason"], status: 'danger', timeout: 3000})
+	}
+}
+
+function loggers()
+{
+	getCookies();
+
 	const params = new Proxy(new URLSearchParams(window.location.search), { get: (searchParams, prop) => searchParams.get(prop)});
 	
 	g_logger = params.logger;
@@ -698,7 +733,6 @@ function connectToLogger()
 
 function handleLoggerInfo(jsonObj)
 {
-	console.log(jsonObj);	
 	if("id" in jsonObj)
 	{
 		document.getElementById('logger').innerHTML = jsonObj.id;
@@ -849,6 +883,27 @@ function handleRestartLogger(status, jsonObj)
 	}
 }
 
+function removeLogger(command)
+{
+	UIkit.modal.confirm('Are you sure?').then(function() 
+	{
+		ajaxPostPutPatch("DELETE", "/x-api/loggers/"+g_logger, handleDeleteLogger);
+	}, function () {});	
+}
+
+function handleDeleteLogger(status, jsonObj)
+{
+	if(status != 200)
+	{
+		UIkit.notification({message: jsonObj["reason"], status: 'danger', timeout: 3000})
+	}
+	else
+	{
+		window.location.pathname = "../dashboard";
+	}
+}
+
+
 function changeSession()
 {
 	UIkit.modal(document.getElementById('update_session_modal')).show();	
@@ -913,4 +968,80 @@ function handleUpdateSession(status, jsonObj)
 	{
 		UIkit.notification({message: jsonObj["reason"], status: 'danger', timeout: 3000})
 	}	
+	UIkit.modal(document.getElementById('update_session_modal')).hide();	
 }
+
+function showAddLogger()
+{
+	UIkit.modal(document.getElementById('add_logger_modal')).show();
+}
+
+function addLogger()
+{
+	var name = document.getElementById('logger_name').value;
+	if(name == "")
+	{
+		UIkit.notification({message: "Logger name cannot be empty", status: 'danger', timeout: 3000});
+		return;
+	}
+	if(name.search(' ') != -1)
+	{
+		UIkit.notification({message: "Logger name cannot contain spaces", status: 'danger', timeout: 3000});
+		return;
+	}
+	if(g_loggerArray.find(element => element==name))
+	{
+		UIkit.notification({message: "Logger already exits", status: 'danger', timeout: 3000});
+		return;
+	}
+	
+	var rtsp = '';
+	var sdp = '';
+	if(g_method == 'rtsp')
+	{
+		rtsp = document.getElementById('config_rtsp').value;
+		if(rtsp == '')
+		{
+			UIkit.notification({message: 'RTSP may not be empty', status: 'warning', timeout: 2000});
+			return;
+		}
+	}
+	else
+	{
+		sdp = document.getElementById('config_sdp').value;
+		if(sdp == '')
+		{
+			UIkit.notification({message: 'RTSP may not be empty', status: 'warning', timeout: 2000});
+			return;
+		}
+	}
+		
+	var jsonObj = {	'name' : name,
+					'source' : document.getElementById('config_name').value,
+					'rtsp' : rtsp, 
+					'sdp' : sdp,
+					'console' : -1,
+					'file' : 1,
+					'gap' : 2500,
+					'interface' : 'eth0',
+					'buffer' : 4096};
+		
+	ajaxPostPutPatch('POST', '/x-api/loggers', JSON.stringify(jsonObj), handleAddLogger);
+
+}
+
+function handleAddLogger(status, jsonObj)
+{
+	UIkit.modal(document.getElementById('add_logger_modal')).hide();
+
+	if(status != 200 || !('logger' in jsonObj))
+	{
+		UIkit.notification({message: jsonObj.reason, status: 'danger', timeout: 3000});	
+	}
+	else
+	{
+		g_loggerArray.push(jsonObj.logger);
+		showLogger(jsonObj.logger);
+	}
+}
+
