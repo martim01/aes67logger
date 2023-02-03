@@ -12,7 +12,7 @@
 class Launcher
 {
     public:
-        Launcher(asio::io_context& context, const std::filesystem::path& pathConfig, const std::filesystem::path& pathSocket, std::function<void(const std::string&, const Json::Value&)> statusCallback, std::function<void(const std::string&, int)> m_exitCallback);
+        Launcher(asio::io_context& context, const std::filesystem::path& pathConfig, const std::filesystem::path& pathSocket, std::function<void(const std::string&, const Json::Value&)> statusCallback, std::function<void(const std::string&, int, bool)> exitCallback);
         ~Launcher();
 
 
@@ -21,7 +21,8 @@ class Launcher
         void SetLoggerApp(const std::string& sLoggerApp) { m_sLoggerApp = sLoggerApp;   }
 
         int LaunchLogger();
-        bool StopLogger();
+        bool RestartLogger();
+        bool RemoveLogger();
 
         bool IsRunning() const;
 
@@ -32,11 +33,15 @@ class Launcher
         const Json::Value& GetStatusSummary() const;
 
 
-        enum exitCode{PIPE_OPEN_ERROR=-4, FORK_ERROR=-3, PIPE_CLOSED=-1};
+        enum exitCode{FORK_ERROR=-1, REMOVED=1};
+
     private:
 
-        void CloseLogger();
+        void CloseAndLaunchOrRemove(int nSignal);
+        int CloseLogger(int nSignal);
         void CreateSummary();
+
+        void DoRemoveLogger();
 
         void Connect(const std::chrono::milliseconds& wait);
         void HandleConnect(const asio::error_code& e);
@@ -59,12 +64,14 @@ class Launcher
         std::array<char, 4096> m_data;
 
         std::function<void(const std::string&, const Json::Value&)> m_statusCallback;
-        std::function<void(const std::string&, int)> m_exitCallback;
+        std::function<void(const std::string&, int, bool)> m_exitCallback;
 
         Json::Value m_jsStatus;
         Json::Value m_jsStatusSummary;
 
         std::mutex m_mutex;
         std::shared_ptr<asio::local::stream_protocol::socket> m_pSocket = nullptr;
+
+        bool m_bMarkedForRemoval = false;
 };
 

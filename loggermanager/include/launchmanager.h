@@ -21,10 +21,9 @@ class LaunchManager
         LaunchManager();
         ~LaunchManager();
 
-        void Init(const iniManager& iniConfig, std::function<void(const std::string&, const Json::Value&)> statusCallback, std::function<void(const std::string&, int)> exitCallback);
+        void Init(const iniManager& iniConfig, std::function<void(const std::string&, const Json::Value&)> statusCallback, std::function<void (const std::string& , int)> exitCallback);
 
         void LaunchAll();
-        void StopAll();
 
         pml::restgoose::response AddLogger(const pml::restgoose::response& theData);
         pml::restgoose::response RemoveLogger(const std::string& sName);
@@ -38,12 +37,15 @@ class LaunchManager
         Json::Value GetStatusSummary() const;
 
 
+
     private:
         void PipeThread();
 
         void EnumLoggers();
         std::filesystem::path MakeConfigFullPath(const std::string& sLogger);
         std::filesystem::path MakeSocketFullPath(const std::string& sLogger);
+
+        void ExitCallback(const std::string& sLogger, int nExitCode, bool bRemove);
 
         void LaunchLogger(std::shared_ptr<Launcher> pLauncher);
 
@@ -71,10 +73,10 @@ class LaunchManager
 
         std::mutex m_mutex;
         std::unique_ptr<std::thread> m_pThread = nullptr;
-        std::atomic<bool> m_bRun = true;
 
         std::function<void(const std::string&, const Json::Value&)> m_statusCallback = nullptr;
-        std::function<void(const std::string&, int)> m_exitCallback = nullptr;
+        std::function<void(const std::string& sLoggerId, int nExit)> m_exitCallback = nullptr;
+
 
         asio::io_context m_context;
 };

@@ -14,7 +14,7 @@
 
 using namespace std::placeholders;
 
-Launcher::Launcher(asio::io_context& context, const std::filesystem::path& pathConfig, const std::filesystem::path& pathSocket, std::function<void(const std::string&, const Json::Value&)> statusCallback, std::function<void(const std::string&, int)> exitCallback) :
+Launcher::Launcher(asio::io_context& context, const std::filesystem::path& pathConfig, const std::filesystem::path& pathSocket, std::function<void(const std::string&, const Json::Value&)> statusCallback, std::function<void(const std::string&, int, bool)> exitCallback) :
     m_pid(0),
     m_context(context),
     m_timer(context),
@@ -40,7 +40,7 @@ bool Launcher::IsRunning() const
 
 int Launcher::LaunchLogger()
 {
-    pmlLog(pml::LOG_DEBUG) << "Launcher\tLaunchLogger: " << m_pathConfig;
+    pmlLog(pml::LOG_DEBUG) << "LaunchLogger: " << m_pathConfig.stem().string();
     if(CheckForOrphanedLogger())
     {
         return m_pid;
@@ -83,16 +83,26 @@ void Launcher::Connect(const std::chrono::milliseconds& wait)
 {
     try
     {
+        pmlLog() << "Start timer to connect to " << m_pathConfig.stem().string();
+        if(m_context.stopped())
+        {
+            pmlLog(pml::LOG_ERROR) << "Context has stopped!!";
+        }
         m_timer.expires_from_now(wait);
         m_timer.async_wait([this](const asio::error_code& e)
         {
-            if(!e)
+            if(!e && m_pSocket)
             {
+                pmlLog() << "Try to connect to " << m_pathConfig.stem().string();
                 m_pSocket->async_connect(asio::local::stream_protocol::endpoint(m_pathSocket.string()), std::bind(&Launcher::HandleConnect, this, _1));
             }
             else if(e != asio::error::operation_aborted)
             {
                 pmlLog(pml::LOG_ERROR) << "deadline timer failed!";
+            }
+            else
+            {
+                pmlLog(pml::LOG_DEBUG) << "deadline aborted";
             }
          });
     }
@@ -103,39 +113,44 @@ void Launcher::Connect(const std::chrono::milliseconds& wait)
 }
 
 
-bool Launcher::StopLogger()
+bool Launcher::RestartLogger()
 {
-    if(m_pid == 0)
-    {
-        pmlLog(pml::LOG_WARN) << "Stop logger "<< m_pathConfig << "- Logger not running" << std::endl;
-        return false;
-    }
-    else
-    {
-        int nError = kill(m_pid, SIGTERM);
-        if(nError != 0)
-        {
-            pmlLog(pml::LOG_ERROR) << "- Could not send signal to logger" << std::endl;
-            return false;
-        }
-        else
-        {
-            pmlLog(pml::LOG_INFO) << "- Signal sent to logger" << std::endl;
-            return true;
-        }
-    }
+    pmlLog() << m_pathConfig.stem().string() << " restart logger";
+    m_bMarkedForRemoval = false;
+    CloseAndLaunchOrRemove(SIGKILL);
+    return true;
+}
 
+bool Launcher::RemoveLogger()
+{
+    pmlLog() << m_pathConfig.stem().string() << " remove logger";
+    m_bMarkedForRemoval = true;
+    CloseAndLaunchOrRemove(SIGKILL);
+    return true;
 }
 
 
-
-void Launcher::CloseLogger()
+int Launcher::CloseLogger(int nSignal)
 {
     if(m_pid != 0)
     {
-        kill(m_pid, SIGKILL);
+        pmlLog() << m_pathConfig.stem().string() << " stop read socket timer";
+        m_timer.cancel();
+
+        pmlLog() << m_pathConfig.stem().string() << " close the socket";
+        m_pSocket->close();
+
+        m_pSocket = nullptr;
+
+        pmlLog() << m_pathConfig.stem().string() << " send " << nSignal << " to pid " << m_pid;
+        kill(m_pid, nSignal);
         int nStatus;
+
+        pmlLog() << m_pathConfig.stem().string() << " waitpid";
         waitpid(m_pid, &nStatus,0);
+
+        pmlLog() << m_pathConfig.stem().string() << " waitpid returned " << nStatus << " now remove socket file it still there";
+
         if(m_pathSocket.has_extension())
         {
             try
@@ -148,15 +163,29 @@ void Launcher::CloseLogger()
                 pmlLog(pml::LOG_WARN) << "Could not remove socket " << e.what();
             }
         }
-        m_pSocket = nullptr;
+        return nStatus;
     }
-    //@todo tell the manager to relaunch
+    return 0;
+}
+
+void Launcher::CloseAndLaunchOrRemove(int nSignal)
+{
+    int nStatus = CloseLogger(nSignal);
+
+    if(!m_bMarkedForRemoval)
+    {
+        m_exitCallback(m_pathConfig.stem().string(), nStatus, false);
+        LaunchLogger();
+    }
+    else
+    {
+        DoRemoveLogger();
+        m_exitCallback(m_pathConfig.stem().string(), nStatus, true);
+    }
 }
 
 void Launcher::Read()
 {
-    if(!m_pSocket) return;
-
     m_timer.cancel();
     m_timer.expires_from_now(std::chrono::seconds(10));         //@todo this should be double the heartbeat rate or something
     m_timer.async_wait([this](const asio::error_code& e)
@@ -164,9 +193,7 @@ void Launcher::Read()
         if(!e)
         {
             pmlLog(pml::LOG_ERROR) << m_pathConfig << "\tTimeout - close logger and relaunch" << std::endl;
-            CloseLogger();
-            LaunchLogger();
-
+            CloseAndLaunchOrRemove(SIGKILL);
         }
         else if(e != asio::error::operation_aborted)
         {
@@ -174,7 +201,10 @@ void Launcher::Read()
         }
     });
 
-    m_pSocket->async_read_some(asio::buffer(m_data), std::bind(&Launcher::HandleRead, this, _1, _2));
+    if(m_pSocket)
+    {
+        m_pSocket->async_read_some(asio::buffer(m_data), std::bind(&Launcher::HandleRead, this, _1, _2));
+    }
 }
 
 void Launcher::HandleRead(std::error_code ec, std::size_t nLength)
@@ -197,16 +227,15 @@ void Launcher::HandleRead(std::error_code ec, std::size_t nLength)
         }
         if(m_statusCallback)
         {
-            m_statusCallback(m_pathConfig.stem(), m_jsStatus);
+            m_statusCallback(m_pathConfig.stem().string(), m_jsStatus);
         }
 
         Read();
     }
-    else
+    else if(ec != asio::error::operation_aborted)
     {
         pmlLog(pml::LOG_ERROR) << m_pathConfig << "\tEOF or Read Error: " << ec.message();
-        CloseLogger();
-        LaunchLogger();
+        CloseAndLaunchOrRemove(SIGKILL);
     }
 }
 std::vector<std::string> Launcher::ExtractReadBuffer(size_t nLength)
@@ -241,6 +270,7 @@ void Launcher::HandleConnect(const asio::error_code& e)
 {
     if(!e)
     {
+        pmlLog() << "Connected to " << m_pathConfig.stem().string();
         Read();
     }
     else
@@ -307,7 +337,7 @@ bool Launcher::CheckForOrphanedLogger()
             {
                 if(kill(nPid, 0) == 0)
                 {
-                    pmlLog() << "Logger " << m_pathConfig.stem() << " is still running on pid " << nPid;
+                    pmlLog() << "Logger " << m_pathConfig.stem().string() << " is still running on pid " << nPid;
                     m_pid = nPid;
                     m_pathSocket.replace_extension(std::to_string(m_pid));
                     m_pSocket = std::make_shared<asio::local::stream_protocol::socket>(m_context);
@@ -316,7 +346,7 @@ bool Launcher::CheckForOrphanedLogger()
                 }
                 else
                 {
-                    pmlLog() << "Logger " << m_pathConfig.stem() << " was running on pid " << nPid << " and has left socket open. Close it";
+                    pmlLog() << "Logger " << m_pathConfig.stem().string() << " was running on pid " << nPid << " and has left socket open. Close it";
                     try
                     {
                         std::filesystem::remove(entry.path());
@@ -330,4 +360,18 @@ bool Launcher::CheckForOrphanedLogger()
         }
     }
     return false;
+}
+
+void Launcher::DoRemoveLogger()
+{
+    try
+    {
+        std::filesystem::remove(m_pathConfig);
+        std::filesystem::remove(m_pathSocket);
+        pmlLog() << "config and sockets for " << m_pathConfig.stem().string() << " removed";
+    }
+    catch(std::filesystem::filesystem_error& e)
+    {
+        pmlLog() << m_pathConfig.stem().string() << " failed to remove all files " << e.what();
+    }
 }

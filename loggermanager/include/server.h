@@ -21,6 +21,8 @@ class Server
         pml::restgoose::response GetRoot(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
         pml::restgoose::response GetApi(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
 
+        pml::restgoose::response GetLoggersStatus(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
+
         pml::restgoose::response GetLoggers(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
         pml::restgoose::response PostLogger(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
 
@@ -76,10 +78,7 @@ class Server
         void DeleteEndpoints();
         pml::restgoose::response Reboot(int nCommand);
 
-        void GetInitialLoggerStatus();
-
         void PatchServerConfig(const Json::Value& jsData);
-        Json::Value m_jsStatus;
         bool AuthenticateToken(const std::string& sToken);
         bool DoAuthenticateToken(const std::string& sToken, const ipAddress& peer);
 

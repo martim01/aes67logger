@@ -43,6 +43,7 @@ const endpoint Server::EP_POWER       = endpoint(EP_API.Get()+"/"+POWER);
 const endpoint Server::EP_CONFIG      = endpoint(EP_API.Get()+"/"+CONFIG);
 const endpoint Server::EP_UPDATE      = endpoint(EP_API.Get()+"/"+UPDATE);
 const endpoint Server::EP_INFO        = endpoint(EP_API.Get()+"/"+INFO);
+const endpoint Server::EP_STATUS      = endpoint(EP_API.Get()+"/"+STATUS);
 const endpoint Server::EP_LOGS        = endpoint(EP_API.Get()+"/"+LOGS);
 const endpoint Server::EP_WS          = endpoint(EP_API.Get()+"/"+WS);
 const endpoint Server::EP_WS_LOGGERS  = endpoint(EP_WS.Get()+"/"+LOGGERS);
@@ -97,21 +98,9 @@ Server::Server() :
    m_nLogToFile(-1),
    m_bLoggedThisHour(false)
 {
-    GetInitialLoggerStatus();
 }
 
 
-void Server::GetInitialLoggerStatus()
-{
-//    if(IsProcRunning("logger"))
-//    {   //just started up so must be an orphaned player
-//        m_jsStatus["player"] = "Orphaned";
-//    }
-//    else
-//    {
-//        m_jsStatus["player"] ="Stopped";
-//    }
-}
 
 void Server::InitLogging()
 {
@@ -201,6 +190,7 @@ bool Server::CreateEndpoints()
     m_server.AddEndpoint(pml::restgoose::GET, EP_API, std::bind(&Server::GetApi, this, _1,_2,_3,_4));
 
     m_server.AddEndpoint(pml::restgoose::GET, EP_LOGGERS, std::bind(&Server::GetLoggers, this, _1,_2,_3,_4));
+    m_server.AddEndpoint(pml::restgoose::GET, EP_STATUS, std::bind(&Server::GetLoggersStatus, this, _1,_2,_3,_4));
     m_server.AddEndpoint(pml::restgoose::POST, EP_LOGGERS, std::bind(&Server::PostLogger, this, _1,_2,_3,_4));
 
     m_server.AddEndpoint(pml::restgoose::GET, EP_CONFIG, std::bind(&Server::GetConfig, this, _1,_2,_3,_4));
@@ -301,8 +291,16 @@ pml::restgoose::response Server::GetApi(const query& theQuery, const postData& v
     theResponse.jsonData.append(LOGGERS);
     theResponse.jsonData.append(POWER);
     theResponse.jsonData.append(CONFIG);
+    theResponse.jsonData.append(STATUS);
     theResponse.jsonData.append(INFO);
     theResponse.jsonData.append(UPDATE);
+    return theResponse;
+}
+
+pml::restgoose::response Server::GetLoggersStatus(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
+{
+    pml::restgoose::response theResponse(200);
+    theResponse.jsonData = m_launcher.GetStatusSummary();
     return theResponse;
 }
 
@@ -363,12 +361,18 @@ pml::restgoose::response Server::GetLoggerConfig(const query& theQuery, const po
 
 pml::restgoose::response Server::PostLogger(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
 {
-    auto theResponse = ConvertPostDataToJson(vData);
-    if(theResponse.nHttpCode == 200)
+    auto theData = ConvertPostDataToJson(vData);
+    if(theData.nHttpCode == 200)
     {
-        theResponse = m_launcher.AddLogger(theResponse);
+        auto theResponse = m_launcher.AddLogger(theData);
+        if(theResponse.nHttpCode == 200)
+        {
+            AddLoggerEndpoints(theData.jsonData[jsonConsts::name].asString());
+        }
+        return theResponse;
     }
-    return theResponse;
+    return theData;
+
 }
 
 pml::restgoose::response Server::DeleteLogger(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
@@ -766,7 +770,7 @@ void Server::ExitCallback(const std::string& sLoggerId, int nExit)
         jsStatus[jsonConsts::resumed][jsonConsts::signal] = WSTOPSIG(nExit);
     }
 
-    m_server.SendWebsocketMessage({endpoint(EP_WS_LOGGERS.Get()+"/"+sLoggerId)}, m_jsStatus);
+    m_server.SendWebsocketMessage({endpoint(EP_WS_LOGGERS.Get()+"/"+sLoggerId)}, jsStatus);
 }
 
 

@@ -212,13 +212,21 @@ function handleLoggers(status, jsData)
             g_loggerArray.forEach(showLogger);
         }
 
-
-        ws_connect('status',statusUpdate)
+		ajaxGet('/x-api/status', handleLoggersStatus);
     }
     else
     {
         console.log(status);
     }
+}
+
+function handleLoggersStatus(status, jsonObj)
+{
+	if(status == 200)
+	{
+		statusUpdate(jsonObj)
+	}
+	ws_connect('status',statusUpdate)
 }
 
 function statusUpdate(jsonObj)
@@ -728,8 +736,22 @@ function loggers()
 	
 	g_logger = params.logger;
 
-	ws_connect("loggers/"+g_logger, handleLoggerInfo);
+	ajaxGet("/x-api/loggers/"+g_logger+"/status", connectToLogger)
 }
+
+function connectToLogger(status, jsonObj)
+{
+	if(status == 200)
+	{
+		handleLoggerInfo(jsonObj);
+		ws_connect("loggers/"+g_logger, handleLoggerInfo);
+	}
+	else
+	{
+		UIkit.notification({message: jsonObj["reason"], status: 'danger', timeout: 3000});
+	}
+}
+
 
 function handleLoggerInfo(jsonObj)
 {
@@ -887,7 +909,7 @@ function removeLogger(command)
 {
 	UIkit.modal.confirm('Are you sure?').then(function() 
 	{
-		ajaxPostPutPatch("DELETE", "/x-api/loggers/"+g_logger, handleDeleteLogger);
+		ajaxDelete("x-api/loggers/"+g_logger, handleDeleteLogger);
 	}, function () {});	
 }
 
@@ -899,6 +921,8 @@ function handleDeleteLogger(status, jsonObj)
 	}
 	else
 	{
+		//console.log(status);
+		//console.log(jsonObj);
 		window.location.pathname = "../dashboard";
 	}
 }

@@ -5,6 +5,7 @@
 #include "jsonconsts.h"
 #include "aoiputils.h"
 
+using namespace std::placeholders;
 
 LaunchManager::LaunchManager()
 {
@@ -15,6 +16,7 @@ LaunchManager::~LaunchManager()
 {
     if(m_pThread)
     {
+        m_context.stop();
         m_bRun = false;
         m_pThread->join();
     }
@@ -53,7 +55,7 @@ void LaunchManager::EnumLoggers()
 
                 m_mLaunchers.insert({entry.path().stem(), std::make_shared<Launcher>(m_context, entry.path(),
                                                                                      MakeSocketFullPath(entry.path().stem()),
-                                                                                     m_statusCallback, m_exitCallback)});
+                                                                                     m_statusCallback, std::bind(&LaunchManager::ExitCallback, this, _1,_2,_3))});
             }
         }
         m_pathSdp = m_pathLaunchers;
@@ -103,17 +105,6 @@ void LaunchManager::LaunchLogger(std::shared_ptr<Launcher> pLauncher)
     }
 }
 
-void LaunchManager::StopAll()
-{
-    std::lock_guard<std::mutex> lg(m_mutex);
-
-    pmlLog() << "Stop all loggers";
-
-    for(const auto& [sName, pLauncher] : m_mLaunchers)
-    {
-        pLauncher->StopLogger();
-    }
-}
 
 pml::restgoose::response LaunchManager::AddLogger(const pml::restgoose::response& theData)
 {
@@ -146,11 +137,14 @@ pml::restgoose::response LaunchManager::AddLogger(const pml::restgoose::response
     CreateLoggerConfig(theData.jsonData);
 
 
-    itLogger = m_mLaunchers.insert({theData.jsonData[jsonConsts::name].asString(),
-                                   std::make_shared<Launcher>(m_context, MakeConfigFullPath(theData.jsonData[jsonConsts::name].asString()),
-                                                              MakeSocketFullPath(theData.jsonData[jsonConsts::name].asString()),
-                                                              m_statusCallback, m_exitCallback)}).first;
-    LaunchLogger(itLogger->second);
+    auto pLauncher = std::make_shared<Launcher>(m_context, MakeConfigFullPath(theData.jsonData[jsonConsts::name].asString()),
+                                                           MakeSocketFullPath(theData.jsonData[jsonConsts::name].asString()),
+                                                           m_statusCallback,
+                                                           std::bind(&LaunchManager::ExitCallback, this, _1,_2,_3));
+
+
+    m_mLaunchers.insert({theData.jsonData[jsonConsts::name].asString(),pLauncher});
+    LaunchLogger(pLauncher);
 
 
     pml::restgoose::response theResponse(200);
@@ -217,28 +211,22 @@ pml::restgoose::response LaunchManager::RemoveLogger(const std::string& sName)
     auto itLogger = m_mLaunchers.find(sName);
     if(itLogger != m_mLaunchers.end())
     {
-        try
-        {
-            std::filesystem::remove(MakeConfigFullPath(sName));
-
-            if(itLogger->second->IsRunning())
-            {
-                itLogger->second->StopLogger();
-            }
-
-            m_mLaunchers.erase(itLogger);
-            return pml::restgoose::response(200);
-        }
-        catch(std::filesystem::filesystem_error& e)
-        {
-            pml::restgoose::response(500, e.what());
-        }
+        itLogger->second->RemoveLogger();
+        return pml::restgoose::response(200);
     }
+
+
     return pml::restgoose::response(404, "logger "+sName+" not found");
 }
 
 
 
+//void work(asio::io_context& context)
+//{
+//    asio::steady_timer timer(context);
+//    timer.expires_from_now(std::chrono::seconds(1));
+//    timer.async_wait([&context](const asio::error_code& e){ work(context); });
+//}
 
 void LaunchManager::PipeThread()
 {
@@ -255,6 +243,10 @@ void LaunchManager::PipeThread()
     m_pThread = std::make_unique<std::thread>([this]()
     {
         pmlLog() << "Pipe Thread started";
+
+        auto work = asio::require(m_context.get_executor(), asio::execution::outstanding_work.tracked);
+
+
         if(m_context.stopped())
         {
             m_context.restart();
@@ -338,9 +330,20 @@ pml::restgoose::response LaunchManager::RestartLogger(const std::string& sName)
     auto itLauncher = m_mLaunchers.find(sName);
     if(itLauncher != m_mLaunchers.end())
     {
-        itLauncher->second->StopLogger();
-        itLauncher->second->LaunchLogger();
+        itLauncher->second->RestartLogger();
         return pml::restgoose::response(200);
     }
     return pml::restgoose::response(404, sName+" not found");
+}
+
+void LaunchManager::ExitCallback(const std::string& sLogger, int nExitCode, bool bRemove)
+{
+    pmlLog() << "Logger " << sLogger << " has exited with exit code " << nExitCode;
+    if(bRemove)
+    {
+        m_mLaunchers.erase(sLogger);
+        //remove all endpoints for this logger
+        //send out some status to say removed
+    }
+    m_exitCallback(sLogger, nExitCode);
 }
