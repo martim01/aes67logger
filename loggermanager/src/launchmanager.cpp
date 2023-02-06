@@ -17,7 +17,6 @@ LaunchManager::~LaunchManager()
     if(m_pThread)
     {
         m_context.stop();
-        m_bRun = false;
         m_pThread->join();
     }
     //loggers will shutdown in the launcher destructor

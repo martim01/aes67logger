@@ -450,7 +450,7 @@ pml::restgoose::response Server::GetUpdate(const query& theQuery, const postData
     theResponse.jsonData[jsonConsts::server][jsonConsts::minor] = pml::loggermanager::VERSION_MINOR;
     theResponse.jsonData[jsonConsts::server][jsonConsts::patch] = pml::loggermanager::VERSION_PATCH;
     theResponse.jsonData[jsonConsts::server][jsonConsts::version] = pml::loggermanager::VERSION_STRING;
-    theResponse.jsonData[jsonConsts::server][jsonConsts::date] = pml::loggermanager::BUILD_DATE;
+    theResponse.jsonData[jsonConsts::server][jsonConsts::date] = pml::loggermanager::BUILD_TIME;
 
     auto js = ConvertToJson(Exec("logger -v"));
     if(js)

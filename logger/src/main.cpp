@@ -86,7 +86,7 @@ void OutputVersion()
     jsValue[jsonConsts::minor] = pml::logger::VERSION_MINOR;
     jsValue[jsonConsts::patch] = pml::logger::VERSION_PATCH;
     jsValue[jsonConsts::version] = pml::logger::VERSION_STRING;
-    jsValue[jsonConsts::date] = pml::logger::BUILD_DATE;
+    jsValue[jsonConsts::date] = pml::logger::BUILD_TIME;
 
     JsonWriter::Get().writeToStdOut(jsValue);
 }

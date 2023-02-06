@@ -544,9 +544,32 @@ function handleGetUpdate(status, jsonObj)
 
 function handleSystemGetUpdate(status, jsonObj)
 {
-    handleGetUpdate(status, jsonObj);
+	if(status == 200)
+    {
+		handleGetUpdate(status, jsonObj);
+		getInfo(handleGetSystemInfo);
+	}
+	else
+	{
+		UIkit.notification({message: jsonObj["reason"], status: 'danger', timeout: 3000})
+	}
+}
 
-    ws_connect('info', updateInfo_System);
+function handleGetSystemInfo(status, jsonObj)
+{
+	if(status == 200)
+	{
+		updateInfo_System(jsonObj);
+		ws_connect('info', updateInfo_System);
+	}
+	else if(jsonObj)
+	{
+		UIkit.notification({message: jsonObj["reason"], status: 'danger', timeout: 3000})
+	}
+	else
+	{
+		console.log(status);
+	}
 }
 
 function updateInfo_System(jsonObj)
