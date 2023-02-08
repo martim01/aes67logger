@@ -6,7 +6,7 @@ project(aes67logger LANGUAGES CXX C VERSION 1.0.0)
 SET(DIR_BASE $ENV{HOME} CACHE STRING "base location for external libraries' source")
 SET(DIR_AOIP ${DIR_BASE}/aoip CACHE STRING "location of aoip library")
 SET(DIR_LOG ${DIR_BASE}/log CACHE STRING "location of pml log")
-SET(DIR_JSON ${DIR_B+ASE}/jsoncpp CACHE STRING "location of jsoncpp")
+SET(DIR_JSON ${DIR_BASE}/jsoncpp CACHE STRING "location of jsoncpp")
 SET(DIR_RESTGOOSE ${DIR_BASE}/Restgoose CACHE STRING "location of Restgoose")
 SET(DIR_ASIO ${DIR_BASE}/asio CACHE STRING "location of Asio")
 
@@ -66,12 +66,12 @@ unset(RG_TEMP_DIR4)
 
 #Get asio
 message(STATUS "Find asio")
-find_path(TEMP_DIRA NAMES "asio.hpp" PATHS ${DIR_ASIO}/include NO_CACHE)
+find_path(TEMP_DIRA NAMES "asio.hpp" PATHS ${DIR_ASIO}/asio/include NO_CACHE)
 if((NOT TEMP_DIRA) OR (NOT EXISTS ${TEMP_DIRA}))
 	message(STATUS "asio not found - clone from GitHub")
 	execute_process(COMMAND git clone https://github.com/chriskohlhoff/asio/ ${DIR_ASIO})
 
-    find_path(TEMP_DIRA2 NAMES "asio.hpp" PATHS ${DIR_ASIO}/include NO_CACHE)
+    find_path(TEMP_DIRA2 NAMES "asio.hpp" PATHS ${DIR_ASIO}/asio/include NO_CACHE)
     if((NOT TEMP_DIRA2) OR (NOT EXISTS ${TEMP_DIRA2}))
         message(FATAL_ERROR "Failed to clone asio")
     endif()

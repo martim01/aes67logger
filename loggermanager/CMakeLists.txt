@@ -13,7 +13,7 @@ include_directories("uuid")
 include_directories(${DIR_LOG}/include)
 include_directories(${DIR_JSON}/dist)
 include_directories(${DIR_RESTGOOSE}/include)
-include_directories(${DIR_ASIO}/include)
+include_directories(${DIR_ASIO}/asio/include)
 
 link_directories("../lib")
 
@@ -33,7 +33,7 @@ target_compile_options(loggermanager PRIVATE ${flags})
 
 list(APPEND definitions "NO_OPENSSL" "__GNU__")
 target_compile_definitions(loggermanager PUBLIC ${definitions})
-target_link_libraries(loggermanager pml_log restgoose)
+target_link_libraries(loggermanager pml_log restgoose pthread)
 #target_link_libraries(loggermanager optimized pml_log restgoose debug pml_logd restgoosed)
 
 set_target_properties(loggermanager PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")

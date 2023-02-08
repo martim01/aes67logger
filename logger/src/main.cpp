@@ -1,5 +1,5 @@
 #include <iostream>
-#include "portaudio.h"
+//#include "portaudio.h"
 #include "loggerapp.h"
 #include "log.h"
 #include <unistd.h>

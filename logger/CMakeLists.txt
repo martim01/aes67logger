@@ -8,7 +8,7 @@ include_directories(${DIR_AOIP}/include)
 include_directories("include")
 include_directories("../common/include")
 include_directories(${DIR_LOG}/include)
-include_directories(${DIR_ASIO}/include)
+include_directories(${DIR_ASIO}/asio/include)
 include_directories(${DIR_JSON}/dist)
 
 link_directories(${CMAKE_SOURCE_DIR}/lib)
@@ -28,7 +28,7 @@ target_compile_options(logger PRIVATE ${flags})
 list(APPEND definitions "NO_OPENSSL" "__GNU__")
 target_compile_definitions(logger PUBLIC ${definitions})
 target_link_libraries(logger optimized pml_log aoip debug pml_logd aoipd)
-target_link_libraries(logger sndfile)
+target_link_libraries(logger sndfile pthread)
 
 set_target_properties(logger PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")
 
