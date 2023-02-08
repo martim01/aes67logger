@@ -14,7 +14,7 @@ class Server
     public:
         Server();
 
-        void Run(const std::string& sConfigFile);
+        int Run(const std::string& sConfigFile);
 
 
 
@@ -55,7 +55,7 @@ class Server
 
 
         void StatusCallback(const std::string& sLoggerId, const Json::Value& jsStatus);
-        void ExitCallback(const std::string& sLoggerId, int nPid);
+        void ExitCallback(const std::string& sLoggerId, int nPid, bool bRemove);
         void LoopCallback(std::chrono::milliseconds durationSince);
 
         bool WebsocketAuthenticate(const endpoint& theEndpoint, const query& theQuery, const userName& theUser, const ipAddress& peer);

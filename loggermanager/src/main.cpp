@@ -81,7 +81,6 @@ int main(int argc,  char** argv)
         return -1;
     }
 
-    g_server.Run(argv[1]);
-
-    return 0;
+    auto nResult = g_server.Run(argv[1]);
+    return nResult;
 }

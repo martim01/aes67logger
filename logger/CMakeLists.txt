@@ -9,6 +9,7 @@ include_directories("include")
 include_directories("../common/include")
 include_directories(${DIR_LOG}/include)
 include_directories(${DIR_ASIO}/asio/include)
+include_directories(${DIR_ASIO}/include)
 include_directories(${DIR_JSON}/dist)
 
 link_directories(${CMAKE_SOURCE_DIR}/lib)

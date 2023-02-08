@@ -136,13 +136,13 @@ void Server::InitLogging()
 
 }
 
-void Server::Run(const std::string& sConfigFile)
+int Server::Run(const std::string& sConfigFile)
 {
     if(m_config.Read(sConfigFile) == false)
     {
         pmlLog().AddOutput(std::unique_ptr<pml::LogOutput>(new pml::LogOutput()));
         pmlLog(pml::LOG_CRITICAL) << "Could not open '" << sConfigFile << "' exiting.";
-        return;
+        return -1;
     }
 
     InitLogging();
@@ -152,7 +152,9 @@ void Server::Run(const std::string& sConfigFile)
 
     m_info.SetDiskPath(m_config.Get(jsonConsts::path, jsonConsts::audio, "/var/loggers"));
 
-    if(m_server.Init(fileLocation(m_config.Get(jsonConsts::api, "sslCert", "")), fileLocation(m_config.Get(jsonConsts::api, "ssKey", "")), ipAddress("0.0.0.0"), m_config.Get(jsonConsts::api, "port", 8080), EP_API, true,true))
+    auto addr = ipAddress(GetIpAddress(m_config.Get(jsonConsts::api, jsonConsts::interface, "eth0")));
+
+    if(m_server.Init(fileLocation(m_config.Get(jsonConsts::api, "sslCert", "")), fileLocation(m_config.Get(jsonConsts::api, "ssKey", "")), addr, m_config.Get(jsonConsts::api, "port", 8080), EP_API, true,true))
     {
 
         m_server.SetAuthorizationTypeBearer(std::bind(&Server::AuthenticateToken, this, _1), std::bind(&Server::RedirectToLogin, this), true);
@@ -167,7 +169,7 @@ void Server::Run(const std::string& sConfigFile)
 
 
         //add luauncher callbacks
-        m_launcher.Init(m_config, std::bind(&Server::StatusCallback, this, _1,_2), std::bind(&Server::ExitCallback, this, _1,_2));
+        m_launcher.Init(m_config, std::bind(&Server::StatusCallback, this, _1,_2), std::bind(&Server::ExitCallback, this, _1,_2,_3));
 
         //add server callbacks
         CreateEndpoints();
@@ -177,7 +179,10 @@ void Server::Run(const std::string& sConfigFile)
 
         pmlLog() << "Core\tStop" ;
         DeleteEndpoints();
+
+        return 0;
     }
+    return -2;
 }
 
 bool Server::CreateEndpoints()
@@ -246,6 +251,7 @@ void Server::DeleteEndpoints()
     pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "DeleteEndpoints" ;
 
     m_server.DeleteEndpoint(pml::restgoose::GET, EP_API);
+
 
     m_server.DeleteEndpoint(pml::restgoose::GET, EP_LOGGERS);
     m_server.DeleteEndpoint(pml::restgoose::POST, EP_LOGGERS);
@@ -377,9 +383,22 @@ pml::restgoose::response Server::PostLogger(const query& theQuery, const postDat
 
 pml::restgoose::response Server::DeleteLogger(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
 {
+    auto theResponse = ConvertPostDataToJson(vData);
+    if(theResponse.nHttpCode == 200)
+    {
+        if(theResponse.jsonData.isMember("password") == false)
+        {
+            return pml::restgoose::response(401, "No password sent");
+        }
+        if(theResponse.jsonData["password"].asString() != m_config.Get(jsonConsts::api, jsonConsts::password, "2rnfgesgy8w!"))
+        {
+            return pml::restgoose::response(403, "Password is incorrect");
+        }
 
-    auto vUrl = SplitString(theEndpoint.Get(), '/');
-    return m_launcher.RemoveLogger(vUrl.back());
+        auto vUrl = SplitString(theEndpoint.Get(), '/');
+        return m_launcher.RemoveLogger(vUrl.back());
+    }
+    return theResponse;
 }
 
 pml::restgoose::response Server::PutLoggerConfig(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
@@ -396,9 +415,23 @@ pml::restgoose::response Server::PutLoggerConfig(const query& theQuery, const po
 
 pml::restgoose::response Server::PutLoggerPower(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
 {
-    auto vPath = SplitString(theEndpoint.Get(),'/');
-    return m_launcher.RestartLogger(vPath[vPath.size()-1]);
+    auto theResponse = ConvertPostDataToJson(vData);
+    if(theResponse.nHttpCode == 200)
+    {
+        if(theResponse.jsonData.isMember("password") == false)
+        {
+            return pml::restgoose::response(401, "No password sent");
+        }
+        if(theResponse.jsonData["password"].asString() != m_config.Get(jsonConsts::api, jsonConsts::password, "2rnfgesgy8w!"))
+        {
+            pmlLog(pml::LOG_DEBUG) << "Sent " << theResponse.jsonData["password"].asString() << " should be " << m_config.Get(jsonConsts::api, jsonConsts::password, "2rnfgesgy8w!");
+            return pml::restgoose::response(403, "Password is incorrect");
+        }
 
+        auto vPath = SplitString(theEndpoint.Get(),'/');
+        return m_launcher.RestartLogger(vPath[vPath.size()-1]);
+    }
+    return theResponse;
 }
 
 
@@ -420,7 +453,7 @@ pml::restgoose::response Server::GetConfig(const query& theQuery, const postData
     char host[256];
     gethostname(host, 256);
     theResponse.jsonData[jsonConsts::server][jsonConsts::hostname] = host;
-    theResponse.jsonData[jsonConsts::server][jsonConsts::ip_address][jsonConsts::eth0] = GetIpAddress(jsonConsts::eth0);
+    theResponse.jsonData[jsonConsts::server][jsonConsts::ip_address][m_config.Get(jsonConsts::api, jsonConsts::interface, "eth0")] = GetIpAddress(m_config.Get(jsonConsts::api, jsonConsts::interface, "eth0"));
 
     for(const auto& [sName, pSection] : m_config.GetSections())
     {
@@ -736,10 +769,8 @@ void Server::StatusCallback(const std::string& sLoggerId, const Json::Value& jsS
     m_server.SendWebsocketMessage({endpoint(EP_WS_LOGGERS.Get()+"/"+sLoggerId)}, jsStatus);
 }
 
-void Server::ExitCallback(const std::string& sLoggerId, int nExit)
+void Server::ExitCallback(const std::string& sLoggerId, int nExit, bool bRemove)
 {
-    pmlLog() << "Logger exited" ;
-
     //lock as jsStatus can be called by pipe thread and server thread
     std::lock_guard<std::mutex> lg(m_mutex);
 
@@ -751,11 +782,14 @@ void Server::ExitCallback(const std::string& sLoggerId, int nExit)
     if(WIFEXITED(nExit))
     {
         jsStatus[jsonConsts::exit][jsonConsts::code] = WEXITSTATUS(nExit);
+        pmlLog() << "Logger exited " << "Code: " << WEXITSTATUS(nExit);
     }
     if(WIFSIGNALED(nExit))
     {
         jsStatus[jsonConsts::exit][jsonConsts::signal][jsonConsts::code] = WTERMSIG(nExit);
         jsStatus[jsonConsts::exit][jsonConsts::signal][jsonConsts::description] = strsignal(WTERMSIG(nExit));
+        pmlLog() << "Logger signaled "  << "Code: " << WTERMSIG(nExit) << " " << strsignal(WTERMSIG(nExit));
+
         if(WCOREDUMP(nExit))
         {
             jsStatus[jsonConsts::exit][jsonConsts::core_dump] = true;
@@ -764,13 +798,29 @@ void Server::ExitCallback(const std::string& sLoggerId, int nExit)
     if(WIFSTOPPED(nExit))
     {
         jsStatus[jsonConsts::stopped][jsonConsts::signal] = WSTOPSIG(nExit);
+        pmlLog() << "Logger stopped "  << "Signal: " << WSTOPSIG(nExit);
     }
     if(WIFCONTINUED(nExit))
     {
         jsStatus[jsonConsts::resumed][jsonConsts::signal] = WSTOPSIG(nExit);
+        pmlLog() << "Logger resumed Signal:" << WSTOPSIG(nExit);
     }
 
     m_server.SendWebsocketMessage({endpoint(EP_WS_LOGGERS.Get()+"/"+sLoggerId)}, jsStatus);
+
+
+    if(bRemove)
+    {
+        m_server.DeleteEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sLoggerId));
+        m_server.DeleteEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sLoggerId+"/"+STATUS));
+        m_server.DeleteEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sLoggerId+"/"+CONFIG));
+        m_server.DeleteEndpoint(pml::restgoose::HTTP_DELETE, endpoint(EP_LOGGERS.Get()+"/"+sLoggerId));
+        m_server.DeleteEndpoint(pml::restgoose::PUT, endpoint(EP_LOGGERS.Get()+"/"+sLoggerId+"/"+CONFIG));
+        m_server.DeleteEndpoint(pml::restgoose::PUT, endpoint(EP_LOGGERS.Get()+"/"+sLoggerId));
+
+        //@todo remove websocket endpoints
+        //m_server.AddWebsocketEndpoint(endpoint(EP_WS_LOGGERS.Get()+"/"+sName), std::bind(&Server::WebsocketAuthenticate, this, _1,_2,_3,_4), std::bind(&Server::WebsocketMessage, this, _1,_2), std::bind(&Server::WebsocketClosed, this, _1,_2));
+    }
 }
 
 

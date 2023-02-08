@@ -5,6 +5,7 @@ g_ajax.timeout = 300;
 var g_cookie_array = [];
 var g_logger = null;
 var g_access_token = null;
+var g_action = '';
 
 const zeroPad = (num,places)=>String(num).padStart(places,'0');
 
@@ -911,14 +912,20 @@ function ShowClock(jsonObj)
 	}
 }
 
-function restartLogger()
+function loggerAdmin()
 {
-	UIkit.modal.confirm('Are you sure?').then(function() 
+	if(g_action == 'restart')
 	{
-		var play = { "command" : "restart"};
+		var play = { "command" : "restart", "password" : document.getElementById('admin_password').value};
 		ajaxPostPutPatch("PUT", "/x-api/loggers/"+g_logger, JSON.stringify(play), handleRestartLogger);
-	}, function () {});		
+	}
+	else if(g_action == 'remove')
+	{
+		var play = {"password" : document.getElementById('admin_password').value};
+		ajaxPostPutPatch("DELETE", "/x-api/loggers/"+g_logger, JSON.stringify(play), handleDeleteLogger);
+	}
 }
+
 
 function handleRestartLogger(status, jsonObj)
 {
@@ -926,18 +933,13 @@ function handleRestartLogger(status, jsonObj)
 	{
 		UIkit.notification({message: jsonObj["reason"], status: 'danger', timeout: 3000})
 	}
-}
-
-function removeLogger(command)
-{
-	UIkit.modal.confirm('Are you sure?').then(function() 
-	{
-		ajaxDelete("x-api/loggers/"+g_logger, handleDeleteLogger);
-	}, function () {});	
+	UIkit.modal(document.getElementById('password_modal')).hide();
 }
 
 function handleDeleteLogger(status, jsonObj)
 {
+	UIkit.modal(document.getElementById('password_modal')).hide();
+	
 	if(status != 200)
 	{
 		UIkit.notification({message: jsonObj["reason"], status: 'danger', timeout: 3000})
@@ -955,6 +957,24 @@ function changeSession()
 {
 	UIkit.modal(document.getElementById('update_session_modal')).show();	
 }
+
+
+
+function showAdminPassword(action)
+{
+	g_action = action;
+	if(action == 'restart')
+	{
+		document.getElementById('logger_admin').innerHTML = "Restart Logger";
+	}
+	else if(action == 'remove')
+	{
+		document.getElementById('logger_admin').innerHTML = "Remove Logger";
+	}
+	UIkit.modal(document.getElementById('password_modal')).show();	
+}
+
+
 
 var g_method = 'rtsp';
 function showrtsp()

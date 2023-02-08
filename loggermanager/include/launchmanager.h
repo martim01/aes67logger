@@ -21,7 +21,7 @@ class LaunchManager
         LaunchManager();
         ~LaunchManager();
 
-        void Init(const iniManager& iniConfig, std::function<void(const std::string&, const Json::Value&)> statusCallback, std::function<void (const std::string& , int)> exitCallback);
+        void Init(const iniManager& iniConfig, std::function<void(const std::string&, const Json::Value&)> statusCallback, std::function<void (const std::string& , int, bool)> exitCallback);
 
         void LaunchAll();
 
@@ -75,7 +75,7 @@ class LaunchManager
         std::unique_ptr<std::thread> m_pThread = nullptr;
 
         std::function<void(const std::string&, const Json::Value&)> m_statusCallback = nullptr;
-        std::function<void(const std::string& sLoggerId, int nExit)> m_exitCallback = nullptr;
+        std::function<void(const std::string&, int, bool)> m_exitCallback = nullptr;
 
 
         asio::io_context m_context;

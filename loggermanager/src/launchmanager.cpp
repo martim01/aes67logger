@@ -22,7 +22,7 @@ LaunchManager::~LaunchManager()
     //loggers will shutdown in the launcher destructor
 }
 
-void LaunchManager::Init(const iniManager& iniConfig, std::function<void(const std::string&, const Json::Value&)> statusCallback, std::function<void(const std::string&, int)> exitCallback)
+void LaunchManager::Init(const iniManager& iniConfig, std::function<void(const std::string&, const Json::Value&)> statusCallback, std::function<void(const std::string&, int, bool)> exitCallback)
 {
     m_pathLaunchers.assign(iniConfig.Get(jsonConsts::path, jsonConsts::loggers, "/usr/local/etc/loggers"));
     m_pathSockets.assign(iniConfig.Get(jsonConsts::path, jsonConsts::sockets, "/var/loggers/sockets"));
@@ -341,8 +341,6 @@ void LaunchManager::ExitCallback(const std::string& sLogger, int nExitCode, bool
     if(bRemove)
     {
         m_mLaunchers.erase(sLogger);
-        //remove all endpoints for this logger
-        //send out some status to say removed
     }
-    m_exitCallback(sLogger, nExitCode);
+    m_exitCallback(sLogger, nExitCode, bRemove);
 }
