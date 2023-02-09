@@ -40,16 +40,24 @@ AsioServer::AsioServer(const std::filesystem::path& file) :
 
 void AsioServer::do_accept()
 {
-    m_acceptor.async_accept(
-        [this](std::error_code ec, asio::local::stream_protocol::socket socket)
-        {
-          if (!ec)
-          {
-            m_pSession = std::make_shared<AsioSession>(std::move(socket));
-          }
+    try
+    {
 
-          do_accept();
-        });
+        m_acceptor.async_accept(
+            [this](std::error_code ec, asio::local::stream_protocol::socket socket)
+            {
+              if (!ec)
+              {
+                m_pSession = std::make_shared<AsioSession>(std::move(socket));
+              }
+
+              do_accept();
+            });
+    }
+    catch(asio::system_error &e)
+    {
+        pmlLog(pml::LOG_ERROR) << "Socket accept error: " << e.what();
+    }
 }
 
 void AsioServer::Run()
