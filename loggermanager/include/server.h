@@ -20,6 +20,7 @@ class Server
 
         pml::restgoose::response GetRoot(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
         pml::restgoose::response GetApi(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
+        pml::restgoose::response GetSources(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
 
         pml::restgoose::response GetLoggersStatus(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
 
@@ -29,7 +30,7 @@ class Server
         pml::restgoose::response GetLogger(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
         pml::restgoose::response GetLoggerConfig(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
         pml::restgoose::response GetLoggerStatus(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
-        pml::restgoose::response PutLoggerConfig(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
+        pml::restgoose::response PatchLoggerConfig(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
         pml::restgoose::response PutLoggerPower(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
         pml::restgoose::response DeleteLogger(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
 
@@ -66,11 +67,13 @@ class Server
     private:
 
         void AddLoggerEndpoints(const std::string& sName);
+        void ReadDiscoveryConfig();
 
         LaunchManager m_launcher;
         pml::restgoose::Server m_server;
         SysInfoManager m_info;
         iniManager m_config;
+        iniManager m_discovery;
 
         void InitLogging();
         bool CreateEndpoints();
@@ -85,6 +88,9 @@ class Server
         time_t GetDateTime(time_t date, const std::vector<std::string>& vLine);
 
         pml::restgoose::response GetLog(const std::string& sLogger, const std::string& sStart, const std::string& sEnd);
+
+        Json::Value GetDiscoveredRtspSources();
+        Json::Value GetDiscoveredSdpSources();
 
          /**
         x-epi                               GET
@@ -111,6 +117,7 @@ class Server
         static const endpoint EP_CONFIG;
         static const endpoint EP_INFO;
         static const endpoint EP_UPDATE;
+        static const endpoint EP_SOURCES;
         static const endpoint EP_WS;
         static const endpoint EP_WS_LOGGERS;
         static const endpoint EP_WS_INFO;
@@ -127,6 +134,7 @@ class Server
         static const std::string STATUS;
         static const std::string INFO;
         static const std::string UPDATE;
+        static const std::string SOURCES;
         static const std::string WS;
 
         std::mutex m_mutex;

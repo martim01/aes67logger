@@ -198,7 +198,7 @@
 			</div>
 			<div class="uk-modal-body">
                 <div class="uk-form-controls">
-                    <div uk-form-custom="target: true">
+                    <div>
                         <div class="uk-margin-small">
                             <input class="uk-input" type="text" placeholder="Source Name" id="config_name">
                         </div>
@@ -207,10 +207,16 @@
                             <label><input class="uk-radio" type="radio" name="method" id="sdp" onclick="showsdp()"> SDP</label>
                         </div>
                         <div class="uk-margin-small" id="div_rtsp">
-                            <input class="uk-input" type="text" placeholder="RTSP Address" id="config_rtsp">
+							<select id="select_rtsp" class="uk-select">
+
+							</select>
+                            <input class="uk-input" type="text" placeholder="RTSP Address" id="config_rtsp" style="display:none">
                         </div>
-                        <div class="uk-margin-small" style="visibility: hidden" id="div_sdp">
-                            <textarea class="uk-textarea" rows="20" cols="50" placeholder="SDP" id="config_sdp"></textarea>
+                        <div class="uk-margin-small" style="display:none" id="div_sdp">
+							<select id="select_sdp" class="uk-select">
+
+							</select>
+                            <textarea class="uk-textarea" rows="20" cols="50" placeholder="SDP" id="config_sdp" style="display:none"></textarea>
                         </div>
                     </div>
                 </div>

@@ -153,8 +153,6 @@ pml::restgoose::response LaunchManager::AddLogger(const pml::restgoose::response
 
 void LaunchManager::CreateLoggerConfig(const Json::Value& jsData)
 {
-    auto fileSdp = m_pathSdp;
-    fileSdp /= jsData[jsonConsts::name].asString();
 
     iniManager config;
     config.Set(jsonConsts::log, jsonConsts::console, jsData[jsonConsts::console].asInt());
@@ -167,32 +165,18 @@ void LaunchManager::CreateLoggerConfig(const Json::Value& jsData)
     config.Set(jsonConsts::heartbeat, jsonConsts::gap, jsData[jsonConsts::gap].asInt());
     config.Set(jsonConsts::aoip, jsonConsts::interface, jsData[jsonConsts::interface].asString());
     config.Set(jsonConsts::general, jsonConsts::name, jsData[jsonConsts::name].asString());
-    config.Get(jsonConsts::aoip, jsonConsts::aoip, jsData[jsonConsts::buffer].asInt());
+    config.Set(jsonConsts::aoip, jsonConsts::aoip, jsData[jsonConsts::buffer].asInt());
+
+
     if(jsData[jsonConsts::sdp].asString().empty())
     {
-        config.Set(jsonConsts::source, jsonConsts::sdp,"");
-        try
-        {
-            std::filesystem::remove(fileSdp);
-        }
-        catch(std::filesystem::filesystem_error& e)
-        {
-            pmlLog(pml::LOG_WARN) << "SDP file does not exist " << e.what();
-        }
+        config.Set(jsonConsts::source, jsonConsts::sdp, "");
     }
     else
     {
-        config.Set(jsonConsts::source, jsonConsts::sdp, fileSdp.string());
-        std::ofstream ofs(fileSdp.string(), std::fstream::trunc);
-        if(ofs.is_open())
-        {
-            ofs << jsData[jsonConsts::sdp].asString();
-        }
-        else
-        {
-            pmlLog(pml::LOG_ERROR) << "Could not write to " << fileSdp;
-        }
-
+        auto pathSDP = m_pathSdp;
+        pathSDP /= jsData[jsonConsts::sdp].asString();
+        config.Set(jsonConsts::source, jsonConsts::sdp, pathSDP.string());
     }
 
     config.Set(jsonConsts::source, jsonConsts::name, jsData[jsonConsts::source].asString());
@@ -287,30 +271,40 @@ pml::restgoose::response LaunchManager::GetLoggerConfig(const std::string& sName
 
 pml::restgoose::response LaunchManager::UpdateLoggerConfig(const std::string& sName, const Json::Value& jsData)
 {
-    //First check if we are updating the config or restarting the logger
-
-    iniManager ini;
-    if(ini.Read(MakeConfigFullPath(sName)))
+    if(jsData.isArray())
     {
-        ini.Set(jsonConsts::logs, jsonConsts::console, ExtractValueFromJson(jsData, {jsonConsts::logs, jsonConsts::console}, ini.Get(jsonConsts::logs, jsonConsts::console, -1)));
-
-        ini.Set(jsonConsts::logs, jsonConsts::file, ExtractValueFromJson(jsData, {jsonConsts::logs, jsonConsts::file}, ini.Get(jsonConsts::logs, jsonConsts::file, 2)));
-        ini.Set(jsonConsts::logs, jsonConsts::path, ExtractValueFromJson(jsData, {jsonConsts::logs, jsonConsts::path}, ini.Get(jsonConsts::logs, jsonConsts::path, "/var/loggers/log")));
-
-        ini.Set(jsonConsts::heartbeat, jsonConsts::gap, ExtractValueFromJson(jsData, {jsonConsts::heartbeat, jsonConsts::gap}, ini.Get(jsonConsts::heartbeat, jsonConsts::gap, 10000)));
-
-        ini.Set(jsonConsts::aoip, jsonConsts::interface, ExtractValueFromJson(jsData, {jsonConsts::aoip, jsonConsts::interface}, ini.Get(jsonConsts::aoip, jsonConsts::interface, "eth0")));
-        ini.Set(jsonConsts::aoip, jsonConsts::buffer, ExtractValueFromJson(jsData, {jsonConsts::aoip, jsonConsts::buffer}, ini.Get(jsonConsts::aoip, jsonConsts::buffer, 4096)));
-
-        ini.Set(jsonConsts::general, jsonConsts::name, ExtractValueFromJson(jsData, {jsonConsts::general, jsonConsts::name}, ini.Get(jsonConsts::general, jsonConsts::name, sName)));
-
-        ini.Set(jsonConsts::source, jsonConsts::name, ExtractValueFromJson(jsData, {jsonConsts::source, jsonConsts::name}, ini.Get(jsonConsts::source, jsonConsts::name, "")));
-        ini.Set(jsonConsts::source, jsonConsts::sdp, ExtractValueFromJson(jsData, {jsonConsts::source, jsonConsts::sdp}, ini.Get(jsonConsts::source, jsonConsts::sdp, "")));
-        ini.Set(jsonConsts::source, jsonConsts::rtsp, ExtractValueFromJson(jsData, {jsonConsts::source, jsonConsts::rtsp}, ini.Get(jsonConsts::source, jsonConsts::rtsp, "")));
-
-        ini.Write();
+        iniManager ini;
+        if(ini.Read(MakeConfigFullPath(sName)))
+        {
+            for(Json::ArrayIndex ai  = 0; ai < jsData.size(); ++ai)
+            {
+                if(jsData[ai].isMember("section") && jsData[ai].isMember("key") && jsData[ai].isMember("value"))
+                {
+                    if(jsData[ai]["section"].asString() == jsonConsts::source && jsData[ai]["key"].asString() == jsonConsts::sdp)
+                    {
+                        if(jsData[ai]["value"].asString().empty())
+                        {
+                            ini.Set(jsonConsts::source, jsonConsts::sdp, "");
+                        }
+                        else
+                        {
+                            auto pathSDP = m_pathSdp;
+                            pathSDP /= jsData[ai]["value"].asString();
+                            ini.Set(jsonConsts::source, jsonConsts::sdp, pathSDP.string());
+                        }
+                    }
+                    else
+                    {
+                        ini.Set(jsData[ai]["section"].asString(), jsData[ai]["key"].asString(), jsData[ai]["value"].asString());
+                    }
+                }
+            }
+            ini.Write();
+            return GetLoggerConfig(sName);
+        }
+        return pml::restgoose::response(500, "Could not read config file for logger");
     }
-    return GetLoggerConfig(sName);
+    return pml::restgoose::response(400, "Patch data is not a Json array");
 }
 
 Json::Value LaunchManager::GetStatusSummary() const

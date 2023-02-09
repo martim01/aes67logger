@@ -33,6 +33,7 @@ const std::string Server::STATUS      = "status";
 const std::string Server::INFO        = "info";
 const std::string Server::UPDATE      = "update";
 const std::string Server::LOGS        = "logs";
+const std::string Server::SOURCES     = "sources";
 const std::string Server::WS          = "ws";        //GET PUT
 
 const endpoint Server::EP_ROOT        = endpoint("");
@@ -41,6 +42,7 @@ const endpoint Server::EP_LOGIN       = endpoint(EP_API.Get()+"/"+LOGIN);
 const endpoint Server::EP_LOGGERS     = endpoint(EP_API.Get()+"/"+LOGGERS);
 const endpoint Server::EP_POWER       = endpoint(EP_API.Get()+"/"+POWER);
 const endpoint Server::EP_CONFIG      = endpoint(EP_API.Get()+"/"+CONFIG);
+const endpoint Server::EP_SOURCES     = endpoint(EP_API.Get()+"/"+SOURCES);
 const endpoint Server::EP_UPDATE      = endpoint(EP_API.Get()+"/"+UPDATE);
 const endpoint Server::EP_INFO        = endpoint(EP_API.Get()+"/"+INFO);
 const endpoint Server::EP_STATUS      = endpoint(EP_API.Get()+"/"+STATUS);
@@ -149,6 +151,8 @@ int Server::Run(const std::string& sConfigFile)
 
     pmlLog() << "Core\tStart" ;
 
+    ReadDiscoveryConfig();
+
 
     m_info.SetDiskPath(m_config.Get(jsonConsts::path, jsonConsts::audio, "/var/loggers"));
 
@@ -185,6 +189,14 @@ int Server::Run(const std::string& sConfigFile)
     return -2;
 }
 
+void Server::ReadDiscoveryConfig()
+{
+    if(m_discovery.Read(m_config.Get(jsonConsts::path, "discovery","discovery.ini")) == false)
+    {
+        pmlLog(pml::LOG_ERROR) << "Unable to read discovery config file, won't be able to find stream sources";
+    }
+}
+
 bool Server::CreateEndpoints()
 {
 
@@ -193,6 +205,7 @@ bool Server::CreateEndpoints()
     m_server.AddEndpoint(pml::restgoose::POST, EP_LOGIN, std::bind(&Server::PostLogin, this, _1,_2,_3,_4));
     m_server.AddEndpoint(pml::restgoose::HTTP_DELETE, EP_LOGIN, std::bind(&Server::DeleteLogin, this, _1,_2,_3,_4));
     m_server.AddEndpoint(pml::restgoose::GET, EP_API, std::bind(&Server::GetApi, this, _1,_2,_3,_4));
+    m_server.AddEndpoint(pml::restgoose::GET, EP_SOURCES, std::bind(&Server::GetSources, this, _1,_2,_3,_4));
 
     m_server.AddEndpoint(pml::restgoose::GET, EP_LOGGERS, std::bind(&Server::GetLoggers, this, _1,_2,_3,_4));
     m_server.AddEndpoint(pml::restgoose::GET, EP_STATUS, std::bind(&Server::GetLoggersStatus, this, _1,_2,_3,_4));
@@ -238,7 +251,7 @@ void Server::AddLoggerEndpoints(const std::string& sName)
     m_server.AddEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName+"/"+CONFIG), std::bind(&Server::GetLoggerConfig, this, _1,_2,_3,_4));
     m_server.AddEndpoint(pml::restgoose::HTTP_DELETE, endpoint(EP_LOGGERS.Get()+"/"+sName), std::bind(&Server::DeleteLogger, this, _1,_2,_3,_4));
 
-    m_server.AddEndpoint(pml::restgoose::PUT, endpoint(EP_LOGGERS.Get()+"/"+sName+"/"+CONFIG), std::bind(&Server::PutLoggerConfig, this, _1,_2,_3,_4));
+    m_server.AddEndpoint(pml::restgoose::PATCH, endpoint(EP_LOGGERS.Get()+"/"+sName+"/"+CONFIG), std::bind(&Server::PatchLoggerConfig, this, _1,_2,_3,_4));
 
     m_server.AddEndpoint(pml::restgoose::PUT, endpoint(EP_LOGGERS.Get()+"/"+sName), std::bind(&Server::PutLoggerPower, this, _1,_2,_3,_4));
 
@@ -299,8 +312,55 @@ pml::restgoose::response Server::GetApi(const query& theQuery, const postData& v
     theResponse.jsonData.append(CONFIG);
     theResponse.jsonData.append(STATUS);
     theResponse.jsonData.append(INFO);
+    theResponse.jsonData.append(SOURCES);
     theResponse.jsonData.append(UPDATE);
     return theResponse;
+}
+
+pml::restgoose::response Server::GetSources(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
+{
+    pml::restgoose::response theResponse;
+    theResponse.jsonData[jsonConsts::rtsp] = GetDiscoveredRtspSources();
+    theResponse.jsonData[jsonConsts::sdp] = GetDiscoveredSdpSources();
+    return theResponse;
+}
+
+Json::Value Server::GetDiscoveredRtspSources()
+{
+    Json::Value jsArray(Json::arrayValue);
+
+    iniManager inirtsp;
+    if(inirtsp.Read(m_discovery.Get("rtsp", "file", "./rtsp.ini")))
+    {
+        auto pSection = inirtsp.GetSection("rtsp");
+        if(pSection)
+        {
+            for(const auto& [key, value] : pSection->GetData())
+            {
+                jsArray.append(key);
+            }
+        }
+        else
+        {
+            pmlLog(pml::LOG_WARN) << "Read rtsp ini file " << " but no rtsp section";
+        }
+    }
+    else
+    {
+        pmlLog(pml::LOG_WARN) << "Unable to read rtsp ini file ";
+    }
+    return jsArray;
+}
+
+Json::Value Server::GetDiscoveredSdpSources()
+{
+    Json::Value jsArray(Json::arrayValue);
+
+    for(const auto& entry : std::filesystem::directory_iterator(m_discovery.Get("sdp","path",".")))
+    {
+        jsArray.append(entry.path().stem().string());
+    }
+    return jsArray;
 }
 
 pml::restgoose::response Server::GetLoggersStatus(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
@@ -401,7 +461,7 @@ pml::restgoose::response Server::DeleteLogger(const query& theQuery, const postD
     return theResponse;
 }
 
-pml::restgoose::response Server::PutLoggerConfig(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
+pml::restgoose::response Server::PatchLoggerConfig(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
 {
     auto theResponse = ConvertPostDataToJson(vData);
     if(theResponse.nHttpCode == 200)

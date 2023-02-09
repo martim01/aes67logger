@@ -115,7 +115,7 @@ void LoggerApp::CreateLogging()
     {
         if(m_nLogOutputConsole == -1)
         {
-            m_nLogOutputConsole = pml::LogStream::AddOutput(std::make_unique<JsonLog>(m_sName));
+            m_nLogOutputConsole = pml::LogStream::AddOutput(std::make_unique<pml::LogOutput>());
         }
         pml::LogStream::SetOutputLevel(m_nLogOutputConsole, (pml::enumLevel)nConsole);
     }

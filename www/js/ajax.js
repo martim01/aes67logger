@@ -955,7 +955,33 @@ function handleDeleteLogger(status, jsonObj)
 
 function changeSession()
 {
-	UIkit.modal(document.getElementById('update_session_modal')).show();	
+	ajaxGet("/x-api/sources", handleSources)
+}
+
+function addSources(which, jsonObj)
+{
+	var sel = document.getElementById('select_'+which);
+	while(sel.options.length) sel.remove(0);
+	
+	if(which in jsonObj)
+	{
+		jsonObj[which].forEach(function(el){
+			var opt = document.createElement('option');
+			opt.value=el;
+			opt.innerHTML = el;
+			sel.appendChild(opt);
+		});
+	}
+}
+
+function handleSources(status, jsonObj)
+{
+	if(status == 200)
+	{
+		addSources('rtsp', jsonObj);
+		addSources('sdp', jsonObj);
+		UIkit.modal(document.getElementById('update_session_modal')).show();	
+	}
 }
 
 
@@ -980,15 +1006,15 @@ var g_method = 'rtsp';
 function showrtsp()
 {
 	g_method = 'rtsp';
-	document.getElementById('div_rtsp').style.visibility = '';
-	document.getElementById('div_sdp').style.visibility = 'hidden';
+	document.getElementById('div_rtsp').style.display = 'block';
+	document.getElementById('div_sdp').style.display = 'none';
 }
 
 function showsdp()
 {
 	g_method = 'sdp';
-	document.getElementById('div_rtsp').style.visibility = 'hidden';
-	document.getElementById('div_sdp').style.visibility = '';
+	document.getElementById('div_rtsp').style.display = 'none';
+	document.getElementById('div_sdp').style.display = 'block';
 }
 
 function updateLoggerSession()
@@ -1001,9 +1027,10 @@ function updateLoggerSession()
 	}
 	var rtsp = '';
 	var sdp = '';
+	console.log(g_method);
 	if(g_method == 'rtsp')
 	{
-		rtsp = document.getElementById('config_rtsp').value;
+		rtsp = document.getElementById('select_rtsp').value;
 		if(rtsp == '')
 		{
 			UIkit.notification({message: 'RTSP may not be empty', status: 'warning', timeout: 2000});
@@ -1012,20 +1039,18 @@ function updateLoggerSession()
 	}
 	else
 	{
-		sdp = document.getElementById('config_sdp').value;
+		sdp = document.getElementById('select_sdp').value;
 		if(sdp == '')
 		{
-			UIkit.notification({message: 'RTSP may not be empty', status: 'warning', timeout: 2000});
+			UIkit.notification({message: 'SDP may not be empty', status: 'warning', timeout: 2000});
 			return;
 		}
 	}
-	var jsonObj = { "source" : {
-					 "name" : name,
-					 "rtsp" : rtsp,
-					 "sdp"	: sdp}};
-					
+	var jsonObj = [ { "section" : "source", "key" : "name", "value" : name},
+					{ "section" : "source", "key" : "rtsp", "value" : rtsp},
+					{ "section" : "source", "key" : "sdp",  "value" : sdp} ];				
 	
-	ajaxPostPutPatch("PUT", "/x-api/loggers/"+g_logger+"/config", JSON.stringify(jsonObj), handleUpdateSession);
+	ajaxPostPutPatch("PATCH", "/x-api/loggers/"+g_logger+"/config", JSON.stringify(jsonObj), handleUpdateSession);
 
 }
 
