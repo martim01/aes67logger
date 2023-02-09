@@ -25,8 +25,9 @@ LaunchManager::~LaunchManager()
 void LaunchManager::Init(const iniManager& iniConfig, std::function<void(const std::string&, const Json::Value&)> statusCallback, std::function<void(const std::string&, int, bool)> exitCallback)
 {
     m_pathLaunchers.assign(iniConfig.Get(jsonConsts::path, jsonConsts::loggers, "/usr/local/etc/loggers"));
-    m_pathSockets.assign(iniConfig.Get(jsonConsts::path, jsonConsts::sockets, "/var/loggers/sockets"));
-    m_pathAudio.assign(iniConfig.Get(jsonConsts::path, jsonConsts::audio, "/var/loggers/wav"));
+    m_pathSockets.assign(iniConfig.Get(jsonConsts::path, jsonConsts::sockets, "/var/local/loggers/sockets"));
+    m_pathAudio.assign(iniConfig.Get(jsonConsts::path, jsonConsts::audio, "/var/local/loggers/audio/wav"));
+
 
 
     m_statusCallback = statusCallback;
@@ -158,8 +159,9 @@ void LaunchManager::CreateLoggerConfig(const Json::Value& jsData)
     config.Set(jsonConsts::log, jsonConsts::console, jsData[jsonConsts::console].asInt());
     config.Set(jsonConsts::log, jsonConsts::file, jsData[jsonConsts::file].asInt());
 
-    config.Set(jsonConsts::path, jsonConsts::logs, m_sLogPath+jsData[jsonConsts::name].asString());
+    config.Set(jsonConsts::path, jsonConsts::logs, m_sLogPath);
     config.Set(jsonConsts::path, jsonConsts::sockets, m_pathSockets);
+
     config.Set(jsonConsts::path, jsonConsts::audio, m_pathAudio);
 
     config.Set(jsonConsts::heartbeat, jsonConsts::gap, jsData[jsonConsts::gap].asInt());
