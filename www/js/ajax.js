@@ -46,11 +46,11 @@ function login()
 	var play = { "username" : document.getElementById('username').value,
                  "password" : document.getElementById('password').value};
 
-    ajaxPostPutPatch("POST", "/x-api/login", JSON.stringify(play), handleLogin);
+    ajaxPostPutPatch("POST", "x-api/login", JSON.stringify(play), handleLogin);
 }
 function logout()
 {
-	ajaxDelete("/x-api/login", handleLogout);
+	ajaxDelete("x-api/login", handleLogout);
 	window.location.href  = "/";
 }
 
@@ -208,7 +208,7 @@ function handleLoggers(status, jsData)
             g_loggerArray.forEach(showLogger);
         }
 
-		ajaxGet('/x-api/status', handleLoggersStatus);
+		ajaxGet('x-api/status', handleLoggersStatus);
     }
     else
     {
@@ -346,34 +346,34 @@ function ws_connect(endpoint, callbackMessage)
 
 function getLoggers(callback)
 {
-	ajaxGet("/x-api/loggers",callback);
+	ajaxGet("x-api/loggers",callback);
 }
 
 
 function getStatus(callback)
 {
-	ajaxGet("/x-api/status",callback);
+	ajaxGet("x-api/status",callback);
 }
 
 function getPower(callback)
 {
-	ajaxGet("/x-api/power",callback);
+	ajaxGet("x-api/power",callback);
 }
 
 function getConfig(callback)
 {
-	ajaxGet("/x-api/config", callback);
+	ajaxGet("x-api/config", callback);
 }
 
 function getInfo(callback)
 {
-	ajaxGet("/x-api/info", callback);
+	ajaxGet("x-api/info", callback);
 }
 
 
 function getUpdate(callback)
 {
-	ajaxGet("/x-api/update",callback);
+	ajaxGet("x-api/update",callback);
 }
 
 function ajaxGet(endpoint, callback, bJson=true)
@@ -405,7 +405,7 @@ function ajaxGet(endpoint, callback, bJson=true)
 	{
 		callback(this.status, null);
 	}
-	ajax.open("GET", location.protocol+location.host+"/"+endpoint, true);
+	ajax.open("GET", location.protocol+"//"+location.host+"/"+endpoint, true);
 	ajax.send();
 }
 
@@ -422,7 +422,7 @@ function ajaxPostPutPatch(method, endpoint, jsonData, callback)
 		}
 	}
 	
-	ajax.open(method, location.protocol+location.host+"/"+endpoint, true);
+	ajax.open(method, location.protocol+"//"+location.host+"/"+endpoint, true);
 	ajax.setRequestHeader("Content-type", "application/json");
 	ajax.send(jsonData);
 }
@@ -444,7 +444,7 @@ function ajaxDelete(endpoint, callback)
 		}
 	}
 	
-	ajax.open("DELETE", location.protocol+location.host+"/"+endpoint, true);
+	ajax.open("DELETE", location.protocol+"//"+location.host+"/"+endpoint, true);
 	ajax.send(null);
 }
 
@@ -697,7 +697,7 @@ function restart(command)
 	UIkit.modal.confirm('Are you sure?').then(function() 
 	{
 		var play = { "command" : command};
-		ajaxPostPutPatch("PUT", "/x-api/power", JSON.stringify(play), handleRestartPut);
+		ajaxPostPutPatch("PUT", "x-api/power", JSON.stringify(play), handleRestartPut);
 	}, function () {});	
 }
 
@@ -771,7 +771,7 @@ function doUpdate()
 	UIkit.modal(document.getElementById('update_modal')).hide();
 	
 	
-	ajax.open('PUT',location.protocol+g_loopi_array[0].url+"/x-api/update");
+	ajax.open('PUT',location.protocol+"//"+g_loopi_array[0].url+"/x-api/update");
 	ajax.send(fd);
 }
 
@@ -781,7 +781,7 @@ function getLogs()
 	var dtStart = new Date(document.getElementById('start_time').value);
 	var dtEnd = new Date(document.getElementById('end_time').value);
 
-	var endpoint = "/x-api/logs?logger="+document.getElementById('select_log').value+"&start_time="+dtStart.getTime()/1000+
+	var endpoint = "x-api/logs?logger="+document.getElementById('select_log').value+"&start_time="+dtStart.getTime()/1000+
 	"&end_time="+dtEnd.getTime()/1000;
 
 	ajaxGet(endpoint, handleGetLogs);
@@ -805,7 +805,7 @@ function loggers()
 	
 	g_logger = params.logger;
 
-	ajaxGet("/x-api/loggers/"+g_logger+"/status", connectToLogger)
+	ajaxGet("x-api/loggers/"+g_logger+"/status", connectToLogger)
 }
 
 function connectToLogger(status, jsonObj)
@@ -961,12 +961,12 @@ function loggerAdmin()
 	if(g_action == 'restart')
 	{
 		var play = { "command" : "restart", "password" : document.getElementById('admin_password').value};
-		ajaxPostPutPatch("PUT", "/x-api/loggers/"+g_logger, JSON.stringify(play), handleRestartLogger);
+		ajaxPostPutPatch("PUT", "x-api/loggers/"+g_logger, JSON.stringify(play), handleRestartLogger);
 	}
 	else if(g_action == 'remove')
 	{
 		var play = {"password" : document.getElementById('admin_password').value};
-		ajaxPostPutPatch("DELETE", "/x-api/loggers/"+g_logger, JSON.stringify(play), handleDeleteLogger);
+		ajaxPostPutPatch("DELETE", "x-api/loggers/"+g_logger, JSON.stringify(play), handleDeleteLogger);
 	}
 }
 
@@ -999,7 +999,7 @@ function handleDeleteLogger(status, jsonObj)
 
 function changeSession()
 {
-	ajaxGet("/x-api/sources", handleSources)
+	ajaxGet("x-api/sources", handleSources)
 }
 
 function addSources(which, jsonObj)
@@ -1094,7 +1094,7 @@ function updateLoggerSession()
 					{ "section" : "source", "key" : "rtsp", "value" : rtsp},
 					{ "section" : "source", "key" : "sdp",  "value" : sdp} ];				
 	
-	ajaxPostPutPatch("PATCH", "/x-api/loggers/"+g_logger+"/config", JSON.stringify(jsonObj), handleUpdateSession);
+	ajaxPostPutPatch("PATCH", "x-api/loggers/"+g_logger+"/config", JSON.stringify(jsonObj), handleUpdateSession);
 
 }
 
@@ -1109,7 +1109,7 @@ function handleUpdateSession(status, jsonObj)
 
 function showAddLogger()
 {
-	ajaxGet("/x-api/sources", handleSourcesAddLogger)
+	ajaxGet("x-api/sources", handleSourcesAddLogger)
 }
 
 function handleSourcesAddLogger(status, jsonObj)
@@ -1173,7 +1173,7 @@ function addLogger()
 					'interface' : 'enp4s0f0',
 					'buffer' : 4096};
 		
-	ajaxPostPutPatch('POST', '/x-api/loggers', JSON.stringify(jsonObj), handleAddLogger);
+	ajaxPostPutPatch('POST', 'x-api/loggers', JSON.stringify(jsonObj), handleAddLogger);
 
 }
 
