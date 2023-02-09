@@ -405,7 +405,7 @@ function ajaxGet(endpoint, callback, bJson=true)
 	{
 		callback(this.status, null);
 	}
-	ajax.open("GET", "http://"+location.host+"/"+endpoint, true);
+	ajax.open("GET", location.protocol+location.host+"/"+endpoint, true);
 	ajax.send();
 }
 
@@ -422,7 +422,7 @@ function ajaxPostPutPatch(method, endpoint, jsonData, callback)
 		}
 	}
 	
-	ajax.open(method, "http://"+location.host+"/"+endpoint, true);
+	ajax.open(method, location.protocol+location.host+"/"+endpoint, true);
 	ajax.setRequestHeader("Content-type", "application/json");
 	ajax.send(jsonData);
 }
@@ -444,7 +444,7 @@ function ajaxDelete(endpoint, callback)
 		}
 	}
 	
-	ajax.open("DELETE", "http://"+location.host+"/"+endpoint, true);
+	ajax.open("DELETE", location.protocol+location.host+"/"+endpoint, true);
 	ajax.send(null);
 }
 
@@ -771,7 +771,7 @@ function doUpdate()
 	UIkit.modal(document.getElementById('update_modal')).hide();
 	
 	
-	ajax.open('PUT',"http://"+g_loopi_array[0].url+"/x-api/update");
+	ajax.open('PUT',location.protocol+g_loopi_array[0].url+"/x-api/update");
 	ajax.send(fd);
 }
 
