@@ -315,8 +315,14 @@ function serverOffline()
 function ws_connect(endpoint, callbackMessage)
 {
 	getCookies();
-	console.log("ws://"+location.host+"/x-api/ws/"+endpoint+"?access_token="+g_access_token);
-	g_ws = new WebSocket("ws://"+location.host+"/x-api/ws/"+endpoint+"?access_token="+g_access_token);
+	
+	ws_protocol = "ws:";
+	if(location.protocol == 'https:')
+	{
+		ws_protocol = "wss:";
+	}
+
+	g_ws = new WebSocket(ws_protocol+"//"+location.host+"/x-api/ws/"+endpoint+"?access_token="+g_access_token);
     g_ws.timeout = true;
 	g_ws.onopen = function(ev)  { this.tm = setTimeout(serverOffline, 4000) };
 	g_ws.onerror = function(ev) { serverOffline(); };
