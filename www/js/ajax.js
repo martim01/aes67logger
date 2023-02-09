@@ -866,15 +866,14 @@ function handleLoggerInfo(jsonObj)
 		document.getElementById('source-type').innerHTML = jsonObj.streaming.type;
 		if(jsonObj.streaming.type == 'RTSP')
 		{
-			document.getElementById('div_source-sdp').style.visibility = 'hidden';
-			var elm = document.getElementById('source-rtsp');
-			elm.style.visibility = '';
-			elm.innerHTML = jsonObj.streaming.source;
+			document.getElementById('div_source-sdp').style.display = 'none';
+			document.getElementById('div_source-rtsp').style.display= 'block';
+			document.getElementById('source-rtsp').innerHTML = jsonObj.streaming.source;
 		}
 		else
 		{
-			document.getElementById('source-rtsp').style.visibility = 'hidden';
-			document.getElementById('div_source-sdp').style.visibility = '';
+			document.getElementById('div_source-rtsp').style.display = 'none';
+			document.getElementById('div_source-sdp').style.display = 'block';
 			document.getElementById('source-sdp').innerHTML = jsonObj.streaming.source;
 		}
 		var elm = document.getElementById('source-connection');
