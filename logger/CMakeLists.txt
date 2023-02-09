@@ -28,7 +28,7 @@ target_compile_options(logger PRIVATE ${flags})
 
 list(APPEND definitions "NO_OPENSSL" "__GNU__")
 target_compile_definitions(logger PUBLIC ${definitions})
-target_link_libraries(logger optimized pml_log aoip debug pml_logd aoipd)
+target_link_libraries(logger pml_log aoip)
 target_link_libraries(logger sndfile pthread)
 
 set_target_properties(logger PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")
