@@ -77,24 +77,17 @@
 						<div class="uk-card-header"> <h3 class="uk-card-title">CPU <span id="cpu-cpu"></span>%</h3>
 						</div>
 						<div class="uk-card-body">
-							<div class="uk-grid-small uk-text-left" uk-grid>
-								<div class="uk-width-1-4"><span class='uk-text-bold'>CPU1:</span></div>
-								<div class="uk-width-1-4"> <span id="cpu-cpu0"></span>%</div>
-								<div class="uk-width-1-4"><span class='uk-text-bold'>CPU2:</span></div>
-								<div class="uk-width-1-4"> <span id="cpu-cpu1"></span>%</div>
-							</div>
-							<div class="uk-grid-small uk-text-left" uk-grid>
-								<div class="uk-width-1-4"><span class='uk-text-bold'>CPU3:</span></div>
-								<div class="uk-width-1-4"> <span id="cpu-cpu2"></span>%</div>
-								<div class="uk-width-1-4"><span class='uk-text-bold'>CPU4:</span></div>
-								<div class="uk-width-1-4"> <span id="cpu-cpu3"></span>%</div>
+							<div class="uk-grid-small uk-text-left" uk-grid id="grid_cpu">
+								
 							</div>
 						</div>
 					</div>
 				</div>
 				<div>
 					<div class="uk-card uk-card-default">
-						<div class="uk-card-header"> <h3 class="uk-card-title">Disk</h3></div>
+						<div class="uk-card-header"> <h3 class="uk-card-title">Disk</h3>
+						<div class="uk-card-badge uk-label uk-label-default" id="disk-path"></div>
+						</div>
 						<div class="uk-card-body  uk-text-left">
 							<span class="uk-text-muted loopi_subheading">BYTES</span>
 							<div class="uk-grid-small uk-text-left uk-child-width-1-4" uk-grid>

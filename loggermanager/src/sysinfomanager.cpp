@@ -80,6 +80,8 @@ Json::Value SysInfoManager::GetDiskInfo()
     }
     else
     {
+        jsInfo["disk"] = m_sPath;
+
         jsInfo["bytes"]["available"] = static_cast<Json::UInt64>(info.f_bavail)*static_cast<Json::UInt64>(info.f_bsize);
         jsInfo["bytes"]["free"] =      static_cast<Json::UInt64>(info.f_bfree)*static_cast<Json::UInt64>(info.f_bsize);
         jsInfo["bytes"]["total"] =     static_cast<Json::UInt64>(info.f_blocks)*static_cast<Json::UInt64>(info.f_frsize);
@@ -133,9 +135,12 @@ Json::Value SysInfoManager::GetCpuInfo()
             }
         }
 
-        for(auto pairCpu : m_mCpu)
+        for(const auto& [sId, Cpu] : m_mCpu)
         {
-            jsInfo[pairCpu.first] = static_cast<int>(pairCpu.second.dUsage*100.0);
+            Json::Value jsCpu;
+            jsCpu["id"] = sId;
+            jsCpu["usage"] = static_cast<int>(Cpu.dUsage*100.0);
+            jsInfo.append(jsCpu);
         }
     }
     return jsInfo;
@@ -176,13 +181,7 @@ Json::Value SysInfoManager::GetApplicationInfo()
 {
     Json::Value jsInfo;
 
-    //@todo(martim01) Get version number of this app and also the player
-//    jsInfo["version"] = pml::epi::VERSION_STRING;
-//    jsInfo["date"] = pml::epi::GIT_DATE;
-//    jsInfo["branch"] = pml::epi::GIT_BRANCH;
-//    jsInfo["tag"] = pml::epi::GIT_TAG;
     jsInfo["start_time"] = ConvertTimeToIsoString(m_startTime);
-
 
     std::chrono::time_point<std::chrono::high_resolution_clock> tp(std::chrono::high_resolution_clock::now());
 

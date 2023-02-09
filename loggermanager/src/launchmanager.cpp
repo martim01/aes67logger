@@ -203,14 +203,6 @@ pml::restgoose::response LaunchManager::RemoveLogger(const std::string& sName)
 }
 
 
-
-//void work(asio::io_context& context)
-//{
-//    asio::steady_timer timer(context);
-//    timer.expires_from_now(std::chrono::seconds(1));
-//    timer.async_wait([&context](const asio::error_code& e){ work(context); });
-//}
-
 void LaunchManager::PipeThread()
 {
     pmlLog() << "Pipe Thread check if running";

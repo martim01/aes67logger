@@ -570,27 +570,79 @@ function handleGetSystemInfo(status, jsonObj)
 
 function updateInfo_System(jsonObj)
 {
-	document.getElementById('application-start_time').innerHTML = jsonObj.application.start_time;
-	document.getElementById('application-up_time').innerHTML = millisecondsToTime(jsonObj.application.up_time*1000);
-	
-	document.getElementById('system-uptime').innerHTML = millisecondsToTime(jsonObj.system.uptime*1000);
-	document.getElementById('system-procs').innerHTML = jsonObj.system.procs;
-	document.getElementById('temperature-cpu').innerHTML = jsonObj.temperature.cpu;
-	
-	document.getElementById('cpu-cpu').innerHTML = jsonObj.cpu.cpu;
-	document.getElementById('cpu-cpu0').innerHTML = jsonObj.cpu.cpu0;
-	document.getElementById('cpu-cpu1').innerHTML = jsonObj.cpu.cpu1;
-	document.getElementById('cpu-cpu2').innerHTML = jsonObj.cpu.cpu2;
-	document.getElementById('cpu-cpu3').innerHTML = jsonObj.cpu.cpu3;
-	
-	document.getElementById('disk-bytes-total').innerHTML = Math.round(jsonObj.disk.bytes.total/1073741824);
-	document.getElementById('disk-bytes-free').innerHTML = Math.round(jsonObj.disk.bytes.free/1073741824);
-	document.getElementById('disk-bytes-available').innerHTML = Math.round(jsonObj.disk.bytes.available/1073741824);
-	
-	document.getElementById('disk-inodes-total').innerHTML = jsonObj.disk.inodes.total;
-	document.getElementById('disk-inodes-free').innerHTML = jsonObj.disk.inodes.free;
-	document.getElementById('disk-inodes-available').innerHTML = jsonObj.disk.inodes.available;
-	
+	if(jsonObj.application !== undefined)
+	{
+		document.getElementById('application-start_time').innerHTML = jsonObj.application.start_time;
+		document.getElementById('application-up_time').innerHTML = millisecondsToTime(jsonObj.application.up_time*1000);
+	}
+	if(jsonObj.system !== undefined)
+	{
+		document.getElementById('system-uptime').innerHTML = millisecondsToTime(jsonObj.system.uptime*1000);
+		document.getElementById('system-procs').innerHTML = jsonObj.system.procs;
+		document.getElementById('temperature-cpu').innerHTML = jsonObj.temperature.cpu;
+	}
+	if(jsonObj.cpu != undefined)
+	{
+		if(jsonObj.cpu.error != undefined)
+		{
+
+		}
+		else
+		{
+			jsonObj.cpu.forEach(function(el){
+				if(el.id != 'cpu')
+				{
+					var cpuElm = document.getElementById(el.id);
+					if(cpuElm === null)
+					{
+						var divId = document.createElement('div');
+						divId.className = "uk-width-1-4";
+						divId.id = 'div_'+el.id;
+						var spanId = document.createElement('span');
+						spanId.className = 'uk-text-bold'
+						spanId.innerHTML = el.id+':';
+						divId.appendChild(spanId);
+
+						var divUsage = document.createElement('div');
+						divUsage.className = "uk-width-1-4";
+						cpuElm = document.createElement('span');
+						cpuElm.id = el.id;
+						divUsage.appendChild(cpuElm);
+
+						var grid = document.getElementById('grid_cpu');
+						grid.appendChild(divId);
+						grid.appendChild(divUsage);
+					}
+					cpuElm.innerHTML = el.usage;
+				}
+				else
+				{
+					document.getElementById('cpu-cpu').innerHTML = el.usage;
+				}
+			});
+		}				
+		
+		
+	}
+	if(jsonObj.disk !== undefined)
+	{
+		if(jsonObj.disk.error != undefined)
+		{
+			document.getElementById('disk-path').innerHTML = jsonObj.disk.error;
+		}
+		else
+		{
+			document.getElementById('disk-path').innerHTML = jsonObj.disk.disk;
+
+			document.getElementById('disk-bytes-total').innerHTML = Math.round(jsonObj.disk.bytes.total/1073741824);
+			document.getElementById('disk-bytes-free').innerHTML = Math.round(jsonObj.disk.bytes.free/1073741824);
+			document.getElementById('disk-bytes-available').innerHTML = Math.round(jsonObj.disk.bytes.available/1073741824);
+			
+			document.getElementById('disk-inodes-total').innerHTML = jsonObj.disk.inodes.total;
+			document.getElementById('disk-inodes-free').innerHTML = jsonObj.disk.inodes.free;
+			document.getElementById('disk-inodes-available').innerHTML = jsonObj.disk.inodes.available;
+		}
+	}
 	document.getElementById('system-loads-1').innerHTML = Math.round(jsonObj.system.loads["1"]*100)/100;
 	document.getElementById('system-loads-5').innerHTML = Math.round(jsonObj.system.loads["5"]*100)/100;
 	document.getElementById('system-loads-15').innerHTML = Math.round(jsonObj.system.loads["15"]*100)/100;
