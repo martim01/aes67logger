@@ -66,12 +66,16 @@ void AsioServer::Run()
     {
         m_context.run();
     });
-    m_pThread->detach();    //don't do this
+
 }
 
 AsioServer::~AsioServer()
 {
     m_context.stop();
+    if(m_pThread)
+    {
+        m_pThread->join();
+    }
 }
 
 void AsioServer::write(const std::string& sMessage)
