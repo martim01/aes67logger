@@ -30,7 +30,7 @@ function getCookies()
 			var key = el.substring(0,pos);
 			var value = el.substring(pos+1);
 			g_cookie_array[key] = value;
-			if(key == 'access_token')
+			if(key.trim() == 'access_token')
 			{
 				g_access_token = value;
 			}
@@ -166,16 +166,11 @@ function showLogger(logger)
 
 function dashboard()
 {
-	getCookies();
-	
 	getLoggers(handleLoggers);
-    //g_loggerArray.forEach(showLogger);
 }
 
 function logs()
 {
-	getCookies();
-
 	var now = new Date();
 	now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
 	document.getElementById('end_time').value = now.toISOString().slice(0, 16);
@@ -319,6 +314,7 @@ function serverOffline()
 
 function ws_connect(endpoint, callbackMessage)
 {
+	getCookies();
 	console.log("ws://"+location.host+"/x-api/ws/"+endpoint+"?access_token="+g_access_token);
 	g_ws = new WebSocket("ws://"+location.host+"/x-api/ws/"+endpoint+"?access_token="+g_access_token);
     g_ws.timeout = true;
@@ -510,7 +506,6 @@ function createBodyGrid(name, id)
 
 function system()
 {
-	getCookies();
 	getUpdate(handleSystemGetUpdate);
 }
 
@@ -754,8 +749,6 @@ function handleGetLogs(status, log)
 
 function loggers()
 {
-	getCookies();
-
 	const params = new Proxy(new URLSearchParams(window.location.search), { get: (searchParams, prop) => searchParams.get(prop)});
 	
 	g_logger = params.logger;
