@@ -1065,8 +1065,19 @@ function handleUpdateSession(status, jsonObj)
 
 function showAddLogger()
 {
-	UIkit.modal(document.getElementById('add_logger_modal')).show();
+	ajaxGet("/x-api/sources", handleSourcesAddLogger)
 }
+
+function handleSourcesAddLogger(status, jsonObj)
+{
+	if(status == 200)
+	{
+		addSources('rtsp', jsonObj);
+		addSources('sdp', jsonObj);
+		UIkit.modal(document.getElementById('add_logger_modal')).show();	
+	}
+}
+
 
 function addLogger()
 {
@@ -1091,7 +1102,7 @@ function addLogger()
 	var sdp = '';
 	if(g_method == 'rtsp')
 	{
-		rtsp = document.getElementById('config_rtsp').value;
+		rtsp = document.getElementById('select_rtsp').value;
 		if(rtsp == '')
 		{
 			UIkit.notification({message: 'RTSP may not be empty', status: 'warning', timeout: 2000});
@@ -1100,7 +1111,7 @@ function addLogger()
 	}
 	else
 	{
-		sdp = document.getElementById('config_sdp').value;
+		sdp = document.getElementById('select_sdp').value;
 		if(sdp == '')
 		{
 			UIkit.notification({message: 'RTSP may not be empty', status: 'warning', timeout: 2000});
@@ -1115,7 +1126,7 @@ function addLogger()
 					'console' : -1,
 					'file' : 1,
 					'gap' : 2500,
-					'interface' : 'eth0',
+					'interface' : 'enp4s0f0',
 					'buffer' : 4096};
 		
 	ajaxPostPutPatch('POST', '/x-api/loggers', JSON.stringify(jsonObj), handleAddLogger);
