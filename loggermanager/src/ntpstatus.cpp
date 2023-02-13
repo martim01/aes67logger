@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <algorithm>
 #include "aoiputils.h"
+#include "log.h"
 
 const std::string NtpStatus::clksrcname[10] = {  /* Refer RFC-1305, Appendix B, Section 2.2.1 */
     "unspecified",    /* 0 */
@@ -179,9 +180,8 @@ void NtpStatus::InterpretMessage(const ntp& ntpmsg)
     /* Interpret the received NTP control message */
     /* For the reply message to be valid, the first byte should be as sent,
      and the second byte should be the same, with the response bit set */
-
     unsigned char byte1ok = ((ntpmsg.byte1&0x3F) == B1VAL);
-    unsigned char byte2ok = ((ntpmsg.byte2 & ~MMASK) == (B2VAL|RMASK));
+    unsigned char byte2ok = (char(ntpmsg.byte2 & ~MMASK) == char(B2VAL|RMASK));
     if (!(byte1ok && byte2ok))
     {
         m_jsStatus["error"] = "return data appears to be invalid based on status word";
