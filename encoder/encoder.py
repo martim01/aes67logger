@@ -47,8 +47,8 @@ class Logger():
 
     def createEncodeList(self):
         self.log.info('Logger %s workout wav files that still need encoding', self.name)
-        wavList = enumerateDir(self.wavPath, "wav")
-        opusSet = set(enumerateDir(self.opusPath, "opus"))
+        wavList = enumerateDir(self.wavPath, "wav", self.log)
+        opusSet = set(enumerateDir(self.opusPath, "opus", self.log))
         # look through the opus directory and remove any file already encoded
         self.encodeList = [file for file in wavList if file not in opusSet]
         self.log.info('Logger %s has %d files to still encode', self.name, len(self.encodeList))
