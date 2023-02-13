@@ -190,7 +190,7 @@ function populateSelectLoggers(status, jsData)
             g_loggerArray.forEach(function(el){
 				var opt = document.createElement('option');
 				opt.id = el;
-				opt.name = el;
+				opt.value = el;
 				opt.innerHTML = el;
 				select.appendChild(opt);
 			});
@@ -801,7 +801,7 @@ function handleGetLogs(status, log)
 	}
 	else
 	{
-		UIkit.notification({message: jsonObj["reason"], status: 'danger', timeout: 3000})
+		UIkit.notification({message: log["reason"], status: 'danger', timeout: 3000})
 	}
 }
 
