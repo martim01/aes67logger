@@ -358,7 +358,7 @@ void LoggerApp::WriteToSoundFile(std::shared_ptr<pml::aoip::AoIPSource> pSource,
         }
         else
         {
-            filePath /= (ConvertTimeToString(pBuffer->GetTimePoint(), "%Y-%m-%dT%H-%M")+".wav");
+            filePath /= (ConvertTimeToString(std::chrono::system_clock::now(), "%Y-%m-%dT%H-%M")+".wav");
         }
 
         if(m_sf.GetFilename() != filePath)
