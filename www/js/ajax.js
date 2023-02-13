@@ -843,7 +843,7 @@ function handleLoggerInfo(jsonObj)
 		document.getElementById('qos-interpacket').innerHTML = (jsonObj.qos.packet_gap).toFixed(4)+" ms";
 		document.getElementById('qos-jitter').innerHTML = (jsonObj.qos.jitter.toFixed(4))+" ms";
 		document.getElementById('qos-tsdf').innerHTML = (jsonObj.qos['ts-df'].toFixed(4))+" ms";
-		document.getElementById('qos-duration').innerHTML = jsonObj.qos['duration']+" ms";
+		document.getElementById('qos-duration').innerHTML = jsonObj.qos['duration']+" &mu;s";
 	}
 
 	if("session" in jsonObj)
@@ -1015,6 +1015,7 @@ function addSources(which, jsonObj)
 	
 	if(which in jsonObj)
 	{
+		jsonObj[which].sort();
 		jsonObj[which].forEach(function(el){
 			var opt = document.createElement('option');
 			opt.value=el;
