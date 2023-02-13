@@ -89,8 +89,8 @@ def run():
 
     loggers = []
     # find all the possible loggers, create the loggers and work out what files need encoding    
-    for logger in enumerateDir(config["path"].get("loggers", "."), "ini", True):
-        loggers[logger] = Logger(logger, config["path"].get("wav", "."), config["path"].get("opus", "."))
+    for logger in enumerateDir(config["paths"].get("loggers", "."), "ini"):
+        loggers[logger] = Logger(logger, config["paths"].get("wav", "."), config["paths"].get("opus", "."))
         loggers[logger].createEncodeList()
 
     #create the thread pool that will launch the encocders
@@ -98,22 +98,27 @@ def run():
     
     # start a recursive observer for the wav file directory to watch for new wav files
     observer=Observer()
-    event_handler = CreatedHandler(executor, config["path"].get("opus", "."))
-    observer.schedule(event_handler, path=config["path"].get("wav", "."), recursive=True)
-    observer.start()
-
-    for logger in loggers:
-        logger.encode(executor)
-
+    event_handler = CreatedHandler(executor, config["paths"].get("opus", "."))
     try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        logging.warning("KeyboardInterrupt - stop")
-        observer.stop()
+        observer.schedule(event_handler, path=config["paths"].get("wav", "."), recursive=True)
+        observer.start()
+    
+        for logger in loggers:
+            logger.encode(executor)
 
-    observer.join()
-    logging.info("Encoder exiting")
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            logging.warning("KeyboardInterrupt - stop")
+            observer.stop()
+
+        observer.join()
+        logging.info("Encoder exiting")
+    except FileNotFoundError:
+        logging.critical("Path %s does not exist", config["paths"].get("wav", "."))
+        quit();
+
 
 if __name__ == "__main__":
     main()
