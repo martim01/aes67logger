@@ -98,6 +98,7 @@ class LoggerApp
         int m_nLogOutputFile = -1;
 
         bool m_bReceivingAudio = false;
+        bool m_bUseTransmissionTime = false;
 
         std::shared_ptr<AsioServer> m_pServer = nullptr;
 

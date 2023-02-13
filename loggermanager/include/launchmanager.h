@@ -51,7 +51,7 @@ class LaunchManager
 
         void CreateLoggerConfig(const Json::Value& jsData);
 
-
+        
         std::filesystem::path m_pathLaunchers;
         std::filesystem::path m_pathSdp;
         std::filesystem::path m_pathSockets;
@@ -60,16 +60,17 @@ class LaunchManager
         std::map<std::string, std::shared_ptr<Launcher>> m_mLaunchers;
 
 
-        int m_nLogConsoleLevel = 2;
+        int m_nLogConsoleLevel = -1;
         int m_nLogFileLevel = 2;
-        int m_nSnmpPort = 161;
-        int m_nSnmpTrapPort = 162;
-        std::string m_sSnmpBaseOid = ".1.3.6.1.4.1.2";
-        std::string m_sSnmpCommunity = "public";
         std::string m_sLogPath = "/var/log/loggers/";
+        
         int m_nHeartbeatGap = 10000;
-        std::string m_sInterface = "eth0";
         int m_nAoipBuffer = 4096;
+        bool m_bUseTransmissionTime = false;
+        int m_nLoggerConsoleLevel = -1;
+        int m_nLoggerFileLevel = 2;
+
+        std::string m_sLoggerInterface = "eth0";
 
         std::mutex m_mutex;
         std::unique_ptr<std::thread> m_pThread = nullptr;

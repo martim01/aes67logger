@@ -87,6 +87,8 @@ bool LoggerApp::LoadConfig(const std::filesystem::path& config)
 
         m_pathSockets = std::filesystem::path(m_config.Get(jsonConsts::path, jsonConsts::sockets, "/var/loggers/sockets"));
 
+        m_bUseTransmissionTime = m_config.Get(jsonConsts::aoip, jsonConsts::useTransmission, false);
+
         try
         {
             std::filesystem::create_directories(m_pathWav);
@@ -350,7 +352,14 @@ void LoggerApp::WriteToSoundFile(std::shared_ptr<pml::aoip::AoIPSource> pSource,
 
 
         auto filePath = m_pathWav;
-        filePath /= (ConvertTimeToString(pBuffer->GetTransmissionTime(), "%Y-%m-%dT%H-%M")+".wav");
+        if(m_bUseTransmissionTime)
+        {
+            filePath /= (ConvertTimeToString(pBuffer->GetTransmissionTime(), "%Y-%m-%dT%H-%M")+".wav");
+        }
+        else
+        {
+            filePath /= (ConvertTimeToString(pBuffer->GetTimePoint(), "%Y-%m-%dT%H-%M")+".wav");
+        }
 
         if(m_sf.GetFilename() != filePath)
         {

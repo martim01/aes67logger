@@ -110,4 +110,5 @@ struct jsonConsts
 
     static const std::string api;
     static const std::string static_pages;
+    static const std::string useTransmission;
 };

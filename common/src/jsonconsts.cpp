@@ -102,3 +102,4 @@ const std::string jsonConsts::password          = "password";
 
 const std::string jsonConsts::api                = "api";
 const std::string jsonConsts::static_pages       = "static";
+const std::string jsonConsts::useTransmission    = "useTransmission";

@@ -28,10 +28,16 @@ void LaunchManager::Init(const iniManager& iniConfig, std::function<void(const s
     m_pathSockets.assign(iniConfig.Get(jsonConsts::path, jsonConsts::sockets, "/var/local/loggers/sockets"));
     m_pathAudio.assign(iniConfig.Get(jsonConsts::path, jsonConsts::audio, "/var/local/loggers/audio/wav"));
 
-
+    m_bUseTransmissionTime = iniConfig.Get(jsonConsts::logger, jsonConsts::useTransmission, false);
+    m_sLoggerInterface = iniConfig.Get(jsonConsts::logger, jsonConsts::interface, "eth0");
+    m_nHeartbeatGap = iniConfig.Get(jsonConsts::logger, jsonConsts::gap, 2500);
+    m_nAoipBuffer = iniConfig.Get(jsonConsts::logger, jsonConsts::buffer, 4096);
+    m_nLoggerConsoleLevel = iniConfig.Get(jsonConsts::logger, jsonConsts::console, -1);
+    m_nLoggerFileLevel = iniConfig.Get(jsonConsts::logger, jsonConsts::file, 2);
 
     m_statusCallback = statusCallback;
     m_exitCallback = exitCallback;
+
     EnumLoggers();
     LaunchAll();
 
@@ -113,12 +119,7 @@ pml::restgoose::response LaunchManager::AddLogger(const pml::restgoose::response
     if(CheckJsonMembers(theData.jsonData, {{jsonConsts::name, enumJsonType::STRING},
                                            {jsonConsts::source, enumJsonType::STRING},
                                            {jsonConsts::rtsp, enumJsonType::STRING},
-                                           {jsonConsts::sdp, enumJsonType::STRING},
-                                           {jsonConsts::console, enumJsonType::NUMBER},
-                                           {jsonConsts::file, enumJsonType::NUMBER},
-                                           {jsonConsts::gap, enumJsonType::NUMBER},
-                                           {jsonConsts::interface, enumJsonType::STRING},
-                                           {jsonConsts::buffer, enumJsonType::NUMBER}}) == false)
+                                           {jsonConsts::sdp, enumJsonType::STRING}}) == false)
     {
         return pml::restgoose::response(400, "Json missing required parameters");
     }
@@ -156,18 +157,55 @@ void LaunchManager::CreateLoggerConfig(const Json::Value& jsData)
 {
 
     iniManager config;
-    config.Set(jsonConsts::log, jsonConsts::console, jsData[jsonConsts::console].asInt());
-    config.Set(jsonConsts::log, jsonConsts::file, jsData[jsonConsts::file].asInt());
 
+    config.Set(jsonConsts::general, jsonConsts::name, jsData[jsonConsts::name].asString());
+
+    if(CheckJsonMembers(jsData, {{jsonConsts::console, enumJsonType::NUMBER}}))
+    {
+        config.Set(jsonConsts::log, jsonConsts::console, jsData[jsonConsts::console].asInt());
+    }
+    else
+    {
+        config.Set(jsonConsts::log, jsonConsts::console, m_nLoggerConsoleLevel);
+    }
+    if(CheckJsonMembers(jsData, {{jsonConsts::file, enumJsonType::NUMBER}}))
+    {
+        config.Set(jsonConsts::log, jsonConsts::file, jsData[jsonConsts::file].asInt());
+    }
+    else
+    {
+        config.Set(jsonConsts::log, jsonConsts::console, m_nLoggerFileLevel);
+    }
     config.Set(jsonConsts::path, jsonConsts::logs, m_sLogPath);
     config.Set(jsonConsts::path, jsonConsts::sockets, m_pathSockets);
-
     config.Set(jsonConsts::path, jsonConsts::audio, m_pathAudio);
 
-    config.Set(jsonConsts::heartbeat, jsonConsts::gap, jsData[jsonConsts::gap].asInt());
-    config.Set(jsonConsts::aoip, jsonConsts::interface, jsData[jsonConsts::interface].asString());
-    config.Set(jsonConsts::general, jsonConsts::name, jsData[jsonConsts::name].asString());
-    config.Set(jsonConsts::aoip, jsonConsts::aoip, jsData[jsonConsts::buffer].asInt());
+    if(CheckJsonMembers(jsData, {{jsonConsts::gap, enumJsonType::NUMBER}}))
+    {
+        config.Set(jsonConsts::heartbeat, jsonConsts::gap, jsData[jsonConsts::gap].asInt());
+    }
+    else
+    {
+        config.Set(jsonConsts::heartbeat, jsonConsts::gap, m_nHeartbeatGap);
+    }
+
+    if(CheckJsonMembers(jsData, {{jsonConsts::interface, enumJsonType::STRING}}))
+    {
+        config.Set(jsonConsts::aoip, jsonConsts::interface, jsData[jsonConsts::interface].asString());
+    }
+    else
+    {
+        config.Set(jsonConsts::aoip, jsonConsts::interface, m_sLoggerInterface);
+    }
+    if(CheckJsonMembers(jsData, {{jsonConsts::buffer, enumJsonType::NUMBER}}))
+    {
+        config.Set(jsonConsts::aoip, jsonConsts::aoip, jsData[jsonConsts::buffer].asInt());
+    }
+    else
+    {
+        config.Set(jsonConsts::aoip, jsonConsts::aoip, m_nAoipBuffer);
+    }
+    config.Set(jsonConsts::aoip, jsonConsts::useTransmission, m_bUseTransmissionTime);
 
 
     if(jsData[jsonConsts::sdp].asString().empty())
