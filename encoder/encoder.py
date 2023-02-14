@@ -29,14 +29,14 @@ def opusEncode(wavFile, opusPath, log):
     log.info('Encode %s',wavFile)
     fileName = os.path.splitext(os.path.basename(wavFile))[0]
     opusFile = os.path.join(opusPath, fileName)+'.opus'
-    subprocess.run(['opusenc', wavFile, opusFile, '--quiet'])
+    subprocess.run(['/usr/bin/opusenc', wavFile, opusFile, '--quiet'])
     log.info('Encoded %s', opusFile)
 
 def flacEncode(wavFile, flacPath, log):
     log.info('Encode %s',wavFile)
     fileName = os.path.splitext(os.path.basename(wavFile))[0]
     flacFile = os.path.join(flacPath, fileName)+'.flac'
-    subprocess.run(['flac', wavFile, '-output-name='+flacFile, '-s'])
+    subprocess.run(['/usr/binflac', wavFile, '-output-name='+flacFile, '-s'])
     log.info('Encoded %s', flacFile)
 
 
