@@ -103,3 +103,8 @@ const std::string jsonConsts::password          = "password";
 const std::string jsonConsts::api                = "api";
 const std::string jsonConsts::static_pages       = "static";
 const std::string jsonConsts::useTransmission    = "useTransmission";
+
+const std::string jsonConsts::keep               = "keep";
+const std::string jsonConsts::wav                = "wav";
+const std::string jsonConsts::opus               = "opus";
+const std::string jsonConsts::flac               = "flac";

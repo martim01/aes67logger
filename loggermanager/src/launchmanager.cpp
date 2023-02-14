@@ -26,7 +26,7 @@ void LaunchManager::Init(const iniManager& iniConfig, std::function<void(const s
 {
     m_pathLaunchers.assign(iniConfig.Get(jsonConsts::path, jsonConsts::loggers, "/usr/local/etc/loggers"));
     m_pathSockets.assign(iniConfig.Get(jsonConsts::path, jsonConsts::sockets, "/var/local/loggers/sockets"));
-    m_pathAudio.assign(iniConfig.Get(jsonConsts::path, jsonConsts::audio, "/var/local/loggers/audio/wav"));
+    m_pathAudio.assign(iniConfig.Get(jsonConsts::path, jsonConsts::audio, "/var/local/loggers/audio"));
 
     m_bUseTransmissionTime = iniConfig.Get(jsonConsts::logger, jsonConsts::useTransmission, false);
     m_sLoggerInterface = iniConfig.Get(jsonConsts::logger, jsonConsts::interface, "eth0");
@@ -119,7 +119,10 @@ pml::restgoose::response LaunchManager::AddLogger(const pml::restgoose::response
     if(CheckJsonMembers(theData.jsonData, {{jsonConsts::name, enumJsonType::STRING},
                                            {jsonConsts::source, enumJsonType::STRING},
                                            {jsonConsts::rtsp, enumJsonType::STRING},
-                                           {jsonConsts::sdp, enumJsonType::STRING}}) == false)
+                                           {jsonConsts::sdp, enumJsonType::STRING},
+                                           {jsonConsts::wav, enumJsonType::NUMBER},
+                                           {jsonConsts::opus, enumJsonType::NUMBER},
+                                           {jsonConsts::flac, enumJsonType::NUMBER}}) == false)
     {
         return pml::restgoose::response(400, "Json missing required parameters");
     }
@@ -220,7 +223,11 @@ void LaunchManager::CreateLoggerConfig(const Json::Value& jsData)
     }
 
     config.Set(jsonConsts::source, jsonConsts::name, jsData[jsonConsts::source].asString());
-    config.Get(jsonConsts::source, jsonConsts::rtsp, jsData[jsonConsts::rtsp].asString());
+    config.Set(jsonConsts::source, jsonConsts::rtsp, jsData[jsonConsts::rtsp].asString());
+
+    config.Set(jsonConsts::keep, jsonConsts::wav, jsData[jsonConsts::wav].asString());
+    config.Set(jsonConsts::keep, jsonConsts::opus, jsData[jsonConsts::opus].asString());
+    config.Set(jsonConsts::keep, jsonConsts::flac, jsData[jsonConsts::flac].asString());
 
     config.Write(MakeConfigFullPath(jsData[jsonConsts::name].asString()));
 }

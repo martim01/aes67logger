@@ -111,4 +111,9 @@ struct jsonConsts
     static const std::string api;
     static const std::string static_pages;
     static const std::string useTransmission;
+
+    static const std::string keep;
+    static const std::string wav;
+    static const std::string opus;
+    static const std::string flac;
 };

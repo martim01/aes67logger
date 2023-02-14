@@ -82,7 +82,8 @@ bool LoggerApp::LoadConfig(const std::filesystem::path& config)
         m_sName = m_config.Get(jsonConsts::general, jsonConsts::name, "");
         CreateLogging();
 
-        m_pathWav.assign(m_config.Get(jsonConsts::path, jsonConsts::audio, "/var/loggers/wav"));
+        m_pathWav.assign(m_config.Get(jsonConsts::path, jsonConsts::audio, "/var/loggers/audio"));
+        m_pathWav /= "wav";
         m_pathWav /= m_sName;
 
         m_pathSockets = std::filesystem::path(m_config.Get(jsonConsts::path, jsonConsts::sockets, "/var/loggers/sockets"));

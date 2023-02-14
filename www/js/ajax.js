@@ -1174,11 +1174,9 @@ function addLogger()
 					'source' : document.getElementById('config_name').value,
 					'rtsp' : rtsp, 
 					'sdp' : sdp,
-					'console' : -1,
-					'file' : 1,
-					'gap' : 2500,
-					'interface' : 'enp4s0f0',
-					'buffer' : 4096};
+					'wav' : document.getElementById('keep_wav').value,
+					'opus' : document.getElementById('keep_opus').value,
+					'flac' : document.getElementById('keep_flac').value};
 		
 	ajaxPostPutPatch('POST', 'x-api/loggers', JSON.stringify(jsonObj), handleAddLogger);
 

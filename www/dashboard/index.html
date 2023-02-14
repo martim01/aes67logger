@@ -34,7 +34,7 @@
         <div class="uk-section uk-section-xsmall uk-section-muted">
             <div class="uk-grid-column-small uk-grid-row-small uk-grid-match uk-text-center" uk-grid id="logger_grid">
 
-            <div  id="logger_add" class="uk-width-1-3@s uk-width-1-6@xl">
+            <div id="logger_add" class="uk-width-1-3@s uk-width-1-6@xl">
                 <div class="uk-width-large@l uk-width-medium@m uk-card uk-card-default uk-card-body uk-card-hover uk-card-small"
                  onclick="showAddLogger()">
                    <div class='uk-card-header'>
@@ -76,6 +76,22 @@
         
                                 </select>
                                 <textarea class="uk-textarea" rows="20" cols="50" placeholder="SDP" id="config_sdp" style="display:none"></textarea>
+                            </div>
+                            <div>
+                                <fieldset><legend>Encoding</legend>
+                                    <div  class="uk-text-meta">Enter the time to keep the encoded files for, or 0 to disable the encoding</div>
+                                    <div uk-grid class="uk-grid-small uk-child-width-1-5">
+                                        <div><label for="keep_wav">Wav:</label></div>
+                                        <div class="uk-width-2-5"><input class="uk-input uk-form-small" type="number" id="keep_wav" min="1" max="336" value="24"></div>
+                                        <div class="uk-width-2-5">hours</div>
+                                        <div><label for="keep_opus">Opus:</label></div>
+                                        <div class="uk-width-2-5"><input class="uk-input uk-form-small" type="number" id="keep_opus" min="0" max="90" step="1" value="90"></div>
+                                        <div class="uk-width-2-5">days</div>
+                                        <div><label for="keep_flac">Flac:</label></div>
+                                        <div class="uk-width-2-5"><input class="uk-input uk-form-small" type="number" id="keep_flac" min="0" max="14" step="1" value="0"></div>
+                                        <div class="uk-width-2-5">days</div>
+                                    </div>
+                                </fieldset>
                             </div>
                         </div>
                     </div>
