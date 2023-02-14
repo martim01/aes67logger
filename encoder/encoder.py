@@ -29,8 +29,11 @@ def opusEncode(wavFile, opusPath, log):
     log.info("Encode %s",wavFile)
     fileName = os.path.splitext(os.path.basename(wavFile))[0]
     opusFile = os.path.join(opusPath, fileName)+".opus"
-    subprocess.run(["opusenc", wavFile, opusFile, '--quiet'])
-    log.info("Encoded %s", opusFile)
+    try:
+        result = subprocess.run(["/usr/bin/opusenc", wavFile, opusFile, '--quiet'])
+        log.info("Encoded %s", opusFile)
+    except CalledProcessError as e:
+        log.error("%s exited with %d", e.cmd, e.returncode)
 
 class Logger():
     def __init__(self, name, wavPath, opusPath, log):
