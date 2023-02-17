@@ -33,11 +33,15 @@ def opusEncode(wavFile, opusPath, log):
     log.info('Encoded %s', opusFile)
 
 def flacEncode(wavFile, flacPath, log):
-    log.info('Encode %s',wavFile)
     fileName = os.path.splitext(os.path.basename(wavFile))[0]
     flacFile = os.path.join(flacPath, fileName)+'.flac'
-    subprocess.run(['/usr/binflac', wavFile, '-output-name='+flacFile, '-s'])
-    log.info('Encoded %s', flacFile)
+    log.info('Encode %s to %s',wavFile, flacFile)
+    result = subprocess.run(['/usr/bin/flac', wavFile, '-o', flacFile, '-s'])
+    log.info('result %d %s', result.returncode, result.args)
+    if result.returncode == 0:
+        log.info('Encoded %s', flacFile)
+    else:
+        log.info('Failed to encode %s ', result.args)
 
 
 class Logger():
@@ -48,15 +52,20 @@ class Logger():
         config = configparser.ConfigParser()
         config.read(os.path.join(configPath, name)+'.ini')
 
-        self.wavPath = os.path.join(config['path'].get('audio', '.'), 'wav', name)
-        self.opusPath = os.path.join(config['path'].get('audio', '.'), 'opus', name)
-        self.flacPath = os.path.join(config['path'].get('audio', '.'), 'flac', name)
-        self.opusEncode = (config['keep'].get('opus', 0) != 0)
-        self.flacEncode = (config['keep'].get('flac', 0) != 0)
+        self.wavPath = os.path.join(config['path'].get('audio', fallback='.'), 'wav', name)
+        self.opusPath = os.path.join(config['path'].get('audio', fallback='.'), 'opus', name)
+        self.flacPath = os.path.join(config['path'].get('audio', fallback='.'), 'flac', name)
+        self.opusEncode = (config['keep'].getint('opus', fallback=0) > 0)
+        self.flacEncode = (config['keep'].getint('flac', fallback=0) > 0)
         self.log = log
+        self.log.info('Logger %s opus=%d flac=%d', name, self.opusEncode, self.flacEncode)
 
-        self.createEncodeDir(self.opusPath)
-        self.createEncodeDir(self.flacPath)
+        self.opusEncodeList = []
+        self.flacEncodeList = []
+        if self.opusEncode == True:
+            self.createEncodeDir(self.opusPath)
+        if self.flacEncode == True:
+             self.createEncodeDir(self.flacPath)
         self.createEncodeLists()
 
     def createEncodeDir(self, path):
@@ -145,7 +154,7 @@ def run():
     log.setLevel(logging.INFO)
     ## Here we define our formatter
     formatter = logging.Formatter('%(asctime)s\t%(levelname)s\t%(message)s')
-    logHandler = TimedRotatingFileHandler(os.path.join(config['path'].get('log', '/var/log/encoder'), 'enc.log'), when='h', interval=1, utc=True, backupCount=24)
+    logHandler = TimedRotatingFileHandler(os.path.join(config['path'].get('log', fallback='/var/log/encoder'), 'enc.log'), when='h', interval=1, utc=True, backupCount=24)
     logHandler.setLevel(logging.INFO)
     logHandler.setFormatter(formatter)
     logHandler.namer = logNamer
@@ -154,8 +163,8 @@ def run():
 
     loggerDict = {}
     # find all the possible loggers, create the loggers and work out what files need encoding    
-    for loggerName in enumerateDir(config['path'].get('loggers', '.'), 'ini'):
-        loggerDict[loggerName] = Logger(loggerName, config['path'].get('loggers', '.'), log)
+    for loggerName in enumerateDir(config['path'].get('loggers', fallback='.'), 'ini', log):
+        loggerDict[loggerName] = Logger(loggerName, config['path'].get('loggers', fallback='.'), log)
 
     #create the thread pool that will launch the encocders
     executor = concurrent.futures.ThreadPoolExecutor(max_workers=len(loggerDict)+4)
@@ -164,7 +173,7 @@ def run():
     observer=Observer()
     event_handler = CreatedHandler(executor, loggerDict, log)
     try:
-        observer.schedule(event_handler, path=config['path'].get('wav', '.'), recursive=True)
+        observer.schedule(event_handler, path=config['path'].get('wav', fallback='.'), recursive=True)
         observer.start()
     
         for loggerName in loggerDict:
@@ -180,7 +189,7 @@ def run():
         observer.join()
         log.warning('Encoder exiting')
     except FileNotFoundError:
-        log.critical('Path %s does not exist', config['path'].get('wav', '.'))
+        log.critical('Path %s does not exist', config['path'].get('wav', fallback='.'))
         quit()
 
 

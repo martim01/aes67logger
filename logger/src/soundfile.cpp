@@ -32,7 +32,7 @@ bool SoundFile::OpenToWrite(const std::string& sFileName, unsigned short nChanne
 
     m_sFilename = sFileName;
 
-    int nFormat = SF_FORMAT_WAV;
+    int nFormat = SF_FORMAT_WAVEX;
     switch(nBitLength)
     {
         case 16:

@@ -365,7 +365,7 @@ void LoggerApp::WriteToSoundFile(std::shared_ptr<pml::aoip::AoIPSource> pSource,
         if(m_sf.GetFilename() != filePath)
         {
             m_sf.Close();
-            m_sf.OpenToWrite(filePath.string(), m_subsession.nChannels, m_subsession.nSampleRate, 0);   //bit depth =0 implies float
+            m_sf.OpenToWrite(filePath.string(), m_subsession.nChannels, m_subsession.nSampleRate, 24);   //bit depth =0 implies float
 
             OutputFileJson();
         }
