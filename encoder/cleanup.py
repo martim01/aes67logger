@@ -21,20 +21,26 @@ def enumerateDir(dir_path, ext, log):
 
 class Logger():
     def __init__(self, name, configPath, log):
-        log.info('Logger %s created', name)
-        self.name = name
+
+        self.name = os.path.splitext(os.path.split(name)[1])[0]
+        log.info('Logger %s created', self.name)
 
         config = configparser.ConfigParser()
-        config.read(os.path.join(configPath, name)+'.ini')
+        config.read(name)
+        if "path" in config:
+            self.wavPath = config['path'].get('audio', fallback='.')+ '/wav/'+self.name
+            self.opusPath = config['path'].get('audio',fallback='.')+'/opus/'+self.name
+            self.flacPath = config['path'].get('audio', fallback='.')+'/flac/'+self.name
+        else:
+            log.error('Logger %s failed to read config file %s', name, configFile)
 
-        self.wavPath = os.path.join(config['path'].get('audio', '.'), 'wav', name)
-        self.opusPath = os.path.join(config['path'].get('audio', '.'), 'opus', name)
-        self.flacPath = os.path.join(config['path'].get('audio', '.'), 'flac', name)
-
-        self.opusAge = config['keep'].get('opus', 0)*3600
-        self.flacAge = config['keep'].get('flac', 0)*3600
-        self.wavAge = config['keep'].get('wav', 0)*3600
+        self.opusAge = config['keep'].getint('opus', fallback=0)*3600
+        self.flacAge = config['keep'].getint('flac', fallback=0)*3600
+        self.wavAge = config['keep'].getint('wav', fallback=0)*3600
         self.log = log
+        self.log.info('%s wavPath=%s',self.name, self.wavPath)
+        self.log.info('%s opusPath=%s',self.name, self.opusPath)
+        self.log.info('%s flacPath=%s',self.name, self.flacPath)
 
     def removeAllFiles(self):
         self.removeFiles(self.wavAge, self.wavPath, 'wav')
@@ -47,8 +53,11 @@ class Logger():
         count = 0
         for fileTp in files:
             if fileTp[1] < removeTp and os.path.exists(fileTp[0]):
-                os.remove(fileTp[0])
-                count += 1
+                try:
+                    os.remove(fileTp[0])
+                    count += 1
+                except OSError as e:
+                    self.log.warning('Could not remove file %s %s', fileTp[0], e.strerror)
         self.log.info('Removed %d files from %s', count, path)
 
 
@@ -73,7 +82,7 @@ def run():
     log.setLevel(logging.INFO)
     ## Here we define our formatter
     formatter = logging.Formatter('%(asctime)s\t%(levelname)s\t%(message)s')
-    logHandler = TimedRotatingFileHandler(os.path.join(config['path'].get('log', '/var/log/cleanup'), 'cleanup.log'), when='h', interval=1, utc=True)
+    logHandler = TimedRotatingFileHandler(os.path.join(config['path'].get('log', fallback='/var/log/encoder'), 'cleanup.log'), when='h', interval=1, utc=True)
     logHandler.setLevel(logging.INFO)
     
     ## Here we set our logHandler's formatter
@@ -81,9 +90,9 @@ def run():
     log.addHandler(logHandler)
 
     # find all the possible loggers, create the loggers and work out what files need encoding    
-    for loggerName in enumerateDir(config['path'].get('loggers', '.'), 'ini'):
-        loggerObj = Logger(loggerName, config['path'].get('loggers', '.'), log)
-        loggerObj.RemoveAllFiles()
+    for loggerTuple in enumerateDir(config['path'].get('loggers', fallback='.'), 'ini',log):
+        loggerObj = Logger(loggerTuple[0], config['path'].get('loggers', fallback='.'), log)
+        loggerObj.removeAllFiles()
 
     log.info('Finished')
 
