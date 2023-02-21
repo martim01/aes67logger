@@ -32,6 +32,7 @@ else()
     execute_process(COMMAND git -C ${DIR_LOG} pull --no-rebase)
 endif()
 
+
 #Get JsonCpp
 find_path(RG_TEMP_DIR NAMES "amalgamate.py" PATHS ${DIR_JSON} NO_CACHE)
 if((NOT RG_TEMP_DIR) OR (NOT EXISTS ${RG_TEMP_DIR}))
@@ -122,4 +123,5 @@ add_subdirectory(${DIR_AOIP} ${DIR_AOIP}/build)
 
 add_subdirectory(logger)
 add_subdirectory(loggermanager)
+add_subdirectory(playbackserver)
 
