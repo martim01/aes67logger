@@ -51,22 +51,26 @@ class Logger():
 
         config = configparser.ConfigParser()
         config.read(os.path.join(configPath, name)+'.ini')
+        if 'path' in config:
+            self.wavPath = os.path.join(config['path'].get('audio', fallback='.'), 'wav', name)
+            self.opusPath = os.path.join(config['path'].get('audio', fallback='.'), 'opus', name)
+            self.flacPath = os.path.join(config['path'].get('audio', fallback='.'), 'flac', name)
+            self.opusEncode = (config['keep'].getint('opus', fallback=0) > 0)
+            self.flacEncode = (config['keep'].getint('flac', fallback=0) > 0)
+            self.log = log
+            self.log.info('Logger %s opus=%d flac=%d', name, self.opusEncode, self.flacEncode)
 
-        self.wavPath = os.path.join(config['path'].get('audio', fallback='.'), 'wav', name)
-        self.opusPath = os.path.join(config['path'].get('audio', fallback='.'), 'opus', name)
-        self.flacPath = os.path.join(config['path'].get('audio', fallback='.'), 'flac', name)
-        self.opusEncode = (config['keep'].getint('opus', fallback=0) > 0)
-        self.flacEncode = (config['keep'].getint('flac', fallback=0) > 0)
-        self.log = log
-        self.log.info('Logger %s opus=%d flac=%d', name, self.opusEncode, self.flacEncode)
-
-        self.opusEncodeList = []
-        self.flacEncodeList = []
-        if self.opusEncode == True:
-            self.createEncodeDir(self.opusPath)
-        if self.flacEncode == True:
-             self.createEncodeDir(self.flacPath)
-        self.createEncodeLists()
+            self.opusEncodeList = []
+            self.flacEncodeList = []
+            if self.opusEncode == True:
+                self.createEncodeDir(self.opusPath)
+            if self.flacEncode == True:
+                self.createEncodeDir(self.flacPath)
+            self.createEncodeLists()
+            self.ok = True
+        else:
+            log.warning('Failed to read config file for %s', name)
+            self.ok = False
 
     def createEncodeDir(self, path):
         try:
@@ -130,7 +134,28 @@ class CreatedHandler(FileSystemEventHandler):
         else:
             self.log.debug('logger %s not defined', loggerName)
 
+class LoggerHandler(FileSystemEventHandler):
+    def __init__(self, executor, loggerDict, loggerPath, log):
+        self.executor = executor
+        self.loggerDict = loggerDict
+        self.loggerPath = loggerPath
+        self.log = log
 
+    def on_created(self, event):
+        loggerName = os.path.basename(event.src_path)
+        self.log.info("%s created", loggerName)
+        loggerObj = Logger(loggerName, self.loggerPath, self.log)
+        if loggerObj.ok == True:
+            self.loggerDict[loggerName] = loggerObj
+
+    def on_deleted(self, event):
+        loggerName = os.path.basename(event.src_path)
+        self.log.info("%s removed", loggerName)
+        try:
+            self.loggerDict.pop(loggerName)
+        except:
+            self.log.debug('%s removed but never configured', loggerName)
+        
 def logNamer(default_name):
     base_filename,ext,date = default_name.split('.')
     return f'{date}.{ext}'
@@ -164,7 +189,9 @@ def run():
     loggerDict = {}
     # find all the possible loggers, create the loggers and work out what files need encoding    
     for loggerName in enumerateDir(config['path'].get('loggers', fallback='.'), 'ini', log):
-        loggerDict[loggerName] = Logger(loggerName, config['path'].get('loggers', fallback='.'), log)
+        loggerObj = Logger(loggerName, config['path'].get('loggers', fallback='.'), log)
+        if loggerObj.ok == True:
+            loggerDict[loggerName] = loggerObj
 
     #create the thread pool that will launch the encocders
     executor = concurrent.futures.ThreadPoolExecutor(max_workers=len(loggerDict)+4)
@@ -172,8 +199,11 @@ def run():
     # start a recursive observer for the wav file directory to watch for new wav files
     observer=Observer()
     event_handler = CreatedHandler(executor, loggerDict, log)
+    logger_handler = LoggerHandler(executor, loggerDict, config['path'].get('loggers', fallback='.'), log)
+
     try:
         observer.schedule(event_handler, path=config['path'].get('wav', fallback='.'), recursive=True)
+        observer.schedule(logger_handler, path=config['path'].get('loggers', fallback='.'))
         observer.start()
     
         for loggerName in loggerDict:
