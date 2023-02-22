@@ -308,15 +308,19 @@ pml::restgoose::response PlaybackServer::GetLogger(const query& theQuery, const 
 
 pml::restgoose::response PlaybackServer::GetLoggerFiles(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
 {
+
     auto vPath = SplitString(theEndpoint.Get(),'/');
     
     auto itLogger = m_mLoggers.find(vPath[vPath.size()-2]);
+    pmlLog() << "GetLoggerFiles: " << vPath[vPath.size()-2] << ": " << vPath.back();
+
     if(itLogger != m_mLoggers.end())
     {
         if(itLogger->second->Get(jsonConsts::keep, vPath.back(), 0) != 0)
         {
             std::filesystem::path pathFiles = itLogger->second->Get(jsonConsts::path, jsonConsts::audio, ".");
             pathFiles /= vPath.back();
+	    pathFiles /= vPath[vPath.size()-2];
 
             try
             {
@@ -324,7 +328,7 @@ pml::restgoose::response PlaybackServer::GetLoggerFiles(const query& theQuery, c
 
                 for(const auto& entry : std::filesystem::directory_iterator(pathFiles))
                 {
-                    if(entry.path().extension() == vPath.back())
+//                    if(entry.path().extension() == vPath.back())
                     {
                         theResponse.jsonData.append(entry.path().stem().string());
                     }
