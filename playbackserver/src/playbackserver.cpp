@@ -7,7 +7,7 @@
 #include "aoiputils.h"
 #include "jsonconsts.h"
 #include <iomanip>
-
+#include "loggerobserver.h"
 #include "playbackserver_version.h"
 
 using namespace std::placeholders;
@@ -17,11 +17,14 @@ const std::string PlaybackServer::ROOT        = "/";             //GET
 const std::string PlaybackServer::API         = "x-api";          //GET
 const std::string PlaybackServer::LOGIN       = "login";
 const std::string PlaybackServer::LOGGERS     = "loggers";
+const std::string PlaybackServer::WS          = "ws";
 
 const endpoint PlaybackServer::EP_ROOT        = endpoint("");
 const endpoint PlaybackServer::EP_API         = endpoint(ROOT+API);
 const endpoint PlaybackServer::EP_LOGIN       = endpoint(EP_API.Get()+"/"+LOGIN);
 const endpoint PlaybackServer::EP_LOGGERS     = endpoint(EP_API.Get()+"/"+LOGGERS);
+const endpoint PlaybackServer::EP_WS          = endpoint(EP_API.Get()+"/"+WS);
+const endpoint PlaybackServer::EP_WS_LOGGERS  = endpoint(EP_API.Get()+"/"+WS+"/"+LOGGERS);
 
 
 static pml::restgoose::response ConvertPostDataToJson(const postData& vData)
@@ -122,7 +125,10 @@ int PlaybackServer::Run(const std::string& sConfigFile)
 
     pmlLog() << "Core\tStart" ;
 
-    EnumLoggers();
+    m_pManager = std::make_unique<LoggerManager>(*this);
+    m_pManager->EnumLoggers();
+    AddLoggerEndpoints();
+
 
     auto addr = ipAddress(GetIpAddress(m_config.Get(jsonConsts::api, jsonConsts::interface, "eth0")));
 
@@ -165,6 +171,10 @@ bool PlaybackServer::CreateEndpoints()
 
     m_server.AddEndpoint(pml::restgoose::GET, EP_LOGGERS, std::bind(&PlaybackServer::GetLoggers, this, _1,_2,_3,_4));
 
+    m_server.AddWebsocketEndpoint(EP_WS, std::bind(&PlaybackServer::WebsocketAuthenticate, this, _1,_2, _3, _4), std::bind(&PlaybackServer::WebsocketMessage, this, _1, _2), std::bind(&PlaybackServer::WebsocketClosed, this, _1, _2));
+
+    m_server.AddWebsocketEndpoint(EP_WS_LOGGERS, std::bind(&PlaybackServer::WebsocketAuthenticate, this, _1,_2, _3, _4), std::bind(&PlaybackServer::WebsocketMessage, this, _1, _2), std::bind(&PlaybackServer::WebsocketClosed, this, _1, _2));
+
 
     //Add the loop callback function
     m_server.SetLoopCallback(std::bind(&PlaybackServer::LoopCallback, this, _1));
@@ -183,7 +193,7 @@ void PlaybackServer::DeleteEndpoints()
 
     m_server.DeleteEndpoint(pml::restgoose::GET, EP_LOGGERS);
 
-    RemoveAllLoggers();
+    
 }
 
 pml::restgoose::response PlaybackServer::GetRoot(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
@@ -205,72 +215,44 @@ pml::restgoose::response PlaybackServer::GetApi(const query& theQuery, const pos
 }
 
 
-void PlaybackServer::EnumLoggers()
+void PlaybackServer::AddLoggerEndpoints()
 {
-    RemoveAllLoggers();
-
-    try
+    for(const auto& [name, pLogger] : m_pManager->GetLoggers())
     {
-        for(const auto& entry : std::filesystem::directory_iterator(m_config.Get(jsonConsts::path, jsonConsts::loggers,".")))
-        {
-            if(entry.path().extension() == ".ini")
-            {
-                auto pIni = std::make_shared<iniManager>();
-                if(pIni->Read(entry.path()))
-                {
-                    m_mLoggers.insert({entry.path().stem(), pIni});  
-                    AddLoggerEndpoints(entry.path().stem());
-                }
-            }
-        }
-    }
-    catch(std::filesystem::filesystem_error& e)
-    {
-        pmlLog(pml::LOG_CRITICAL) << "Could not enum loggers..." << e.what();
+        AddLoggerEndpoints(name, pLogger);
     }
 }
 
-void PlaybackServer::RemoveAllLoggers()
+void PlaybackServer::AddLoggerEndpoints(const std::string& sName, std::shared_ptr<LoggerObserver> pLogger)
 {
-    for(const auto& [name, pIni] : m_mLoggers)
+    m_server.AddEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName), std::bind(&PlaybackServer::GetLogger, this, _1,_2,_3,_4));
+    
+    for(const auto& [type, setFiles] : pLogger->GetEncodedFiles())
     {
-        m_server.DeleteEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+name));
-        auto pSection = pIni->GetSection(jsonConsts::keep);
-        if(pSection)
-        {
-            for(const auto& [file, keep] : pSection->GetData())
-            {
-                m_server.DeleteEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+name+"/"+file));
-            }
-        }
+       m_server.AddEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName+"/"+type), std::bind(&PlaybackServer::GetLoggerFiles, this, _1,_2,_3,_4));
     }
-    m_mLoggers.clear();
+
+    m_server.AddWebsocketEndpoint(endpoint(EP_WS_LOGGERS.Get()+"/"+sName), std::bind(&PlaybackServer::WebsocketAuthenticate, this, _1,_2, _3, _4), std::bind(&PlaybackServer::WebsocketMessage, this, _1, _2), std::bind(&PlaybackServer::WebsocketClosed, this, _1, _2));
 }
 
-void PlaybackServer::AddLoggerEndpoints(const std::string& sName)
+
+void PlaybackServer::RemoveLoggerEndpoints(const std::string& sName, std::shared_ptr<LoggerObserver> pLogger)
 {
-    for(const auto& [name, pIni] : m_mLoggers)
+    m_server.DeleteEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName));
+    for(const auto& [type, setFiles] : pLogger->GetEncodedFiles())
     {
-        m_server.AddEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+name), std::bind(&PlaybackServer::GetLogger, this, _1,_2,_3,_4));
-        auto pSection = pIni->GetSection(jsonConsts::keep);
-        if(pSection)
-        {
-            for(const auto& [file, keep] : pSection->GetData())
-            {
-                m_server.AddEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+name+"/"+file), std::bind(&PlaybackServer::GetLoggerFiles, this, _1,_2,_3,_4));
-            }
-        }
+        m_server.DeleteEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName+"/"+type));
     }
+    //@todo remove websocket endpoints....
 }
+
 
 pml::restgoose::response PlaybackServer::GetLoggers(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
 {
     pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "GetLoggers" ;
     
-    EnumLoggers();
-
     pml::restgoose::response theResponse;
-    for(const auto& [name, pIni] : m_mLoggers)
+    for(const auto& [name, obj] : m_pManager->GetLoggers())
     {
         theResponse.jsonData.append(name);
     }
@@ -282,28 +264,20 @@ pml::restgoose::response PlaybackServer::GetLogger(const query& theQuery, const 
 {
     auto vPath = SplitString(theEndpoint.Get(),'/');
     
-    auto itLogger = m_mLoggers.find(vPath.back());
-    if(itLogger != m_mLoggers.end())
+    auto itLogger = m_pManager->GetLoggers().find(vPath.back());
+    if(itLogger != m_pManager->GetLoggers().end())
     {
-        auto pSection = itLogger->second->GetSection(jsonConsts::keep);
-        if(pSection)
+        pml::restgoose::response theResponse(200);
+        for(const auto& [type, setFiles] : itLogger->second->GetEncodedFiles())
         {
-            pml::restgoose::response theResponse(200);
-            for(const auto& [key, value] : pSection->GetData())
-            {
-                if(pSection->Get(key,0) > 0)
-                { 
-                    theResponse.jsonData.append(key);
-                }
-            }
-            return theResponse;
+            theResponse.jsonData.append(type);
         }
-        else
-        {
-            return pml::restgoose::response(500, "Ini file does not list file types");
-        }
+        return theResponse;
     }
-    return pml::restgoose::response(404, "Logger not found");
+    else
+    {
+        return pml::restgoose::response(404, "Logger not found");
+    }
 }
 
 pml::restgoose::response PlaybackServer::GetLoggerFiles(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
@@ -311,34 +285,20 @@ pml::restgoose::response PlaybackServer::GetLoggerFiles(const query& theQuery, c
 
     auto vPath = SplitString(theEndpoint.Get(),'/');
     
-    auto itLogger = m_mLoggers.find(vPath[vPath.size()-2]);
+    auto itLogger = m_pManager->GetLoggers().find(vPath[vPath.size()-2]);
     pmlLog() << "GetLoggerFiles: " << vPath[vPath.size()-2] << ": " << vPath.back();
 
-    if(itLogger != m_mLoggers.end())
+    if(itLogger != m_pManager->GetLoggers().end())
     {
-        if(itLogger->second->Get(jsonConsts::keep, vPath.back(), 0) != 0)
+        pml::restgoose::response theResponse(200);
+        auto itFiles = itLogger->second->GetEncodedFiles().find(vPath[vPath.size()-2]);
+        if(itFiles != itLogger->second->GetEncodedFiles().end())
         {
-            std::filesystem::path pathFiles = itLogger->second->Get(jsonConsts::path, jsonConsts::audio, ".");
-            pathFiles /= vPath.back();
-    	    pathFiles /= vPath[vPath.size()-2];
-
-            try
+            for(const auto& path : itFiles->second)
             {
-                pml::restgoose::response theResponse;
-
-                for(const auto& entry : std::filesystem::directory_iterator(pathFiles))
-                {
-                    if(entry.path().extension() == vPath.back())
-                    {
-                        theResponse.jsonData.append(entry.path().stem().string());
-                    }
-                }
-                return theResponse;
+                theResponse.jsonData.append(path.stem().string());
             }
-            catch(const std::exception& e)
-            {
-                return pml::restgoose::response(500, e.what());
-            }
+            return theResponse;
         }
         else
         {
@@ -347,7 +307,7 @@ pml::restgoose::response PlaybackServer::GetLoggerFiles(const query& theQuery, c
     }
     else
     {
-        return pml::restgoose::response(404, "Logger has not found");
+        return pml::restgoose::response(404, "Logger was not found");
     }
 }
 
@@ -500,4 +460,51 @@ pml::restgoose::response PlaybackServer::RedirectToLogin()
     pml::restgoose::response theResponse(302);
     theResponse.mHeaders = {{headerName("Location"), headerValue("/")}};
     return theResponse;
+}
+
+
+void PlaybackServer::LoggerCreated(const std::string& sLogger, std::shared_ptr<LoggerObserver> pLogger)
+{
+    AddLoggerEndpoints(sLogger, pLogger);
+
+    Json::Value jsValue;
+    jsValue["field"] = "logger";
+    jsValue["action"] = "created";
+    jsValue["logger"] = sLogger;
+
+    m_server.SendWebsocketMessage({EP_WS_LOGGERS}, jsValue);
+}
+
+void PlaybackServer::LoggerDeleted(const std::string& sLogger, std::shared_ptr<LoggerObserver> pLogger)
+{
+    Json::Value jsValue;
+    jsValue["field"] = "logger";
+    jsValue["action"] = "deleted";
+    jsValue["logger"] = sLogger;
+    m_server.SendWebsocketMessage({endpoint(EP_WS_LOGGERS.Get()+"/"+sLogger)}, jsValue);
+    RemoveLoggerEndpoints(sLogger, pLogger);
+}
+
+void PlaybackServer::FileCreated(const std::string& sLogger, const std::filesystem::path& path)
+{
+    Json::Value jsValue;
+    jsValue["field"] = "file";
+    jsValue["action"] = "created";
+    jsValue["logger"] = sLogger;
+    jsValue["type"] = path.extension().string();
+    jsValue["file"] = path.stem().string();
+
+    m_server.SendWebsocketMessage({endpoint(EP_WS_LOGGERS.Get()+"/"+sLogger+"/"+path.extension().string())}, jsValue);
+}
+
+void PlaybackServer::FileDeleted(const std::string& sLogger, const std::filesystem::path& path)
+{
+    Json::Value jsValue;
+    jsValue["field"] = "file";
+    jsValue["action"] = "deleted";
+    jsValue["logger"] = sLogger;
+    jsValue["type"] = path.extension().string();
+    jsValue["file"] = path.stem().string();
+
+    m_server.SendWebsocketMessage({endpoint(EP_WS_LOGGERS.Get()+"/"+sLogger+"/"+path.extension().string())}, jsValue);
 }

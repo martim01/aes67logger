@@ -5,8 +5,13 @@
 #include "inimanager.h"
 #include <set>
 #include "session.h"
+#include "loggermanager.h"
+#include "observer.h"
 
 using postData = std::vector<pml::restgoose::partData>;
+class LoggerObserver;
+
+
 class PlaybackServer
 {
     public:
@@ -38,6 +43,14 @@ class PlaybackServer
         void WebsocketClosed(const endpoint& theEndpoint, const ipAddress& peer);
 
 
+        void LoggerCreated(const std::string& sLogger, std::shared_ptr<LoggerObserver> pLogger);
+        void LoggerDeleted(const std::string& sLogger, std::shared_ptr<LoggerObserver> pLogger);
+
+        void FileCreated(const std::string& sLogger, const std::filesystem::path& path);
+        void FileDeleted(const std::string& sLogger, const std::filesystem::path& path);
+
+        const iniManager& GetConfig() const { return m_config;}
+
     private:
 
 
@@ -54,29 +67,32 @@ class PlaybackServer
 
         time_t GetDateTime(time_t date, const std::vector<std::string>& vLine);
 
-        void EnumLoggers();
-        void RemoveAllLoggers();
-        void AddLoggerEndpoints(const std::string& sName);
-
+        void AddLoggerEndpoints();
+        void AddLoggerEndpoints(const std::string& sName, std::shared_ptr<LoggerObserver> pLogger);
+        void RemoveLoggerEndpoints(const std::string& sName, std::shared_ptr<LoggerObserver> pLogger);
         
         static const endpoint EP_ROOT;
         static const endpoint EP_API;
         static const endpoint EP_LOGIN;
         static const endpoint EP_LOGOUT;
         static const endpoint EP_LOGGERS;
+        static const endpoint EP_WS;
+        static const endpoint EP_WS_LOGGERS;
         
         static const std::string ROOT;
         static const std::string API;
         static const std::string LOGIN;
         static const std::string LOGOUT;
         static const std::string LOGGERS;
-        
+        static const std::string WS;
 
         unsigned int m_nTimeSinceLastCall;
 
         int m_nLogToConsole;
         int m_nLogToFile;
         bool m_bLoggedThisHour;
+
+        std::unique_ptr<LoggerManager> m_pManager;
 
         std::map<ipAddress, std::shared_ptr<SessionCookie>> m_mTokens;
 
