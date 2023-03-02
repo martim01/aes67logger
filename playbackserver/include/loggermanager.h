@@ -13,11 +13,11 @@ class LoggerManager
     public:
         LoggerManager(PlaybackServer& server);
         void EnumLoggers();
-
+        void WatchLoggerPath();
         const std::map<std::string, std::shared_ptr<LoggerObserver>>& GetLoggers() const { return m_mLoggers;}
     
     private:
-        void WatchLoggerPath();
+        
         std::shared_ptr<LoggerObserver> CreateLoggerObserver(const std::filesystem::path& iniFile);
         void OnLoggerCreated(int nWd, const std::filesystem::path& path, uint32_t mask, bool bDirectory);
         void OnLoggerDeleted(int nWd, const std::filesystem::path& path, uint32_t mask, bool bDirectory);
