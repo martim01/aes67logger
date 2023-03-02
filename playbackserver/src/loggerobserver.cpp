@@ -13,8 +13,8 @@ m_server(server),
 m_sName(sName)
 {
     std::filesystem::path pathAudio = config.Get(jsonConsts::path, jsonConsts::audio, ".");
-    pathAudio /= m_sName;
     
+
     auto pSection = config.GetSection(jsonConsts::keep);
     if(pSection)
     {
@@ -26,8 +26,8 @@ m_sName(sName)
                 if(nKeep > 0)
                 {
                     auto path = pathAudio;
-
                     path /= key;
+                    path /= m_sName;
                     m_mFiles.insert({key, EnumFiles(path, "."+key)});
 
                     auto nWatch = observer.AddWatch(path, pml::filewatch::Observer::CREATED | pml::filewatch::Observer::DELETED, false);
