@@ -13,7 +13,8 @@ m_server(server),
 m_sName(sName)
 {
     std::filesystem::path pathAudio = config.Get(jsonConsts::path, jsonConsts::audio, ".");
-
+    pathAudio /= m_sName;
+    
     auto pSection = config.GetSection(jsonConsts::keep);
     if(pSection)
     {
@@ -25,6 +26,7 @@ m_sName(sName)
                 if(nKeep > 0)
                 {
                     auto path = pathAudio;
+
                     path /= key;
                     m_mFiles.insert({key, EnumFiles(path, "."+key)});
 
@@ -43,7 +45,10 @@ m_sName(sName)
             }
         }
     }
-
+    else
+    {
+        pmlLog(pml::LOG_ERROR) << m_sName << " - could not find keep section in ini file";
+    }
 }
 
 
