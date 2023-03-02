@@ -127,7 +127,7 @@ int PlaybackServer::Run(const std::string& sConfigFile)
 
     m_pManager = std::make_unique<LoggerManager>(*this);
     m_pManager->EnumLoggers();
-    AddLoggerEndpoints();
+    
 
 
     auto addr = ipAddress(GetIpAddress(m_config.Get(jsonConsts::api, jsonConsts::interface, "eth0")));
@@ -148,6 +148,8 @@ int PlaybackServer::Run(const std::string& sConfigFile)
 
         //add server callbacks
         CreateEndpoints();
+        
+        AddLoggerEndpoints();
 
         //start the server loop
         m_server.Run(false, std::chrono::milliseconds(50));
@@ -291,7 +293,7 @@ pml::restgoose::response PlaybackServer::GetLoggerFiles(const query& theQuery, c
     if(itLogger != m_pManager->GetLoggers().end())
     {
         pml::restgoose::response theResponse(200);
-        auto itFiles = itLogger->second->GetEncodedFiles().find(vPath[vPath.size()-2]);
+        auto itFiles = itLogger->second->GetEncodedFiles().find(vPath.back());
         if(itFiles != itLogger->second->GetEncodedFiles().end())
         {
             for(const auto& path : itFiles->second)
@@ -302,7 +304,7 @@ pml::restgoose::response PlaybackServer::GetLoggerFiles(const query& theQuery, c
         }
         else
         {
-            return pml::restgoose::response(404, "Logger has no files of that type");
+            return pml::restgoose::response(404, "Logger has no files of that type "+vPath.back());
         }
     }
     else
