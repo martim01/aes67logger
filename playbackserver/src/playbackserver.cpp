@@ -127,7 +127,7 @@ int PlaybackServer::Run(const std::string& sConfigFile)
 
     m_pManager = std::make_unique<LoggerManager>(*this);
     m_pManager->EnumLoggers();
-    
+    m_pManager->WatchLoggerPath();
 
 
     auto addr = ipAddress(GetIpAddress(m_config.Get(jsonConsts::api, jsonConsts::interface, "eth0")));
