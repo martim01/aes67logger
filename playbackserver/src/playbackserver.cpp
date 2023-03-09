@@ -4,7 +4,7 @@
 #include "log.h"
 #include "logtofile.h"
 #include <chrono>
-#include "aoiputils.h"
+#include "aes67utils.h"
 #include "jsonconsts.h"
 #include <iomanip>
 #include "loggerobserver.h"
@@ -17,6 +17,7 @@ const std::string PlaybackServer::ROOT        = "/";             //GET
 const std::string PlaybackServer::API         = "x-api";          //GET
 const std::string PlaybackServer::LOGIN       = "login";
 const std::string PlaybackServer::LOGGERS     = "loggers";
+const std::string PlaybackServer::DOWNLOAD    = "download";
 const std::string PlaybackServer::WS          = "ws";
 
 const endpoint PlaybackServer::EP_ROOT        = endpoint("");
@@ -232,6 +233,7 @@ void PlaybackServer::AddLoggerEndpoints(const std::string& sName, std::shared_pt
     for(const auto& [type, setFiles] : pLogger->GetEncodedFiles())
     {
        m_server.AddEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName+"/"+type), std::bind(&PlaybackServer::GetLoggerFiles, this, _1,_2,_3,_4));
+       m_server.AddEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName+"/"+type+"/"+DOWNLOAD), std::bind(&PlaybackServer::DownloadLoggerFile, this, _1,_2,_3,_4));
     }
 
     m_server.AddWebsocketEndpoint(endpoint(EP_WS_LOGGERS.Get()+"/"+sName), std::bind(&PlaybackServer::WebsocketAuthenticate, this, _1,_2, _3, _4), std::bind(&PlaybackServer::WebsocketMessage, this, _1, _2), std::bind(&PlaybackServer::WebsocketClosed, this, _1, _2));
@@ -294,11 +296,34 @@ pml::restgoose::response PlaybackServer::GetLoggerFiles(const query& theQuery, c
     {
         pml::restgoose::response theResponse(200);
         auto itFiles = itLogger->second->GetEncodedFiles().find(vPath.back());
-        if(itFiles != itLogger->second->GetEncodedFiles().end())
+        if(itFiles != itLogger->second->GetEncodedFiles().end() && itFiles->second.empty() == false)
         {
-            for(const auto& path : itFiles->second)
+            std::string sFormat = "%Y-%m-%DT%H:%M";
+
+            auto start = ConvertStringToTimePoint((*itFiles->second.begin()).stem().string(), sFormat);
+            auto end = ConvertStringToTimePoint((*itFiles->second.rbegin()).stem().string(), sFormat);
+            
+            if(start && end)
             {
-                theResponse.jsonData.append(path.stem().string());
+                bool bInRange = false;
+                Json::Value jsRange;
+                for(auto tp = (*start); tp <= (*end); tp += std::chrono::minutes(1))
+                {
+                    auto filePath = (*itFiles->second.begin()).parent_path();
+                    filePath /= ConvertTimeToString(tp, sFormat);
+                    auto itFile = itFiles->second.find(filePath);
+                    if(!bInRange && itFile != itFiles->second.end())
+                    {
+                        jsRange["start"] = (*itFile).stem().string();
+                        bInRange = true;
+                    }
+                    else if(bInRange && itFile == itFiles->second.end())
+                    {
+                        jsRange["end"] = (*itFile).stem().string();
+                        theResponse.jsonData.append(jsRange);
+                        bInRange = false;
+                    }
+                }
             }
             return theResponse;
         }
@@ -306,6 +331,23 @@ pml::restgoose::response PlaybackServer::GetLoggerFiles(const query& theQuery, c
         {
             return pml::restgoose::response(404, "Logger has no files of that type "+vPath.back());
         }
+    }
+    else
+    {
+        return pml::restgoose::response(404, "Logger was not found");
+    }
+}
+
+pml::restgoose::response PlaybackServer::DownloadLoggerFile(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
+{
+    auto vPath = SplitString(theEndpoint.Get(),'/');
+    
+    auto itLogger = m_pManager->GetLoggers().find(vPath[vPath.size()-2]);
+    pmlLog() << "DownloadLoggerFile: " << vPath[vPath.size()-2] << ": " << vPath.back();
+
+    if(itLogger != m_pManager->GetLoggers().end())
+    {
+        return itLogger->second->CreateDownloadFile(vPath.back(), theQuery);
     }
     else
     {

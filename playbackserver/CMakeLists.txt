@@ -39,7 +39,7 @@ include_directories(${DIR_ASIO}/include)
 link_directories("../lib")
 
 
-add_executable(playbackserver "../common/src/jsonconsts.cpp" "../common/src/inimanager.cpp" "../common/src/aoiputils.cpp" "../common/src/inisection.cpp" "${DIR_JSON}/dist/jsoncpp.cpp" "../common/src/session.cpp" "src/main.cpp" "src/loggermanager.cpp" "src/loggerobserver.cpp" "src/playbackserver.cpp" "../common/uuid/guid.cpp" "../common/uuid/md5.cpp" ${CMAKE_BINARY_DIR}/src/${PROJECT_NAME}_version.cpp)
+add_executable(playbackserver "../common/src/jsonconsts.cpp" "../common/src/inimanager.cpp" "../common/src/aes67utils.cpp" "../common/src/inisection.cpp" "${DIR_JSON}/dist/jsoncpp.cpp" "../common/src/session.cpp" "src/main.cpp" "src/loggermanager.cpp" "src/loggerobserver.cpp" "src/playbackserver.cpp" "../common/uuid/guid.cpp" "../common/uuid/md5.cpp" ${CMAKE_BINARY_DIR}/src/${PROJECT_NAME}_version.cpp)
 
 list(APPEND flags "-fPIC" "-Wall" "-fpermissive"  "-std=c++17")
 if(CMAKE_BUILD_TYPE MATCHES Release)

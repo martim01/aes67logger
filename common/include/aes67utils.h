@@ -16,13 +16,11 @@ extern std::string& trim(std::string& s);
 extern bool CmpNoCase(const std::string& str1, const std::string& str2);
 
 
-extern std::string ConvertTimeToIsoString(std::time_t theTime);
-extern std::string ConvertTimeToString(std::chrono::time_point<std::chrono::system_clock> tp, bool bIncludeNano=true);
-extern std::string ConvertTimeToIsoString(std::chrono::time_point<std::chrono::system_clock> tp);
-extern std::string GetCurrentTimeAsString(bool bIncludeNano=true);
 extern std::string GetCurrentTimeAsIsoString();
-
-
+extern std::string ConvertTimeToIsoString(const std::chrono::time_point<std::chrono::system_clock>& tp);
+extern std::string ConvertTimeToString(const std::chrono::time_point<std::chrono::system_clock>& tp, const std::string& sFormat);
+extern std::string GetCurrentTimeAsString(bool bIncludeNano);
+extern std::string ConvertTimeToString(std::chrono::time_point<std::chrono::system_clock> tp, bool bIncludeNano);
 
 extern std::string GetIpAddress(const std::string& sInterface);
 extern std::string Exec(const std::string& sCmd);
@@ -37,3 +35,5 @@ extern bool CheckJsonMembers(const Json::Value& jsData, const std::map<std::stri
 
 extern int ExtractValueFromJson(Json::Value jsValue, const std::vector<std::string>& vPath, int nDefault);
 extern std::string ExtractValueFromJson(Json::Value jsValue, const std::vector<std::string>& vPath, const std::string& sDefault);
+
+std::optional<std::chrono::time_point<std::chrono::system_clock>> ConvertStringToTimePoint(const std::string& sTime, const std::string& sFormat);

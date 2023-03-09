@@ -1,5 +1,5 @@
 #include "log.h"
-#include "aoiputils.h"
+#include "aes67utils.h"
 #include <sstream>
 #include <sys/types.h>
 #include <unistd.h>
@@ -49,46 +49,25 @@ bool CmpNoCase(const std::string& str1, const std::string& str2)
     }));
 }
 
-std::string GetCurrentTimeAsString(bool bIncludeNano)
-{
-    std::chrono::time_point<std::chrono::system_clock> tp(std::chrono::system_clock::now());
-    return ConvertTimeToString(tp, bIncludeNano);
-}
-
 std::string GetCurrentTimeAsIsoString()
 {
     std::chrono::time_point<std::chrono::system_clock> tp(std::chrono::system_clock::now());
     return ConvertTimeToIsoString(tp);
 }
 
-std::string ConvertTimeToString(std::chrono::time_point<std::chrono::system_clock> tp, bool bIncludeNano)
+std::string ConvertTimeToIsoString(const std::chrono::time_point<std::chrono::system_clock>& tp)
 {
-    std::stringstream sstr;
-    auto seconds = std::chrono::duration_cast<std::chrono::seconds>(tp.time_since_epoch());
-    sstr << seconds.count();
-    if(bIncludeNano)
-    {
-        sstr << ":" << (std::chrono::duration_cast<std::chrono::nanoseconds>(tp.time_since_epoch()).count()%1000000000);
-    }
-    return sstr.str();
+    return ConvertTimeToString(tp, "%FT%T%z");
 }
 
-std::string ConvertTimeToIsoString(std::chrono::time_point<std::chrono::system_clock> tp)
+std::string ConvertTimeToString(const std::chrono::time_point<std::chrono::system_clock>& tp, const std::string& sFormat)
 {
     std::time_t  t = std::chrono::system_clock::to_time_t(tp);
-    return ConvertTimeToIsoString(t);
-}
-
-std::string ConvertTimeToIsoString(std::time_t t)
-{
     std::stringstream ss;
 
-    ss << std::put_time(std::localtime(&t), "%FT%T%z");
+    ss << std::put_time(std::localtime(&t), sFormat.c_str());
     return ss.str();
 }
-
-
-
 
 
 std::string GetIpAddress(const std::string& sInterface)
@@ -250,4 +229,38 @@ int ExtractValueFromJson(Json::Value jsValue, const std::vector<std::string>& vP
         return jsValue.asInt();
     }
     return nDefault;
+}
+
+
+std::optional<std::chrono::time_point<std::chrono::system_clock>> ConvertStringToTimePoint(const std::string& sTime, const std::string& sFormat)
+{
+    try
+    {
+        std::tm tm = {};
+        std::stringstream ss(sTime);
+        ss >> std::get_time(&tm, sFormat.c_str());
+        return std::chrono::system_clock::from_time_t(std::mktime(&tm));
+    }
+    catch(const std::exception& e)
+    {
+        return {};
+    }
+}
+
+std::string GetCurrentTimeAsString(bool bIncludeNano)
+{
+    std::chrono::time_point<std::chrono::system_clock> tp(std::chrono::system_clock::now());
+    return ConvertTimeToString(tp, bIncludeNano);
+}
+
+std::string ConvertTimeToString(std::chrono::time_point<std::chrono::system_clock> tp, bool bIncludeNano)
+{
+    std::stringstream sstr;
+    auto seconds = std::chrono::duration_cast<std::chrono::seconds>(tp.time_since_epoch());
+    sstr << seconds.count();
+    if(bIncludeNano)
+    {
+        sstr << ":" << (std::chrono::duration_cast<std::chrono::nanoseconds>(tp.time_since_epoch()).count()%1000000000);
+    }
+    return sstr.str();
 }

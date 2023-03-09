@@ -3,6 +3,7 @@
 #include <string>
 #include <filesystem>
 #include <map>
+#include "response.h"
 
 class iniManager;
 class PlaybackServer;
@@ -19,6 +20,8 @@ class LoggerObserver
         LoggerObserver(PlaybackServer& server, const std::string& sName, iniManager& config, pml::filewatch::Observer& observer);
 
         const encodedFiles& GetEncodedFiles() const { return m_mFiles;}
+
+        pml::restgoose::response CreateDownloadFile(const std::string& sType, const query& theQuery);
 
     private:
 

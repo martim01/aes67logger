@@ -124,3 +124,52 @@ void LoggerObserver::OnFileDeleted(int nWd, const std::filesystem::path& path, u
         pmlLog(pml::LOG_WARN) << m_sName << " - " << path << " deleted but watch not found";
     }
 }
+
+
+pml::restgoose::response LoggerObserver::CreateDownloadFile(const std::string& sType, const query& theQuery)
+{
+    auto itFiles = GetEncodedFiles().find(sType);
+    if(itFiles != GetEncodedFiles().end())
+    {
+        auto itStart = theQuery.find(queryKey("start_time"));
+        auto itEnd = theQuery.find(queryKey("end_time"));
+        if(itStart == theQuery.end() || itEnd == theQuery.end())
+        {
+            return pml::restgoose::response(400, "No start time or end time sent");
+        }
+
+        try
+        {
+            auto nStart = std::stoul(itStart->second.Get());
+            auto nEnd = std::stoul(itEnd->second.Get());
+            auto tpStart = std::chrono::system_clock::from_time_t(time_t(std::min(nStart, nEnd)));
+            auto tpEnd = std::chrono::system_clock::from_time_t(time_t(std::max(nStart, nEnd)));
+
+            //check we have all the necessary files
+            std::vector<std::string> vFiles;
+
+            for(auto tp  = tpStart; tp <= tpEnd; tp+=std::chrono::minutes(1))
+            {
+                auto sFile = ConvertTimeToString(tp, "%Y-%m-%DT%H-%M");
+                if(itFiles->second.find(sFile) == itFiles->second.end())
+                {
+                    return pml::restgoose::response(500, "File "+sFile+" is missing");
+                }
+                vFiles.push_back(sFile);
+            }
+
+            //now use ffmpeg to create a single file from these files....
+
+        }
+        catch(const std::exception& e)
+        {
+            return pml::restgoose::response(404, "Invalid start or end time");
+        }
+        
+
+    }
+    else
+    {
+        return pml::restgoose::response(404, "Logger has no files of that type "+sType);
+    }
+}

@@ -27,6 +27,7 @@ class PlaybackServer
         pml::restgoose::response GetLoggers(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
         pml::restgoose::response GetLogger(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
         pml::restgoose::response GetLoggerFiles(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
+        pml::restgoose::response DownloadLoggerFile(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
 
 
         pml::restgoose::response PostLogin(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
@@ -84,6 +85,7 @@ class PlaybackServer
         static const std::string LOGIN;
         static const std::string LOGOUT;
         static const std::string LOGGERS;
+        static const std::string DOWNLOAD;
         static const std::string WS;
 
         unsigned int m_nTimeSinceLastCall;

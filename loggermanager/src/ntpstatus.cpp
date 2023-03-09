@@ -9,7 +9,7 @@
 #include <error.h>
 #include <unistd.h>
 #include <algorithm>
-#include "aoiputils.h"
+#include "aes67utils.h"
 #include "log.h"
 
 const std::string NtpStatus::clksrcname[10] = {  /* Refer RFC-1305, Appendix B, Section 2.2.1 */

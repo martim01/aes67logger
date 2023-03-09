@@ -62,11 +62,11 @@
 			<Add directory="$(#agent__.LIB)" />
 		</Linker>
 		<Unit filename="../../jsoncpp/dist/jsoncpp.cpp" />
-		<Unit filename="../common/include/aoiputils.h" />
+		<Unit filename="../common/include/aes67utils.h" />
 		<Unit filename="../common/include/inimanager.h" />
 		<Unit filename="../common/include/inisection.h" />
 		<Unit filename="../common/include/jsonconsts.h" />
-		<Unit filename="../common/src/aoiputils.cpp" />
+		<Unit filename="../common/src/" />
 		<Unit filename="../common/src/inimanager.cpp" />
 		<Unit filename="../common/src/inisection.cpp" />
 		<Unit filename="../common/src/jsonconsts.cpp" />
