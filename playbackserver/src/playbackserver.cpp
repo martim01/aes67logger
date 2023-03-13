@@ -298,7 +298,12 @@ pml::restgoose::response PlaybackServer::GetLoggerFiles(const query& theQuery, c
         auto itFiles = itLogger->second->GetEncodedFiles().find(vPath.back());
         if(itFiles != itLogger->second->GetEncodedFiles().end() && itFiles->second.empty() == false)
         {
-            std::string sFormat = "%Y-%m-%dT%H:%M";
+//	    for(const auto& path : itFiles->second)
+//	    {
+//		theResponse.jsonData["got"].append(path.string());
+//		}
+//	return theResponse;
+            std::string sFormat = "%Y-%m-%dT%H-%M";
 
             auto start = ConvertStringToTimePoint((*itFiles->second.begin()).stem().string(), sFormat);
             auto end = ConvertStringToTimePoint((*itFiles->second.rbegin()).stem().string(), sFormat);
@@ -311,6 +316,8 @@ pml::restgoose::response PlaybackServer::GetLoggerFiles(const query& theQuery, c
                 {
                     auto filePath = (*itFiles->second.begin()).parent_path();
                     filePath /= ConvertTimeToString(tp, sFormat);
+		    filePath.replace_extension(vPath.back());
+//		    theResponse.jsonData["want"].append(filePath.string());
                     auto itFile = itFiles->second.find(filePath);
                     if(itFile != itFiles->second.end())
                     {
