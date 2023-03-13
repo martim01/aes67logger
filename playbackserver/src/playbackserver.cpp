@@ -298,7 +298,7 @@ pml::restgoose::response PlaybackServer::GetLoggerFiles(const query& theQuery, c
         auto itFiles = itLogger->second->GetEncodedFiles().find(vPath.back());
         if(itFiles != itLogger->second->GetEncodedFiles().end() && itFiles->second.empty() == false)
         {
-            std::string sFormat = "%Y-%m-%DT%H:%M";
+            std::string sFormat = "%Y-%m-%dT%H:%M";
 
             auto start = ConvertStringToTimePoint((*itFiles->second.begin()).stem().string(), sFormat);
             auto end = ConvertStringToTimePoint((*itFiles->second.rbegin()).stem().string(), sFormat);
@@ -312,17 +312,25 @@ pml::restgoose::response PlaybackServer::GetLoggerFiles(const query& theQuery, c
                     auto filePath = (*itFiles->second.begin()).parent_path();
                     filePath /= ConvertTimeToString(tp, sFormat);
                     auto itFile = itFiles->second.find(filePath);
-                    if(!bInRange && itFile != itFiles->second.end())
+                    if(itFile != itFiles->second.end())
                     {
-                        jsRange["start"] = (*itFile).stem().string();
-                        bInRange = true;
+                        jsRange["end"] = (*itFile).stem().string();
+                        if(!bInRange)
+                        {
+                            jsRange["start"] = (*itFile).stem().string();
+                            bInRange = true;
+                        }
                     }
                     else if(bInRange && itFile == itFiles->second.end())
                     {
-                        jsRange["end"] = (*itFile).stem().string();
                         theResponse.jsonData.append(jsRange);
                         bInRange = false;
                     }
+                }
+                if(bInRange)
+                {
+                    theResponse.jsonData.append(jsRange);
+                    bInRange = false;
                 }
             }
             return theResponse;
