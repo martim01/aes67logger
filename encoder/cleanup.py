@@ -32,7 +32,7 @@ class Logger():
             self.opusPath = config['path'].get('audio',fallback='.')+'/opus/'+self.name
             self.flacPath = config['path'].get('audio', fallback='.')+'/flac/'+self.name
         else:
-            log.error('Logger %s failed to read config file %s', name, configFile)
+            log.error('Logger %s failed to read config file', name)
 
         self.opusAge = config['keep'].getint('opus', fallback=0)*3600
         self.flacAge = config['keep'].getint('flac', fallback=0)*3600
@@ -75,7 +75,7 @@ def run():
     config.read(sys.argv[1])
     if ('path' in config) == False:
         print('Could not read config file')
-        quit();
+        quit()
     
     logging.basicConfig(level=logging.INFO, format='%(asctime)s\t%(levelname)s\t%(message)s')
     log = logging.getLogger('cleanup')

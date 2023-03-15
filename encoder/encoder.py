@@ -118,12 +118,12 @@ class CreatedHandler(FileSystemEventHandler):
     def on_closed(self, event):
         self.log.info('File %s closed',event.src_path)
         #work out the opus path
-        dir = os.path.split(event.src_path)[0]
-        components = dir.split('/')
+        theDir = os.path.split(event.src_path)[0]
+        components = theDir.split('/')
         if len(components) != 0:
             loggerName = components[-1]
         else:
-            loggerName = dir 
+            loggerName = theDir 
 
         loggerObj = self.loggerDict.get(loggerName)
         if loggerObj != None:
