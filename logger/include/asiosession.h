@@ -1,19 +1,20 @@
+#pragma once
 #include <array>
 #include <memory>
 #include "asio.hpp"
 #include <thread>
 #include <filesystem>
 #include <functional>
+#include <string_view>
 
-//#if defined(ASIO_HAS_LOCAL_SOCKETS)
 
 
 class AsioSession: public std::enable_shared_from_this<AsioSession>
 {
 public:
-  AsioSession(asio::local::stream_protocol::socket sock);
+  explicit AsioSession(asio::local::stream_protocol::socket sock);
 
-  void start();
+  void start() const;
 
   void write(const std::string& sMessage);
 
@@ -31,13 +32,13 @@ private:
 class AsioServer
 {
 public:
-    AsioServer(const std::filesystem::path& file);
+    explicit AsioServer(const std::filesystem::path& file);
     void Run();
     ~AsioServer();
 
     void write(const std::string& sMessage);
 
-    void StartTimer(const std::chrono::milliseconds& duration, std::function<void()> callback);
+    void StartTimer(const std::chrono::milliseconds& duration, const std::function<void()>& callback);
     void StopTimer();
 
 private:

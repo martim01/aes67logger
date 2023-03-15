@@ -23,10 +23,7 @@
 #include "log.h"
 
 
-iniManager::iniManager()
-{
-}
-
+iniManager::iniManager()=default;
 
 iniManager::~iniManager()
 {
@@ -71,6 +68,11 @@ bool iniManager::Read(const std::filesystem::path& filepath)
     ifFile.close();
 
 
+    return ReadStream(isstr);
+}
+
+bool iniManager::ReadStream(std::stringstream& isstr)
+{
     std::string sLine;
     std::string sTag;
     std::string sData;
@@ -79,62 +81,56 @@ bool iniManager::Read(const std::filesystem::path& filepath)
     //read in each line
     auto itSection = m_mSections.end();
 
-    while(getline(isstr, sLine))
+    while(std::getline(isstr, sLine))
     {
         ++nLine;
         // if the line starts with a [ then its the start of a section
         if(sLine[0] == '[')
         {
-            std::string sSection;
-            sSection.reserve(sLine.length());
-
-            for(size_t i = 1; i < sLine.length(); i++)
-            {
-                if(sLine[i] == ']')
-                    break;
-                sSection+=sLine[i];
-            }
-            //get the name of the section
-            itSection = m_mSections.insert(std::make_pair(sSection, std::make_shared<iniSection>(sSection))).first;
+            itSection = MakeSection(sLine);
         }
         else if(itSection != m_mSections.end() && sLine[0] != '#' && sLine[0] != ';' && sLine.size() >= 2)
         {
-            size_t nEqualPos = std::string::npos;
-            size_t nCommentPos = 0;
-            std::string sKey;
-            std::string sData;
-            sKey.reserve(sLine.length());
-            sData.reserve(sLine.length());
-
-            for(;nCommentPos < sLine.length(); nCommentPos++)
-            {
-                if(sLine[nCommentPos] == '#' || sLine[nCommentPos] == ';')
-                {
-                    break;
-                }
-                else if(sLine[nCommentPos] == '=' && nEqualPos == std::string::npos)
-                {
-                    nEqualPos = nCommentPos;
-                }
-                else if(nEqualPos == std::string::npos)
-                {
-                    sKey += sLine[nCommentPos];
-                }
-                else
-                {
-                    sData += sLine[nCommentPos];
-                }
-            }
-            if(nEqualPos != std::string::npos)
-            {
-                itSection->second->Set(sKey, sData);
-            }
+            StoreData(itSection->second, sLine);
         }
     }
 
     return true;
 }
 
+void iniManager::StoreData(std::shared_ptr<iniSection> pSection, const std::string& sLine) const
+{
+    size_t nEqualPos = std::string::npos;
+    size_t nCommentPos = 0;
+    std::string sKey;
+    std::string sData;
+    sKey.reserve(sLine.length());
+    sData.reserve(sLine.length());
+
+    for(;nCommentPos < sLine.length(); nCommentPos++)
+    {
+        if(sLine[nCommentPos] == '#' || sLine[nCommentPos] == ';')
+        {
+            break;
+        }
+        else if(sLine[nCommentPos] == '=' && nEqualPos == std::string::npos)
+        {
+            nEqualPos = nCommentPos;
+        }
+        else if(nEqualPos == std::string::npos)
+        {
+            sKey += sLine[nCommentPos];
+        }
+        else
+        {
+            sData += sLine[nCommentPos];
+        }
+    }
+    if(nEqualPos != std::string::npos)
+    {
+        pSection->Set(sKey, sData);
+    }
+}
 
 std::shared_ptr<iniSection> iniManager::GetSection(const std::string& sSectionName) const
 {
@@ -142,6 +138,21 @@ std::shared_ptr<iniSection> iniManager::GetSection(const std::string& sSectionNa
     if(it == m_mSections.end())
         return nullptr;
     return it->second;
+}
+
+mSections::iterator iniManager::MakeSection(const std::string& sLine)
+{
+    std::string sSection;
+    sSection.reserve(sLine.length());
+
+    for(size_t i = 1; i < sLine.length(); i++)
+    {
+        if(sLine[i] == ']')
+            break;
+        sSection+=sLine[i];
+    }
+    //get the name of the section
+    return m_mSections.insert({sSection, std::make_shared<iniSection>(sSection)}).first;
 }
 
 /*!
@@ -161,7 +172,7 @@ const std::string& iniManager::Get(const std::string& sSection, const std::strin
 /*!
     \fn iniManager::GetIniInt(const string& sSection, const string& sKey, int nDefault)
  */
-int iniManager::Get(const std::string& sSection, const std::string& sKey, int nDefault) const
+long iniManager::Get(const std::string& sSection, const std::string& sKey, long nDefault) const
 {
     //does the section exist?
 	auto it = m_mSections.find(sSection);
@@ -183,6 +194,16 @@ double iniManager::Get(const std::string& sSection, const std::string& sKey, dou
 
 	return it->second->Get(sKey,dDefault);
 }
+
+bool iniManager::GetBool(const std::string& sSection, const std::string& sKey, bool bDefault) const
+{
+    //does the section exist?
+	auto it = m_mSections.find(sSection);
+	if(it==m_mSections.end())
+		return bDefault;
+
+	return it->second->Get(sKey, bDefault);
+    }
 
 bool iniManager::Write()
 {
@@ -209,9 +230,9 @@ bool iniManager::Write(const std::filesystem::path& filepath)
 
 	m_of.clear();
 
-	for(const auto& pairSection : m_mSections)
+	for(const auto& [name, pSection] : m_mSections)
     {
-        pairSection.second->Write(m_of);
+        pSection->Write(m_of);
     }
     //Close the file again
 	if(m_of.is_open())
@@ -228,7 +249,7 @@ std::shared_ptr<iniSection> iniManager::CreateSection(const std::string& sSectio
     auto itSection =m_mSections.find(sSectionName);
     if(itSection == m_mSections.end())
     {
-        itSection  = m_mSections.insert(make_pair(sSectionName,std::make_shared<iniSection>(sSectionName))).first;
+        itSection  = m_mSections.insert({sSectionName,std::make_shared<iniSection>(sSectionName)}).first;
     }
     return itSection->second;
 }
@@ -263,8 +284,7 @@ size_t iniManager::GetNumberOfSectionEntries(const std::string& sSectionName) co
 
 bool iniManager::DeleteSection(const std::string& sSectionName)
 {
-    auto pSection = GetSection(sSectionName);
-    if(pSection)
+    if(GetSection(sSectionName))
     {
         m_mSections.erase(sSectionName);
         return true;

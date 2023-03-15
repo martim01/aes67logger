@@ -8,17 +8,19 @@
 #include "json/json.h"
 #include <array>
 #include "asio.hpp"
-
+#include <string_view>
 class Launcher
 {
     public:
-        Launcher(asio::io_context& context, const std::filesystem::path& pathConfig, const std::filesystem::path& pathSocket, std::function<void(const std::string&, const Json::Value&)> statusCallback, std::function<void(const std::string&, int, bool)> exitCallback);
+        Launcher(asio::io_context& context, const std::filesystem::path& pathConfig, const std::filesystem::path& pathSocket, 
+        const std::function<void(const std::string&, const Json::Value&)>& statusCallback, 
+        const std::function<void(const std::string&, int, bool)>& exitCallback);
         ~Launcher();
 
 
         bool CheckForOrphanedLogger();
 
-        void SetLoggerApp(const std::string& sLoggerApp) { m_sLoggerApp = sLoggerApp;   }
+        void SetLoggerApp(std::string_view sLoggerApp) { m_sLoggerApp = sLoggerApp;   }
 
         int LaunchLogger();
         bool RestartLogger();
@@ -48,17 +50,17 @@ class Launcher
         void HandleRead(std::error_code ec, std::size_t length);
         std::vector<std::string> ExtractReadBuffer(size_t nLength);
 
-        pid_t m_pid;
+        pid_t m_pid = 0;
         asio::io_context& m_context;
         asio::steady_timer m_timer;
 
         std::filesystem::path m_pathConfig;
         std::filesystem::path m_pathSocket;
-        int m_nExitCode;
+        int m_nExitCode = 0;
 
 
         std::string m_sConfigArg;
-        std::string m_sLoggerApp;
+        std::string m_sLoggerApp = "/usr/local/bin/logger";
 
         std::string m_sOut;
         std::array<char, 4096> m_data;

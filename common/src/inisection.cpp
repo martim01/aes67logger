@@ -32,10 +32,7 @@ iniSection::iniSection(const std::string& sSection)
 }
 
 
-iniSection::~iniSection()
-{
-}
-
+iniSection::~iniSection()=default;
 
 /*!
     \fn iniSection::GetDataBegin()
@@ -74,49 +71,66 @@ const std::string& iniSection::Get(const std::string& sKey, const std::string& s
 /*!
     \fn iniSection::GetInt(const std::string& sKey, int nDefault)
  */
-int iniSection::Get(const std::string& sKey, int nDefault)
+long iniSection::Get(const std::string& sKey, long nDefault) const
 {
   	//does the key exist
   	auto it = m_mSectionData.find(sKey);
 	if(it==m_mSectionData.end())
 		return nDefault;
-    long n = nDefault;
-
-    n = atoi(it->second.c_str());
-	return n;
+    try
+    {
+        return std::stol(it->second);
+    }
+    catch(const std::invalid_argument& e)
+    {
+        return nDefault;
+    }
+    catch(const std::out_of_range& e)
+    {
+        return nDefault;
+    }
 }
 
 /*!
     \fn iniSection::Getstd::string(const std::string& sKey, double dDefault)
  */
-double iniSection::Get(const std::string& sKey, double dDefault)
+double iniSection::Get(const std::string& sKey, double dDefault) const
 {
   	//does the key exist
 	auto it = m_mSectionData.find(sKey);
 	if(it==m_mSectionData.end())
 		return dDefault;
-    double d = dDefault;
-    d = atof(it->second.c_str());
-    return d;
+    try
+    {
+        return std::stod(it->second);
+    }
+    catch(const std::invalid_argument& e)
+    {
+        return dDefault;
+    }
+    catch(const std::out_of_range& e)
+    {
+        return dDefault;
+    }
 }
 
-bool iniSection::Get(const std::string& sKey, bool bDefault)
+bool iniSection::Get(const std::string& sKey, bool bDefault) const
 {
   	//does the key exist
 	auto it = m_mSectionData.find(sKey);
 	if(it==m_mSectionData.end())
 		return bDefault;
 
-    return (it->second == "1" || it->second == "true" || it->second == "TRUE");
+    return (it->second == "1" || it->second == "true" || it->second == "TRUE" || it->second == "True");
 }
 
 
-void iniSection::Set(const std::string& sKey, const std::string& sValue)
+void iniSection::Set(const std::string& sKey, std::string_view sValue)
 {
 	m_mSectionData[sKey] = sValue;
 }
 
-size_t iniSection::GetNumberOfEntries()
+size_t iniSection::GetNumberOfEntries() const
 {
     return m_mSectionData.size();
 }
@@ -126,14 +140,14 @@ mapIniData::const_iterator iniSection::FindData(const std::string& sKey) const
     return m_mSectionData.find(sKey);
 }
 
-void iniSection::Write(std::ofstream& of)
+void iniSection::Write(std::ofstream& of) const
 {
     //write the section name
     of << "[" <<  m_sSectionName << "]\n";
 
     //now write the data
-    for(const auto& pairData : m_mSectionData)
+    for(const auto& [key, value] : m_mSectionData)
     {
-        of << pairData.first << "=" << pairData.second << "\n";
+        of << key << "=" << value << "\n";
     }
 }

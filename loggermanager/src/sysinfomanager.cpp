@@ -20,12 +20,12 @@ SysInfoManager::~SysInfoManager()
     m_ntp.Stop();
 }
 
-Json::Value SysInfoManager::GetSysInfo()
+Json::Value SysInfoManager::GetSysInfo() const
 {
     Json::Value jsInfo;
     struct sysinfo info;
-    int nError = sysinfo(&info);
-    if(nError !=0)
+    
+    if(int nError = sysinfo(&info); nError !=0)
     {
         jsInfo["error_code"] = nError;
         jsInfo["error"] = strerror(nError);
@@ -50,9 +50,9 @@ Json::Value SysInfoManager::GetSysInfo()
         float fload = 1.f/(1 << SI_LOAD_SHIFT);
         fload *=100/get_nprocs();
         Json::Value jsLoads;
-        jsLoads["1"] = (info.loads[0]*fload);
-        jsLoads["5"] = (info.loads[1]*fload);
-        jsLoads["15"] = (info.loads[2]*fload);
+        jsLoads["1"] = ((float)info.loads[0]*fload);
+        jsLoads["5"] = ((float)info.loads[1]*fload);
+        jsLoads["15"] = ((float)info.loads[2]*fload);
 
         jsInfo["uptime"] = static_cast<Json::UInt64>(info.uptime);
         jsInfo["procs"] = static_cast<Json::UInt64>(info.procs);
@@ -67,13 +67,13 @@ Json::Value SysInfoManager::GetSysInfo()
 }
 
 
-Json::Value SysInfoManager::GetDiskInfo()
+Json::Value SysInfoManager::GetDiskInfo() const
 {
     Json::Value jsInfo;
 
     struct statvfs info;
-    int nError = statvfs(m_sPath.c_str(), &info);
-    if(nError !=0)
+    
+    if(int nError = statvfs(m_sPath.c_str(), &info);nError !=0)
     {
         jsInfo["error_code"] = errno;
         jsInfo["error"] = strerror(errno);
@@ -152,9 +152,9 @@ void SysInfoManager::ExtractTicks(const std::string& sLine)
     std::vector<std::string> vSplit(SplitString(sLine, ' '));
     if(vSplit.size() >= 5)
     {
-        unsigned long nTicks[4];
-        unsigned long nDifference[4];
-        std::map<std::string, cpu>::iterator itCpu = m_mCpu.insert(std::make_pair(vSplit[0], cpu())).first;
+        std::array<unsigned long, 4> nTicks;
+        std::array<unsigned long, 4> nDifference;
+        auto itCpu = m_mCpu.try_emplace(vSplit[0], cpu()).first;
 
         for(int i = 0; i < 4; i++)
         {
@@ -177,7 +177,7 @@ void SysInfoManager::ExtractTicks(const std::string& sLine)
 }
 
 
-Json::Value SysInfoManager::GetApplicationInfo()
+Json::Value SysInfoManager::GetApplicationInfo() const
 {
     Json::Value jsInfo;
 
@@ -191,7 +191,7 @@ Json::Value SysInfoManager::GetApplicationInfo()
     return jsInfo;
 }
 
-Json::Value SysInfoManager::GetTemperature()
+Json::Value SysInfoManager::GetTemperature() const
 {
     Json::Value jsInfo;
     std::ifstream ifs;
@@ -215,6 +215,7 @@ Json::Value SysInfoManager::GetTemperature()
             }
             catch(const std::invalid_argument& e)
             {
+                jsInfo["cpu"] = 0.0;
             }
         }
         if(jsInfo["cpu"].isDouble() == false)
@@ -226,7 +227,7 @@ Json::Value SysInfoManager::GetTemperature()
 }
 
 
-Json::Value SysInfoManager::GetProcessMemUsage()
+Json::Value SysInfoManager::GetProcessMemUsage() const
 {
    Json::Value jsValue;
 
@@ -236,10 +237,28 @@ Json::Value SysInfoManager::GetProcessMemUsage()
 
    // dummy vars for leading entries in stat that we don't care about
    //
-   std::string pid, comm, state, ppid, pgrp, session, tty_nr;
-   std::string tpgid, flags, minflt, cminflt, majflt, cmajflt;
-   std::string utime, stime, cutime, cstime, priority, nice;
-   std::string O, itrealvalue, starttime;
+   std::string pid;
+   std::string comm;
+   std::string state;
+   std::string ppid;
+   std::string pgrp;
+   std::string session;
+   std::string tty_nr;
+   std::string tpgid;
+   std::string flags;
+   std::string minflt;
+   std::string cminflt;
+   std::string majflt;
+   std::string cmajflt;
+   std::string utime;
+   std::string stime;
+   std::string cutime;
+   std::string cstime;
+   std::string priority;
+   std::string nice;
+   std::string O;
+   std::string itrealvalue;
+   std::string starttime;
 
    // the two fields we want
    //
@@ -253,9 +272,9 @@ Json::Value SysInfoManager::GetProcessMemUsage()
 
    stat_stream.close();
 
-   int page_size_kb = sysconf(_SC_PAGE_SIZE) / 1024; // in case x86-64 is configured to use 2MB pages
+   auto page_size_kb = sysconf(_SC_PAGE_SIZE) / 1024; // in case x86-64 is configured to use 2MB pages
 
-   jsValue["vm"] = vsize / 1024.0;
+   jsValue["vm"] = (double)vsize / 1024.0;
    jsValue["rs"] = rss * page_size_kb;
 
    return jsValue;

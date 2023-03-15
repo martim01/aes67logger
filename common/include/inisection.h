@@ -23,10 +23,11 @@
 #include <map>
 #include <string>
 #include <algorithm>
+#include <string_view>
 
 struct ci_less
 {
-    bool operator()(const std::string& s1, const std::string& s2) const
+    bool operator()(std::string_view s1, std::string_view s2) const
     {
         return std::lexicographical_compare(s1.begin(), s1.end(), s2.begin(), s2.end(), [](const unsigned char& c1, const unsigned char& c2)
                                             {
@@ -41,7 +42,7 @@ struct ci_less
 *	@author Matthew Martin
 */
 
-typedef std::map<std::string,std::string, ci_less> mapIniData;
+using mapIniData = std::map<std::string,std::string, ci_less>;
 
 
 class iniSection
@@ -80,27 +81,27 @@ public:
 	*	@param nDefault the value to return of the data does not exist
 	*	@return <i>int</i> the value of the data
 	**/
-	int Get(const std::string& sKey, int nDefault);
+	long Get(const std::string& sKey, long nDefault) const;
 
 	/** @brief Get the double value of data with key sKey
 	*	@param sKey the key name of the data
 	*	@param dDefault the value to return of the data does not exist
 	*	@return <i>double</i> the value of the data
 	**/
-	double Get(const std::string& sKey, double dDefault);
+	double Get(const std::string& sKey, double dDefault) const;
 
-	bool Get(const std::string& sKey, bool bDefault);
+	bool Get(const std::string& sKey, bool bDefault) const;
 
 	/** @brief Get a count of the number of bits of data
 	*	@return <i>size_t</> thee count
 	**/
-	size_t GetNumberOfEntries();
+	size_t GetNumberOfEntries() const;
 
 	/** @brief Sets the key,value pair in m_mData
 	*	@param sKey the key
 	*	@param sValue the value
 	**/
-	void Set(const std::string& sKey, const std::string& sValue);
+	void Set(const std::string& sKey, std::string_view sValue);
 
     /** @brief Returns a const_iterator pointing to the key,data pair of the given key
     *   @param sKey the key to search fro
@@ -117,8 +118,8 @@ public:
 	**/
 	~iniSection();
 
-	protected:
-	    void Write(std::ofstream& of);
+	private:
+	    void Write(std::ofstream& of) const;
 
         mapIniData m_mSectionData;	///< map containing key, value pairs */
         std::string m_sSectionName;					///< the section name */

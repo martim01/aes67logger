@@ -21,7 +21,8 @@ class LaunchManager
         LaunchManager();
         ~LaunchManager();
 
-        void Init(const iniManager& iniConfig, std::function<void(const std::string&, const Json::Value&)> statusCallback, std::function<void (const std::string& , int, bool)> exitCallback);
+        void Init(const iniManager& iniConfig, const std::function<void(const std::string&, const Json::Value&)>& statusCallback, 
+        const std::function<void (const std::string& , int, bool)>& exitCallback);
 
         void LaunchAll();
 
@@ -29,7 +30,7 @@ class LaunchManager
         pml::restgoose::response RemoveLogger(const std::string& sName);
         pml::restgoose::response RestartLogger(const std::string& sName);
 
-        pml::restgoose::response GetLoggerConfig(const std::string& sName);
+        pml::restgoose::response GetLoggerConfig(const std::string& sName) const;
         pml::restgoose::response UpdateLoggerConfig(const std::string& sName, const Json::Value& jsData);
 
         const std::map<std::string, std::shared_ptr<Launcher>>& GetLaunchers() const {return m_mLaunchers;}
@@ -42,14 +43,14 @@ class LaunchManager
         void PipeThread();
 
         void EnumLoggers();
-        std::filesystem::path MakeConfigFullPath(const std::string& sLogger);
-        std::filesystem::path MakeSocketFullPath(const std::string& sLogger);
+        std::filesystem::path MakeConfigFullPath(const std::string& sLogger) const;
+        std::filesystem::path MakeSocketFullPath(const std::string& sLogger) const;
 
         void ExitCallback(const std::string& sLogger, int nExitCode, bool bRemove);
 
-        void LaunchLogger(std::shared_ptr<Launcher> pLauncher);
+        void LaunchLogger(std::shared_ptr<Launcher> pLauncher) const;
 
-        void CreateLoggerConfig(const Json::Value& jsData);
+        void CreateLoggerConfig(const Json::Value& jsData) const;
 
 
         std::filesystem::path m_pathLaunchers;

@@ -5,7 +5,7 @@ AsioSession::AsioSession(asio::local::stream_protocol::socket sock) : m_socket(s
 {
 }
 
-void AsioSession::start()
+void AsioSession::start() const
 {
     //do_read();
 }
@@ -13,8 +13,9 @@ void AsioSession::start()
 void AsioSession::do_read()
 {
     auto self(shared_from_this());
-    m_socket.async_read_some(asio::buffer(data_), [this, self](std::error_code ec, std::size_t length)
+    m_socket.async_read_some(asio::buffer(data_), [self](std::error_code, std::size_t)
     {
+        //Not doing any reading
     });
 }
 
@@ -86,7 +87,7 @@ void AsioServer::write(const std::string& sMessage)
     }
 }
 
-void AsioServer::StartTimer(const std::chrono::milliseconds& duration, std::function<void()> callback)
+void AsioServer::StartTimer(const std::chrono::milliseconds& duration, const std::function<void()>& callback)
 {
     m_timer.cancel();
     m_timer.expires_from_now(duration);

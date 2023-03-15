@@ -6,8 +6,9 @@
 #include <queue>
 #include "json/json.h"
 #include <optional>
+#include <string_view>
 
-extern std::vector<std::string> SplitString(std::string str, char cSplit, size_t nMax=0);
+extern std::vector<std::string> SplitString(std::string_view str, char cSplit, size_t nMax=0);
 
 extern std::string& ltrim(std::string& s);
 extern std::string& rtrim(std::string& s);
@@ -30,7 +31,7 @@ extern std::string Exec(const std::string& sCmd);
 
 extern std::optional<Json::Value> ConvertToJson(const std::string& str);
 
-enum enumJsonType{STRING, NUMBER, OBJECT, ARRAY, BOOLEAN, NULL_};
+enum class enumJsonType{STRING, NUMBER, OBJECT, ARRAY, BOOLEAN, NULL_};
 
 extern bool CheckJsonMembers(const Json::Value& jsData, const std::map<std::string, enumJsonType>& mMembers);
 

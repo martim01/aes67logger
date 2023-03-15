@@ -24,9 +24,7 @@ const std::string NtpStatus::clksrcname[10] = {  /* Refer RFC-1305, Appendix B, 
     "modem"};         /* 9 */
 
 
-NtpStatus::NtpStatus() : m_bRun(true), m_pThread(nullptr)
-{
-}
+NtpStatus::NtpStatus() = default;
 
 NtpStatus::~NtpStatus()
 {
@@ -50,9 +48,9 @@ void NtpStatus::Stop()
     }
 }
 
-const Json::Value& NtpStatus::GetStatus()
+const Json::Value& NtpStatus::GetStatus() const
 {
-    std::lock_guard<std::mutex> lg(m_mutex);
+    std::scoped_lock<std::mutex> lg(m_mutex);
     return m_jsStatus;
 }
 
@@ -93,7 +91,7 @@ bool NtpStatus::Connect()
 
     if ((m_sd = socket (PF_INET, SOCK_DGRAM, 0)) < 0)
     {
-        std::lock_guard<std::mutex> lg(m_mutex);
+        std::scoped_lock<std::mutex> lg(m_mutex);
         m_jsStatus["error"] = "unable to open socket";
         return false;
     }
@@ -101,7 +99,7 @@ bool NtpStatus::Connect()
     if (connect(m_sd, (struct sockaddr *)&sock, sizeof(sock)) < 0)
     {
         close(m_sd);
-        std::lock_guard<std::mutex> lg(m_mutex);
+        std::scoped_lock<std::mutex> lg(m_mutex);
         m_jsStatus["error"] = "unable to connect to socket";
         return false;
     }
@@ -120,7 +118,7 @@ bool NtpStatus::Send()
     if (send(m_sd, &ntpmsg, sizeof(ntpmsg), 0) < 0)
     {
         close(m_sd);
-        std::lock_guard<std::mutex> lg(m_mutex);
+        std::scoped_lock<std::mutex> lg(m_mutex);
         m_jsStatus["error"] =  "unable to send command to NTP port";
         return false;
     }
@@ -139,12 +137,12 @@ bool NtpStatus::Receive()
     tv.tv_usec = 0;
 
 
-    int n = select (m_sd+1, &fds, nullptr, nullptr , &tv);
+    ssize_t n = select (m_sd+1, &fds, nullptr, nullptr , &tv);
 
     if (n == 0)
     {
         close(m_sd);
-        std::lock_guard<std::mutex> lg(m_mutex);
+        std::scoped_lock<std::mutex> lg(m_mutex);
         m_jsStatus["error"] = "timeout from ntp";
         return false;
     }
@@ -152,7 +150,7 @@ bool NtpStatus::Receive()
     if (n == -1)
     {
         close(m_sd);
-        std::lock_guard<std::mutex> lg(m_mutex);
+        std::scoped_lock<std::mutex> lg(m_mutex);
         m_jsStatus["error"] = "error on select";
         return false;
     }
@@ -160,9 +158,9 @@ bool NtpStatus::Receive()
     ntp ntpmsg;
     memset ( &ntpmsg, 0, sizeof(ntpmsg));
 
-    if ((n = recv (m_sd, &ntpmsg, sizeof(ntpmsg), 0)) < 0)
+    if (recv(m_sd, &ntpmsg, sizeof(ntpmsg), 0) < 0)
     {
-        std::lock_guard<std::mutex> lg(m_mutex);
+        std::scoped_lock<std::mutex> lg(m_mutex);
         m_jsStatus["error"] = "Unable to talk to NTP daemon. Is it running?";
         close(m_sd);
         return false;
@@ -174,7 +172,7 @@ bool NtpStatus::Receive()
 
 void NtpStatus::InterpretMessage(const ntp& ntpmsg)
 {
-    std::lock_guard<std::mutex> lg(m_mutex);
+    std::scoped_lock<std::mutex> lg(m_mutex);
     /*----------------------------------------------------------------------*/
     /* Interpret the received NTP control message */
     /* For the reply message to be valid, the first byte should be as sent,
@@ -243,15 +241,14 @@ void NtpStatus::InterpretMessage(const ntp& ntpmsg)
         {
             trim(vKeyValue[0]);
             trim(vKeyValue[1]);
-            long long nValue;
-            double dValue;
-            if(ConvertToLongLong(vKeyValue[1], nValue))
+            
+            if(auto llValue = ConvertToLongLong(vKeyValue[1]); llValue)
             {
-                m_jsStatus[vKeyValue[0]] = Json::Int64(nValue);
+                m_jsStatus[vKeyValue[0]] = Json::Int64(*llValue);
             }
-            else if(ConvertToDouble(vKeyValue[1], dValue))
+            else if(auto dValue = ConvertToDouble(vKeyValue[1]); dValue)
             {
-                m_jsStatus[vKeyValue[0]] = dValue;
+                m_jsStatus[vKeyValue[0]] = *dValue;
             }
             else
             {
@@ -262,38 +259,30 @@ void NtpStatus::InterpretMessage(const ntp& ntpmsg)
 }
 
 
-bool NtpStatus::ConvertToDouble(const std::string& sValue, double& d)
+std::optional<double> NtpStatus::ConvertToDouble(const std::string& sValue) const
 {
     try
     {
-        size_t nPos;
-        d = std::stod(sValue, &nPos);
-        if(nPos == sValue.size())
-        {
-            return true;
-        }
+        auto d = std::stod(sValue);
+        return d;
     }
-    catch(std::invalid_argument& e)
+    catch(std::invalid_argument&)
     {
+        return {};
     }
-    return false;
 }
 
-bool NtpStatus::ConvertToLongLong(const std::string& sValue, long long& n)
+std::optional<long long> NtpStatus::ConvertToLongLong(const std::string& sValue) const
 {
     try
     {
-        size_t nPos;
-        n = std::stoll(sValue, &nPos);
-        if(nPos == sValue.size())
-        {
-            return true;
-        }
+        auto n = std::stoll(sValue);
+        return true;
     }
-    catch(std::invalid_argument& e)
+    catch(std::invalid_argument& )
     {
+        return {};
     }
-    return false;
 }
 
 

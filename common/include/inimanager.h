@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include "inisection.h"
 #include <memory>
 #include <filesystem>
@@ -68,9 +69,9 @@ public:
     *   @param sSection the section of the ini file the key live is
     *   @param sKey the key you want to retrieve the value of
     *   @param nDefault the default value of the key (this is returned if the key is not set)
-    *   @return <i>int</i> the value of the key
+    *   @return <i>long</i> the value of the key
     **/
-	int Get(const std::string& sSection, const std::string& sKey, int nDefault) const;
+	long Get(const std::string& sSection, const std::string& sKey, long nDefault) const;
 
 	/** @brief Get the double value for the specified key in the specified section.
     *   @param sSection the section of the ini file the key live is
@@ -79,6 +80,14 @@ public:
     *   @return <i>double</i> the value of the key
     **/
 	double Get(const std::string& sSection, const std::string& sKey, double dDefault) const;
+
+    /** @brief Get the boolean value for the specified key in the specified section.
+    *   @param sSection the section of the ini file the key live is
+    *   @param sKey the key you want to retrieve the value of
+    *   @param bDefault the default value of the key (this is returned if the key is not set)
+    *   @return <i>bool</i> the value of the key
+    **/
+	bool GetBool(const std::string& sSection, const std::string& sKey, bool bDefault) const;
 
     /** @brief Writes the stored sections and keys into an ini file
     *   @param sFilename the path and filename of the ini file to write to
@@ -132,7 +141,11 @@ public:
 	*   @return <i>bool</i> true if section is found and deleted
 	**/
 	bool DeleteSection(const std::string& sSectionName);
-protected:
+private:
+    bool ReadStream(std::stringstream& isstr);
+    mSections::iterator MakeSection(const std::string& sLine);
+    void StoreData(std::shared_ptr<iniSection> pSection, const std::string& sLine) const;
+
     mSections m_mSections;
 
 	std::ifstream m_if;

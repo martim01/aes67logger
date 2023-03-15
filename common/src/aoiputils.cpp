@@ -7,7 +7,7 @@
 #include <iomanip>
 #include <string.h>
 #include <syslog.h>
-
+#include "json/json.h"
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
@@ -18,10 +18,10 @@
 #include <unistd.h>
 
 
-std::vector<std::string> SplitString(std::string str, char cSplit, size_t nMax)
+std::vector<std::string> SplitString(std::string_view str, char cSplit, size_t nMax)
 {
     std::vector<std::string> vSplit;
-    std::istringstream f(str);
+    std::istringstream f(str.data());
     std::string s;
 
     while (getline(f, s, cSplit))
@@ -58,7 +58,7 @@ std::string GetCurrentTimeAsString(bool bIncludeNano)
 std::string GetCurrentTimeAsIsoString()
 {
     std::chrono::time_point<std::chrono::system_clock> tp(std::chrono::system_clock::now());
-    return ConvertTimeToIsoString(tp);
+    ConvertTimeToIsoString(std::chrono::system_clock::to_time_t(tp));
 }
 
 std::string ConvertTimeToString(std::chrono::time_point<std::chrono::system_clock> tp, bool bIncludeNano)
@@ -109,7 +109,7 @@ std::string Exec(const std::string& sCmd)
 {
     std::array<char, 128> buffer;
     std::string sResult;
-    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(sCmd.c_str(), "r"), pclose);
+    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(sCmd.c_str(), "r"), &pclose);
     if(!pipe)
     {
         return "";

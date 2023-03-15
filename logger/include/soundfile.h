@@ -1,16 +1,12 @@
 #pragma once
 #include <string>
 #include <memory>
+#include "sndfile.hh"
 
-namespace pml
+namespace pml::aoip
 {
-    namespace aoip
-    {
-        class timedbuffer;
-    }
-}
-
-class SndfileHandle;
+	class timedbuffer;
+};
 
 class SoundFile
 {
@@ -30,6 +26,6 @@ public:
 	const std::string& GetFilename() const { return m_sFilename;}
 private:
     std::string m_sFilename;
-    SndfileHandle* m_pHandle = nullptr;
-   unsigned int m_nWritten = 0;
+    std::unique_ptr<SndfileHandle> m_pHandle = nullptr;
+    unsigned int m_nWritten = 0;
 };
