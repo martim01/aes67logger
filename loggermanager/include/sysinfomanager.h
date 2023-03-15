@@ -4,12 +4,13 @@
 #include "json/json.h"
 #include <chrono>
 #include "ntpstatus.h"
+#include <string_view>
 
 class SysInfoManager
 {
     public:
         SysInfoManager();
-        void SetDiskPath(const std::string& sPath)
+        void SetDiskPath(std::string_view sPath)
         {
             m_sPath = sPath;
         }
@@ -21,12 +22,12 @@ class SysInfoManager
         std::string m_sPath;
 
 
-        Json::Value GetSysInfo();
-        Json::Value GetDiskInfo();
+        Json::Value GetSysInfo() const;
+        Json::Value GetDiskInfo() const;
         Json::Value GetCpuInfo();
-        Json::Value GetApplicationInfo();
-        Json::Value GetTemperature();
-        Json::Value GetProcessMemUsage();
+        Json::Value GetApplicationInfo() const;
+        Json::Value GetTemperature() const;
+        Json::Value GetProcessMemUsage() const;
 
         void ExtractTicks(const std::string& sLine);
 

@@ -9,10 +9,7 @@ JsonWriter&  JsonWriter::Get()
     return json;
 }
 
-JsonWriter::~JsonWriter()
-{
-
-}
+JsonWriter::~JsonWriter()=default;
 
 
 void JsonWriter::writeToStdOut(const Json::Value& jsValue)

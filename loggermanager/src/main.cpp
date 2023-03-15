@@ -41,31 +41,32 @@ static void sig(int signo)
 
 void init_signals()
 {
-    struct sigaction new_action, old_action;
+    struct sigaction new_action;
+    struct sigaction old_action;
     new_action.sa_handler = sig;
     sigemptyset(&new_action.sa_mask);
     new_action.sa_flags = 0;
 
-    sigaction(SIGTERM, NULL, &old_action);
+    sigaction(SIGTERM, nullptr, &old_action);
     if(old_action.sa_handler != SIG_IGN)
     {
-        sigaction(SIGTERM, &new_action, NULL);
+        sigaction(SIGTERM, &new_action, nullptr);
     }
 
-    sigaction(SIGINT, NULL, &old_action);
+    sigaction(SIGINT, nullptr, &old_action);
     if(old_action.sa_handler != SIG_IGN)
     {
-        sigaction(SIGINT, &new_action, NULL);
+        sigaction(SIGINT, &new_action, nullptr);
     }
-    sigaction(SIGSEGV, NULL, &old_action);
+    sigaction(SIGSEGV, nullptr, &old_action);
     if(old_action.sa_handler != SIG_IGN)
     {
-        sigaction(SIGSEGV, &new_action, NULL);
+        sigaction(SIGSEGV, &new_action, nullptr);
     }
-    sigaction(SIGQUIT, NULL, &old_action);
+    sigaction(SIGQUIT, nullptr, &old_action);
     if(old_action.sa_handler != SIG_IGN)
     {
-        sigaction(SIGQUIT, &new_action, NULL);
+        sigaction(SIGQUIT, &new_action, nullptr);
     }
 
 }

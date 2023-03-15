@@ -14,23 +14,20 @@
 
 using namespace std::placeholders;
 
-Launcher::Launcher(asio::io_context& context, const std::filesystem::path& pathConfig, const std::filesystem::path& pathSocket, std::function<void(const std::string&, const Json::Value&)> statusCallback, std::function<void(const std::string&, int, bool)> exitCallback) :
-    m_pid(0),
+Launcher::Launcher(asio::io_context& context, const std::filesystem::path& pathConfig, const std::filesystem::path& pathSocket,
+const std::function<void(const std::string&, const Json::Value&)>& statusCallback, 
+const std::function<void(const std::string&, int, bool)>& exitCallback) :
     m_context(context),
     m_timer(context),
     m_pathConfig(pathConfig),
     m_pathSocket(pathSocket),
-    m_nExitCode(0),
-    m_sLoggerApp("/usr/local/bin/logger"),
     m_statusCallback(statusCallback),
     m_exitCallback(exitCallback)
 {
     m_jsStatus["id"] = m_pathConfig.stem().string();
 }
 
-Launcher::~Launcher()
-{
-}
+Launcher::~Launcher() = default;
 
 
 bool Launcher::IsRunning() const
@@ -94,7 +91,8 @@ void Launcher::Connect(const std::chrono::milliseconds& wait)
             if(!e && m_pSocket)
             {
                 pmlLog() << "Try to connect to " << m_pathConfig.stem().string();
-                m_pSocket->async_connect(asio::local::stream_protocol::endpoint(m_pathSocket.string()), std::bind(&Launcher::HandleConnect, this, _1));
+                m_pSocket->async_connect(asio::local::stream_protocol::endpoint(m_pathSocket.string()), 
+                std::bind(&Launcher::HandleConnect, this, _1));
             }
             else if(e != asio::error::operation_aborted)
             {
@@ -326,7 +324,7 @@ bool Launcher::CheckForOrphanedLogger()
             int nPid;
             try
             {
-                nPid = std::stoul(entry.path().extension().string().substr(1));
+                nPid = std::stoi(entry.path().extension().string().substr(1));
             }
             catch(...)
             {

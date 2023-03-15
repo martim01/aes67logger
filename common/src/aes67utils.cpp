@@ -7,7 +7,7 @@
 #include <iomanip>
 #include <string.h>
 #include <syslog.h>
-
+#include "json/json.h"
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
@@ -18,10 +18,10 @@
 #include <unistd.h>
 
 
-std::vector<std::string> SplitString(std::string str, char cSplit, size_t nMax)
+std::vector<std::string> SplitString(std::string_view str, char cSplit, size_t nMax)
 {
     std::vector<std::string> vSplit;
-    std::istringstream f(str);
+    std::istringstream f(str.data());
     std::string s;
 
     while (getline(f, s, cSplit))
@@ -51,8 +51,7 @@ bool CmpNoCase(const std::string& str1, const std::string& str2)
 
 std::string GetCurrentTimeAsIsoString()
 {
-    std::chrono::time_point<std::chrono::system_clock> tp(std::chrono::system_clock::now());
-    return ConvertTimeToIsoString(tp);
+    return ConvertTimeToIsoString(std::chrono::system_clock::now());
 }
 
 std::string ConvertTimeToIsoString(const std::chrono::time_point<std::chrono::system_clock>& tp)
@@ -88,7 +87,7 @@ std::string Exec(const std::string& sCmd)
 {
     std::array<char, 128> buffer;
     std::string sResult;
-    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(sCmd.c_str(), "r"), pclose);
+    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(sCmd.c_str(), "r"), &pclose);
     if(!pipe)
     {
         return "";

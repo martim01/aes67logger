@@ -46,7 +46,7 @@ bool LoggerApp::Init(const std::filesystem::path& config)
     m_pServer->Run();
 
 
-    m_heartbeatGap = std::chrono::milliseconds(m_config.Get(jsonConsts::heartbeat, jsonConsts::gap, 10000));
+    m_heartbeatGap = std::chrono::milliseconds(m_config.Get(jsonConsts::heartbeat, jsonConsts::gap, 10000l));
 
     return true;
 
@@ -88,7 +88,7 @@ bool LoggerApp::LoadConfig(const std::filesystem::path& config)
 
         m_pathSockets = std::filesystem::path(m_config.Get(jsonConsts::path, jsonConsts::sockets, "/var/loggers/sockets"));
 
-        m_bUseTransmissionTime = m_config.Get(jsonConsts::aoip, jsonConsts::useTransmission, false);
+        m_bUseTransmissionTime = m_config.GetBool(jsonConsts::aoip, jsonConsts::useTransmission, false);
 
         try
         {
@@ -112,13 +112,13 @@ bool LoggerApp::LoadConfig(const std::filesystem::path& config)
 
 void LoggerApp::CreateLogging()
 {
-    auto nConsole = m_config.Get(jsonConsts::logs, jsonConsts::console, -1);
-    auto nFile = m_config.Get(jsonConsts::logs, jsonConsts::file, 2);
+    auto nConsole = m_config.Get(jsonConsts::logs, jsonConsts::console, -1l);
+    auto nFile = m_config.Get(jsonConsts::logs, jsonConsts::file, 2l);
     if(nConsole > -1)
     {
         if(m_nLogOutputConsole == -1)
         {
-            m_nLogOutputConsole = pml::LogStream::AddOutput(std::make_unique<pml::LogOutput>());
+            m_nLogOutputConsole = (int)pml::LogStream::AddOutput(std::make_unique<pml::LogOutput>());
         }
         pml::LogStream::SetOutputLevel(m_nLogOutputConsole, (pml::enumLevel)nConsole);
     }
@@ -133,7 +133,7 @@ void LoggerApp::CreateLogging()
         {
             std::filesystem::path pathLog = m_config.Get(jsonConsts::path,  jsonConsts::logs, "/var/loggers/log");
             pathLog.append(m_sName);
-            m_nLogOutputFile = pml::LogStream::AddOutput(std::make_unique<pml::LogToFile>(pathLog));
+            m_nLogOutputFile = (int)pml::LogStream::AddOutput(std::make_unique<pml::LogToFile>(pathLog));
         }
         pml::LogStream::SetOutputLevel(m_nLogOutputFile, (pml::enumLevel)nFile);
     }
@@ -146,7 +146,7 @@ void LoggerApp::CreateLogging()
 
 void LoggerApp::StartRecording()
 {
-    m_pClient = std::make_unique<pml::aoip::AoipClient>(m_config.Get(jsonConsts::aoip, jsonConsts::interface, "eth0"), m_config.Get(jsonConsts::general, jsonConsts::name, "test"), m_config.Get(jsonConsts::aoip, jsonConsts::buffer, 4096));
+    m_pClient = std::make_unique<pml::aoip::AoipClient>(m_config.Get(jsonConsts::aoip, jsonConsts::interface, "eth0"), m_config.Get(jsonConsts::general, jsonConsts::name, "test"), m_config.Get(jsonConsts::aoip, jsonConsts::buffer, 4096l));
 
     m_pClient->AddAudioCallback(std::bind(&LoggerApp::WriteToSoundFile, this, _1, _2));
     m_pClient->AddQosCallback(std::bind(&LoggerApp::QoSCallback, this, _1, _2));
@@ -181,7 +181,7 @@ void LoggerApp::StartRecording()
 }
 
 
-void LoggerApp::QoSCallback(std::shared_ptr<pml::aoip::AoIPSource> pSource, std::shared_ptr<pml::aoip::qosData> pData)
+void LoggerApp::QoSCallback(std::shared_ptr<pml::aoip::AoIPSource>, std::shared_ptr<pml::aoip::qosData> pData)
 {
     //@todo make sure we are getting audio packages and no data loss
     pmlLog() << "QoS"
@@ -212,14 +212,13 @@ void LoggerApp::OutputQoSJson(std::shared_ptr<pml::aoip::qosData> pData)
 }
 
 
-void LoggerApp::SessionCallback(std::shared_ptr<pml::aoip::AoIPSource> pSource,  const pml::aoip::session& theSession)
+void LoggerApp::SessionCallback(std::shared_ptr<pml::aoip::AoIPSource>,  const pml::aoip::session& theSession)
 {
     m_pServer->StartTimer(std::chrono::milliseconds(500), std::bind(&LoggerApp::StreamFail, this));
 
     m_session = theSession;
-
     auto itSubsession = theSession.GetCurrentSubsession();
-    if(itSubsession != theSession.lstSubsession.end())
+    if(itSubsession !=  theSession.lstSubsession.end())
     {
         m_subsession = (*itSubsession);
 
@@ -293,7 +292,7 @@ Json::Value LoggerApp::GetSubsessionJson(const pml::aoip::subsession& theSubSess
 }
 
 
-void LoggerApp::StreamCallback(std::shared_ptr<pml::aoip::AoIPSource> pSource, bool bStreaming)
+void LoggerApp::StreamCallback(std::shared_ptr<pml::aoip::AoIPSource>, bool bStreaming)
 {
     pmlLog( bStreaming ? pml::LOG_INFO : pml::LOG_WARN) << (bStreaming ? "Stream started" : "Stream stopped");
     OutputStreamJson(bStreaming);
@@ -339,7 +338,7 @@ void LoggerApp::OutputHeartbeatJson()
     JsonWriter::Get().writeToSocket(m_jsStatus, m_pServer);
 }
 
-void LoggerApp::WriteToSoundFile(std::shared_ptr<pml::aoip::AoIPSource> pSource, std::shared_ptr<pml::aoip::timedbuffer> pBuffer)
+void LoggerApp::WriteToSoundFile(std::shared_ptr<pml::aoip::AoIPSource>, std::shared_ptr<pml::aoip::timedbuffer> pBuffer)
 {
     if(m_subsession.nChannels > 0)
     {
@@ -365,7 +364,7 @@ void LoggerApp::WriteToSoundFile(std::shared_ptr<pml::aoip::AoIPSource> pSource,
         if(m_sf.GetFilename() != filePath)
         {
             m_sf.Close();
-            m_sf.OpenToWrite(filePath.string(), m_subsession.nChannels, m_subsession.nSampleRate, 24);   //bit depth =0 implies float
+            m_sf.OpenToWrite(filePath.string(), (unsigned short)m_subsession.nChannels, m_subsession.nSampleRate, 24);   //bit depth =0 implies float
 
             OutputFileJson();
         }

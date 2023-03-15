@@ -1,12 +1,8 @@
 #include "soundfile.h"
 #include "timedbuffer.h"
-#include "sndfile.hh"
 #include "log.h"
 
-SoundFile::SoundFile()
-{
-
-}
+SoundFile::SoundFile()=default;
 
 SoundFile::~SoundFile()
 {
@@ -19,7 +15,6 @@ bool SoundFile::Close()
     {
         pmlLog() << "Closed sound file '" << m_sFilename << "'";
         m_sFilename.clear();
-        delete m_pHandle;
         m_pHandle = nullptr;
     }
     return true;
@@ -48,7 +43,7 @@ bool SoundFile::OpenToWrite(const std::string& sFileName, unsigned short nChanne
             nFormat |= SF_FORMAT_FLOAT;
     }
 
-    m_pHandle = new SndfileHandle(sFileName.c_str(), SFM_WRITE, nFormat, nChannels, nSampleRate);
+    m_pHandle = std::make_unique<SndfileHandle>(sFileName.c_str(), SFM_WRITE, nFormat, nChannels, nSampleRate);
     m_nWritten = 0;
     if(m_pHandle == nullptr)
     {

@@ -47,7 +47,7 @@ std::shared_ptr<LoggerObserver> LoggerManager::CreateLoggerObserver(const std::f
     iniManager ini;
     if(ini.Read(path))
     {
-        return m_mLoggers.insert({path.stem().string(), std::make_shared<LoggerObserver>(m_server, path.stem().string(), ini, m_observer)}).first->second;
+        return m_mLoggers.try_emplace(path.stem().string(), std::make_shared<LoggerObserver>(m_server, path.stem().string(), ini, m_observer)).first->second;
     }
     else
     {
@@ -56,7 +56,7 @@ std::shared_ptr<LoggerObserver> LoggerManager::CreateLoggerObserver(const std::f
     }
 }
 
-void LoggerManager::OnLoggerCreated(int nWd, const std::filesystem::path& path, uint32_t mask, bool bDirectory)
+void LoggerManager::OnLoggerCreated(int, const std::filesystem::path& path, uint32_t, bool)
 {
     auto pLogger = CreateLoggerObserver(path);
     if(pLogger)
@@ -65,7 +65,7 @@ void LoggerManager::OnLoggerCreated(int nWd, const std::filesystem::path& path, 
     }
 }
 
-void LoggerManager::OnLoggerDeleted(int nWd, const std::filesystem::path& path, uint32_t mask, bool bDirectory)
+void LoggerManager::OnLoggerDeleted(int, const std::filesystem::path& path, uint32_t, bool)
 {
     auto itLogger = m_mLoggers.find(path.stem().string());
     if(itLogger != m_mLoggers.end())

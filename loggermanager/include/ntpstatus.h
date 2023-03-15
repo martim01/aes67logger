@@ -3,6 +3,7 @@
 #include <mutex>
 #include <atomic>
 #include <thread>
+#include <optional>
 
 class NtpStatus
 {
@@ -11,7 +12,7 @@ class NtpStatus
         ~NtpStatus();
         void Start();
         void Stop();
-        const Json::Value& GetStatus();
+        const Json::Value& GetStatus() const;
 
 
     private:
@@ -21,15 +22,15 @@ class NtpStatus
         bool Send();
         bool Receive();
 
-        bool ConvertToDouble(const std::string& sValue, double& d);
-        bool ConvertToLongLong(const std::string& sValue, long long& n);
+        std::optional<double> ConvertToDouble(const std::string& sValue) const;
+        std::optional<long long> ConvertToLongLong(const std::string& sValue) const;
 
-        std::mutex m_mutex;
-        std::atomic<bool> m_bRun;
+        mutable std::mutex m_mutex;
+        std::atomic<bool> m_bRun  = true;
         Json::Value m_jsStatus;
-        std::unique_ptr<std::thread> m_pThread;
+        std::unique_ptr<std::thread> m_pThread = nullptr;
 
-        int m_sd;
+        int m_sd = -1;
 
         struct  ntp
         {               /* RFC-1305 NTP control message format */

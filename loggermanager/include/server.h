@@ -18,40 +18,40 @@ class Server
 
 
 
-        pml::restgoose::response GetRoot(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
-        pml::restgoose::response GetApi(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
-        pml::restgoose::response GetSources(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
+        pml::restgoose::response GetRoot(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser) const;
+        pml::restgoose::response GetApi(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser) const;
+        pml::restgoose::response GetSources(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser) const;
 
-        pml::restgoose::response GetLoggersStatus(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
+        pml::restgoose::response GetLoggersStatus(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser) const;
 
-        pml::restgoose::response GetLoggers(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
+        pml::restgoose::response GetLoggers(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser) const;
         pml::restgoose::response PostLogger(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
 
-        pml::restgoose::response GetLogger(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
-        pml::restgoose::response GetLoggerConfig(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
-        pml::restgoose::response GetLoggerStatus(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
+        pml::restgoose::response GetLogger(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser) const;
+        pml::restgoose::response GetLoggerConfig(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser) const;
+        pml::restgoose::response GetLoggerStatus(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser) const;
         pml::restgoose::response PatchLoggerConfig(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
         pml::restgoose::response PutLoggerPower(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
         pml::restgoose::response DeleteLogger(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
 
 
-        pml::restgoose::response GetConfig(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
+        pml::restgoose::response GetConfig(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser) const;
         pml::restgoose::response PatchConfig(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
 
         pml::restgoose::response GetInfo(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
 
-        pml::restgoose::response GetLogs(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
+        pml::restgoose::response GetLogs(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser) const;
 
-        pml::restgoose::response GetPower(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
+        pml::restgoose::response GetPower(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser) const;
         pml::restgoose::response PutPower(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
 
-        pml::restgoose::response GetUpdate(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
-        pml::restgoose::response PutUpdate(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
+        pml::restgoose::response GetUpdate(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser) const;
+        pml::restgoose::response PutUpdate(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser) const;
 
         pml::restgoose::response PostLogin(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
         pml::restgoose::response DeleteLogin(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
 
-        pml::restgoose::response RedirectToLogin();
+        pml::restgoose::response RedirectToLogin() const;
 
 
 
@@ -81,16 +81,16 @@ class Server
         void DeleteEndpoints();
         pml::restgoose::response Reboot(int nCommand);
 
-        void PatchServerConfig(const Json::Value& jsData);
+        void PatchServerConfig(const Json::Value& jsData) const;
         bool AuthenticateToken(const std::string& sToken);
         bool DoAuthenticateToken(const std::string& sToken, const ipAddress& peer);
 
-        time_t GetDateTime(time_t date, const std::vector<std::string>& vLine);
+        time_t GetDateTime(time_t date, const std::vector<std::string>& vLine) const;
 
-        pml::restgoose::response GetLog(const std::string& sLogger, const std::string& sStart, const std::string& sEnd);
+        pml::restgoose::response GetLog(const std::string& sLogger, const std::string& sStart, const std::string& sEnd) const;
 
-        Json::Value GetDiscoveredRtspSources();
-        Json::Value GetDiscoveredSdpSources();
+        Json::Value GetDiscoveredRtspSources() const;
+        Json::Value GetDiscoveredSdpSources() const;
 
          /**
         x-epi                               GET
@@ -139,11 +139,12 @@ class Server
 
         std::mutex m_mutex;
 
-        unsigned int m_nTimeSinceLastCall;
+        unsigned int m_nTimeSinceLastCall = 0;
+        
 
-        int m_nLogToConsole;
-        int m_nLogToFile;
-        bool m_bLoggedThisHour;
+        ssize_t m_nLogToConsole = -1;
+        ssize_t m_nLogToFile     = -1;
+        bool m_bLoggedThisHour = false;
 
         std::map<ipAddress, std::shared_ptr<SessionCookie>> m_mTokens;
 };

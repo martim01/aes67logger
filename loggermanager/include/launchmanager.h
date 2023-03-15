@@ -21,7 +21,8 @@ class LaunchManager
         LaunchManager();
         ~LaunchManager();
 
-        void Init(const iniManager& iniConfig, std::function<void(const std::string&, const Json::Value&)> statusCallback, std::function<void (const std::string& , int, bool)> exitCallback);
+        void Init(const iniManager& iniConfig, const std::function<void(const std::string&, const Json::Value&)>& statusCallback, 
+        const std::function<void (const std::string& , int, bool)>& exitCallback);
 
         void LaunchAll();
 
@@ -29,7 +30,7 @@ class LaunchManager
         pml::restgoose::response RemoveLogger(const std::string& sName);
         pml::restgoose::response RestartLogger(const std::string& sName);
 
-        pml::restgoose::response GetLoggerConfig(const std::string& sName);
+        pml::restgoose::response GetLoggerConfig(const std::string& sName) const;
         pml::restgoose::response UpdateLoggerConfig(const std::string& sName, const Json::Value& jsData);
 
         const std::map<std::string, std::shared_ptr<Launcher>>& GetLaunchers() const {return m_mLaunchers;}
@@ -42,14 +43,14 @@ class LaunchManager
         void PipeThread();
 
         void EnumLoggers();
-        std::filesystem::path MakeConfigFullPath(const std::string& sLogger);
-        std::filesystem::path MakeSocketFullPath(const std::string& sLogger);
+        std::filesystem::path MakeConfigFullPath(const std::string& sLogger) const;
+        std::filesystem::path MakeSocketFullPath(const std::string& sLogger) const;
 
         void ExitCallback(const std::string& sLogger, int nExitCode, bool bRemove);
 
-        void LaunchLogger(std::shared_ptr<Launcher> pLauncher);
+        void LaunchLogger(std::shared_ptr<Launcher> pLauncher) const;
 
-        void CreateLoggerConfig(const Json::Value& jsData);
+        void CreateLoggerConfig(const Json::Value& jsData) const;
 
         
         std::filesystem::path m_pathLaunchers;
@@ -60,15 +61,15 @@ class LaunchManager
         std::map<std::string, std::shared_ptr<Launcher>> m_mLaunchers;
 
 
-        int m_nLogConsoleLevel = -1;
-        int m_nLogFileLevel = 2;
+        ssize_t m_nLogConsoleLevel = -1;
+        ssize_t m_nLogFileLevel = 2;
         std::string m_sLogPath = "/var/log/loggers/";
         
-        int m_nHeartbeatGap = 10000;
-        int m_nAoipBuffer = 4096;
+        long m_nHeartbeatGap = 10000;
+        long m_nAoipBuffer = 4096;
         bool m_bUseTransmissionTime = false;
-        int m_nLoggerConsoleLevel = -1;
-        int m_nLoggerFileLevel = 2;
+        long m_nLoggerConsoleLevel = -1;
+        long m_nLoggerFileLevel = 2;
 
         std::string m_sLoggerInterface = "eth0";
 

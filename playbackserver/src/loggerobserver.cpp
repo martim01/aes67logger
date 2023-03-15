@@ -28,12 +28,12 @@ m_sName(sName)
                     auto path = pathAudio;
                     path /= key;
                     path /= m_sName;
-                    m_mFiles.insert({key, EnumFiles(path, "."+key)});
+                    m_mFiles.try_emplace(key, EnumFiles(path, "."+key));
 
                     auto nWatch = observer.AddWatch(path, pml::filewatch::Observer::CREATED | pml::filewatch::Observer::DELETED, false);
                     if(nWatch != 0)
                     {
-                        m_mWatches.insert({nWatch, key});
+                        m_mWatches.try_emplace(nWatch, key);
                         observer.AddWatchHandler(nWatch, std::bind(&LoggerObserver::OnFileCreated, this, _1, _2, _3, _4), pml::filewatch::Observer::enumWatch::CREATED);
                         observer.AddWatchHandler(nWatch, std::bind(&LoggerObserver::OnFileDeleted, this, _1, _2, _3, _4), pml::filewatch::Observer::enumWatch::DELETED);
                     }
@@ -53,7 +53,7 @@ m_sName(sName)
 
 
 
-std::set<std::filesystem::path> LoggerObserver::EnumFiles(const std::filesystem::path& path, const std::string& sExt)
+std::set<std::filesystem::path> LoggerObserver::EnumFiles(const std::filesystem::path& path, const std::string& sExt) const
 {
     pmlLog(pml::LOG_INFO) << m_sName << " - enum " << path;
 
@@ -77,7 +77,7 @@ std::set<std::filesystem::path> LoggerObserver::EnumFiles(const std::filesystem:
 }
 
 
-void LoggerObserver::OnFileCreated(int nWd, const std::filesystem::path& path, uint32_t mask, bool bDirectory)
+void LoggerObserver::OnFileCreated(int nWd, const std::filesystem::path& path, uint32_t, bool)
 {
     auto itType = m_mWatches.find(nWd);
     if(itType != m_mWatches.end())
@@ -101,7 +101,7 @@ void LoggerObserver::OnFileCreated(int nWd, const std::filesystem::path& path, u
     }
 }
 
-void LoggerObserver::OnFileDeleted(int nWd, const std::filesystem::path& path, uint32_t mask, bool bDirectory)
+void LoggerObserver::OnFileDeleted(int nWd, const std::filesystem::path& path, uint32_t, bool)
 {
     auto itType = m_mWatches.find(nWd);
     if(itType != m_mWatches.end())
@@ -126,10 +126,9 @@ void LoggerObserver::OnFileDeleted(int nWd, const std::filesystem::path& path, u
 }
 
 
-pml::restgoose::response LoggerObserver::CreateDownloadFile(const std::string& sType, const query& theQuery)
+pml::restgoose::response LoggerObserver::CreateDownloadFile(const std::string& sType, const query& theQuery) const
 {
-    auto itFiles = GetEncodedFiles().find(sType);
-    if(itFiles != GetEncodedFiles().end())
+    if(auto itFiles = GetEncodedFiles().find(sType); itFiles != GetEncodedFiles().end())
     {
         auto itStart = theQuery.find(queryKey("start_time"));
         auto itEnd = theQuery.find(queryKey("end_time"));
@@ -159,14 +158,12 @@ pml::restgoose::response LoggerObserver::CreateDownloadFile(const std::string& s
             }
 
             //now use ffmpeg to create a single file from these files....
-
+            return pml::restgoose::response(500, "Files found but not implemented yet!");
         }
         catch(const std::exception& e)
         {
             return pml::restgoose::response(404, "Invalid start or end time");
         }
-        
-
     }
     else
     {

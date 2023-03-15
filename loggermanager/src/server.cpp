@@ -94,45 +94,39 @@ static pml::restgoose::response ConvertPostDataToJson(const postData& vData)
 }
 
 
-Server::Server() :
-   m_nTimeSinceLastCall(0),
-   m_nLogToConsole(-1),
-   m_nLogToFile(-1),
-   m_bLoggedThisHour(false)
-{
-}
+Server::Server() =default;
 
 
 
 void Server::InitLogging()
 {
-    if(m_config.Get("logging", "console", 0) > -1 )
+    if(m_config.Get("logging", "console", 0L) > -1 )
     {
         if(m_nLogToConsole == -1)
         {
-            m_nLogToConsole = pmlLog().AddOutput(std::unique_ptr<pml::LogOutput>(new pml::LogOutput()));
+            m_nLogToConsole = pml::LogStream::AddOutput(std::make_unique<pml::LogOutput>());
         }
-        pmlLog().SetOutputLevel(m_nLogToConsole, pml::enumLevel(m_config.Get("logging", "console", pml::LOG_TRACE)));
+        pml::LogStream::SetOutputLevel(m_nLogToConsole, pml::enumLevel(m_config.Get("logging", "console", (long)pml::LOG_TRACE)));
     }
     else if(m_nLogToConsole != -1)
     {
-        pmlLog().RemoveOutput(m_nLogToConsole);
+        pml::LogStream::RemoveOutput(m_nLogToConsole);
         m_nLogToConsole = -1;
     }
 
-    if(m_config.Get("logging", "file", pml::LOG_INFO) > -1)
+    if(m_config.Get("logging", "file", (long)pml::LOG_INFO) > -1)
     {
         if(m_nLogToFile == -1)
         {
             std::filesystem::path pathLog = m_config.Get(jsonConsts::path,jsonConsts::log,".");
             pathLog /= "loggermanager";
-            m_nLogToFile = pmlLog().AddOutput(std::make_unique<pml::LogToFile>(pathLog));
+            m_nLogToFile = pml::LogStream::AddOutput(std::make_unique<pml::LogToFile>(pathLog));
         }
-        pmlLog().SetOutputLevel(m_nLogToFile, pml::enumLevel(m_config.Get("logging", "file", pml::LOG_INFO)));
+        pml::LogStream::SetOutputLevel(m_nLogToFile, pml::enumLevel(m_config.Get("logging", "file", (long)pml::LOG_INFO)));
     }
     else if(m_nLogToFile != -1)
     {
-        pmlLog().RemoveOutput(m_nLogToFile);
+        pml::LogStream::RemoveOutput(m_nLogToFile);
         m_nLogToFile = -1;
     }
 
@@ -142,7 +136,7 @@ int Server::Run(const std::string& sConfigFile)
 {
     if(m_config.Read(sConfigFile) == false)
     {
-        pmlLog().AddOutput(std::unique_ptr<pml::LogOutput>(new pml::LogOutput()));
+        pml::LogStream::AddOutput(std::make_unique<pml::LogOutput>());
         pmlLog(pml::LOG_CRITICAL) << "Could not open '" << sConfigFile << "' exiting.";
         return -1;
     }
@@ -158,7 +152,8 @@ int Server::Run(const std::string& sConfigFile)
 
     auto addr = ipAddress(GetIpAddress(m_config.Get(jsonConsts::api, jsonConsts::interface, "eth0")));
 
-    if(m_server.Init(fileLocation(m_config.Get(jsonConsts::api, "sslCert", "")), fileLocation(m_config.Get(jsonConsts::api, "sslKey", "")), addr, m_config.Get(jsonConsts::api, "port", 8080), EP_API, true,true))
+    if(m_server.Init(fileLocation(m_config.Get(jsonConsts::api, "sslCert", "")), 
+    fileLocation(m_config.Get(jsonConsts::api, "sslKey", "")), addr, m_config.Get(jsonConsts::api, "port", 8080l), EP_API, true,true))
     {
 
         m_server.SetAuthorizationTypeBearer(std::bind(&Server::AuthenticateToken, this, _1), std::bind(&Server::RedirectToLogin, this), true);
@@ -293,7 +288,7 @@ void Server::DeleteEndpoints()
     }
 }
 
-pml::restgoose::response Server::GetRoot(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
+pml::restgoose::response Server::GetRoot(const query&, const postData&, const endpoint&, const userName&) const
 {
     pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "GetRoot" ;
     pml::restgoose::response theResponse;
@@ -302,7 +297,7 @@ pml::restgoose::response Server::GetRoot(const query& theQuery, const postData& 
     return theResponse;
 }
 
-pml::restgoose::response Server::GetApi(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
+pml::restgoose::response Server::GetApi(const query&, const postData&, const endpoint&, const userName&) const
 {
     pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "GetApi" ;
     pml::restgoose::response theResponse;
@@ -317,7 +312,7 @@ pml::restgoose::response Server::GetApi(const query& theQuery, const postData& v
     return theResponse;
 }
 
-pml::restgoose::response Server::GetSources(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
+pml::restgoose::response Server::GetSources(const query&, const postData&, const endpoint&, const userName&) const
 {
     pml::restgoose::response theResponse;
     theResponse.jsonData[jsonConsts::rtsp] = GetDiscoveredRtspSources();
@@ -325,12 +320,11 @@ pml::restgoose::response Server::GetSources(const query& theQuery, const postDat
     return theResponse;
 }
 
-Json::Value Server::GetDiscoveredRtspSources()
+Json::Value Server::GetDiscoveredRtspSources() const
 {
     Json::Value jsArray(Json::arrayValue);
 
-    iniManager inirtsp;
-    if(inirtsp.Read(m_discovery.Get("rtsp", "file", "./rtsp.ini")))
+    if(iniManager inirtsp; inirtsp.Read(m_discovery.Get("rtsp", "file", "./rtsp.ini")))
     {
         auto pSection = inirtsp.GetSection("rtsp");
         if(pSection)
@@ -352,7 +346,7 @@ Json::Value Server::GetDiscoveredRtspSources()
     return jsArray;
 }
 
-Json::Value Server::GetDiscoveredSdpSources()
+Json::Value Server::GetDiscoveredSdpSources() const
 {
     Json::Value jsArray(Json::arrayValue);
 
@@ -363,14 +357,14 @@ Json::Value Server::GetDiscoveredSdpSources()
     return jsArray;
 }
 
-pml::restgoose::response Server::GetLoggersStatus(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
+pml::restgoose::response Server::GetLoggersStatus(const query&, const postData&, const endpoint&, const userName&) const
 {
     pml::restgoose::response theResponse(200);
     theResponse.jsonData = m_launcher.GetStatusSummary();
     return theResponse;
 }
 
-pml::restgoose::response Server::GetLoggers(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
+pml::restgoose::response Server::GetLoggers(const query&, const postData&, const endpoint&, const userName&) const
 {
     pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "GetLoggers" ;
     pml::restgoose::response theResponse;
@@ -382,12 +376,12 @@ pml::restgoose::response Server::GetLoggers(const query& theQuery, const postDat
     return theResponse;
 }
 
-pml::restgoose::response Server::GetLogger(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
+pml::restgoose::response Server::GetLogger(const query&, const postData&, const endpoint& theEndpoint, const userName&) const
 {
     pml::restgoose::response theResponse(400);
     auto vPath = SplitString(theEndpoint.Get(),'/');
-    auto itLogger = m_launcher.GetLaunchers().find(vPath.back());
-    if(itLogger != m_launcher.GetLaunchers().end())
+
+    if(m_launcher.GetLaunchers().find(vPath.back()) != m_launcher.GetLaunchers().end())
     {
         theResponse.nHttpCode = 200;
         theResponse.jsonData.append(CONFIG);
@@ -400,13 +394,13 @@ pml::restgoose::response Server::GetLogger(const query& theQuery, const postData
     return theResponse;
 }
 
-pml::restgoose::response Server::GetLoggerStatus(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
+pml::restgoose::response Server::GetLoggerStatus(const query&, const postData&, const endpoint& theEndpoint, const userName&) const
 {
     pmlLog() << "Server::GetLogger " << theEndpoint;
     pml::restgoose::response theResponse(400);
     auto vPath = SplitString(theEndpoint.Get(),'/');
-    auto itLogger = m_launcher.GetLaunchers().find(vPath[vPath.size()-2]);
-    if(itLogger != m_launcher.GetLaunchers().end())
+    
+    if(auto itLogger = m_launcher.GetLaunchers().find(vPath[vPath.size()-2]); itLogger != m_launcher.GetLaunchers().end())
     {
         theResponse.nHttpCode = 200;
         theResponse.jsonData = itLogger->second->GetJsonStatus();
@@ -418,14 +412,14 @@ pml::restgoose::response Server::GetLoggerStatus(const query& theQuery, const po
     return theResponse;
 }
 
-pml::restgoose::response Server::GetLoggerConfig(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
+pml::restgoose::response Server::GetLoggerConfig(const query&, const postData&, const endpoint& theEndpoint, const userName& ) const
 {
     auto vPath = SplitString(theEndpoint.Get(),'/');
     return m_launcher.GetLoggerConfig(vPath[vPath.size()-2]);
 }
 
 
-pml::restgoose::response Server::PostLogger(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
+pml::restgoose::response Server::PostLogger(const query&, const postData& vData, const endpoint&, const userName&)
 {
     auto theData = ConvertPostDataToJson(vData);
     if(theData.nHttpCode == 200)
@@ -441,7 +435,7 @@ pml::restgoose::response Server::PostLogger(const query& theQuery, const postDat
 
 }
 
-pml::restgoose::response Server::DeleteLogger(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
+pml::restgoose::response Server::DeleteLogger(const query&, const postData& vData, const endpoint& theEndpoint, const userName&)
 {
     auto theResponse = ConvertPostDataToJson(vData);
     if(theResponse.nHttpCode == 200)
@@ -461,7 +455,7 @@ pml::restgoose::response Server::DeleteLogger(const query& theQuery, const postD
     return theResponse;
 }
 
-pml::restgoose::response Server::PatchLoggerConfig(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
+pml::restgoose::response Server::PatchLoggerConfig(const query&, const postData& vData, const endpoint& theEndpoint, const userName&)
 {
     auto theResponse = ConvertPostDataToJson(vData);
     if(theResponse.nHttpCode == 200)
@@ -473,7 +467,7 @@ pml::restgoose::response Server::PatchLoggerConfig(const query& theQuery, const 
     return theResponse;
 }
 
-pml::restgoose::response Server::PutLoggerPower(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
+pml::restgoose::response Server::PutLoggerPower(const query&, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
 {
     auto theResponse = ConvertPostDataToJson(vData);
     if(theResponse.nHttpCode == 200)
@@ -495,7 +489,7 @@ pml::restgoose::response Server::PutLoggerPower(const query& theQuery, const pos
 }
 
 
-pml::restgoose::response Server::PutUpdate(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
+pml::restgoose::response Server::PutUpdate(const query&, const postData&, const endpoint&, const userName&) const
 {
     pml::restgoose::response theResponse(405, "not written yet");
     return theResponse;
@@ -505,7 +499,7 @@ pml::restgoose::response Server::PutUpdate(const query& theQuery, const postData
 
 
 
-pml::restgoose::response Server::GetConfig(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
+pml::restgoose::response Server::GetConfig(const query&, const postData&, const endpoint&, const userName&) const
 {
     pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "GetConfig" ;
     pml::restgoose::response theResponse;
@@ -530,7 +524,7 @@ pml::restgoose::response Server::GetConfig(const query& theQuery, const postData
     return theResponse;
 }
 
-pml::restgoose::response Server::GetUpdate(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
+pml::restgoose::response Server::GetUpdate(const query&, const postData&, const endpoint&, const userName&) const
 {
     //get all the version numbers...
     pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "GetUpdate" ;
@@ -556,7 +550,7 @@ pml::restgoose::response Server::GetUpdate(const query& theQuery, const postData
 }
 
 
-pml::restgoose::response Server::GetInfo(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
+pml::restgoose::response Server::GetInfo(const query&, const postData&, const endpoint&, const userName&)
 {
     pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "GetInfo" ;
 
@@ -567,7 +561,7 @@ pml::restgoose::response Server::GetInfo(const query& theQuery, const postData& 
     return theResponse;
 }
 
-pml::restgoose::response Server::GetPower(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
+pml::restgoose::response Server::GetPower(const query&, const postData&, const endpoint&, const userName&) const
 {
     pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "GetPower" ;
     pml::restgoose::response theResponse;
@@ -577,7 +571,7 @@ pml::restgoose::response Server::GetPower(const query& theQuery, const postData&
 }
 
 
-pml::restgoose::response Server::PutPower(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
+pml::restgoose::response Server::PutPower(const query& , const postData& vData, const endpoint& , const userName& )
 {
     pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "PutPower: ";
 
@@ -677,7 +671,7 @@ pml::restgoose::response Server::PatchConfig(const query& theQuery, const postDa
 }
 
 
-void Server::PatchServerConfig(const Json::Value& jsData)
+void Server::PatchServerConfig(const Json::Value& jsData) const
 {
     for(auto const& sKey : jsData.getMemberNames())
     {
@@ -694,7 +688,7 @@ void Server::PatchServerConfig(const Json::Value& jsData)
 
 
 
-pml::restgoose::response Server::GetLogs(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
+pml::restgoose::response Server::GetLogs(const query& theQuery, const postData&, const endpoint&, const userName&) const
 {
     pml::restgoose::response theResponse(404, "Log not defined");
 
@@ -710,7 +704,7 @@ pml::restgoose::response Server::GetLogs(const query& theQuery, const postData& 
 }
 
 
-time_t Server::GetDateTime(time_t date, const std::vector<std::string>& vLine)
+time_t Server::GetDateTime(time_t date, const std::vector<std::string>& vLine) const
 {
     time_t timeMessage(0);
     std::tm atm= {};
@@ -720,8 +714,7 @@ time_t Server::GetDateTime(time_t date, const std::vector<std::string>& vLine)
     {
         auto sTime = vLine[0];
         //remove the milliseconds
-        auto nPos = sTime.find('.');
-        if(nPos != std::string::npos)
+        if(auto nPos = sTime.find('.'); nPos != std::string::npos)
         {
             sTime = sTime.substr(0,nPos);
         }
@@ -746,7 +739,7 @@ time_t Server::GetDateTime(time_t date, const std::vector<std::string>& vLine)
     return timeMessage;
 }
 
-pml::restgoose::response Server::GetLog(const std::string& sLogger, const std::string& sStart, const std::string& sEnd)
+pml::restgoose::response Server::GetLog(const std::string& sLogger, const std::string& sStart, const std::string& sEnd) const
 {
     std::filesystem::path logDir = m_config.Get(jsonConsts::path,jsonConsts::log,".");
     logDir /= sLogger;
@@ -808,12 +801,10 @@ pml::restgoose::response Server::GetLog(const std::string& sLogger, const std::s
         }
 
         pml::restgoose::response resp(200);
-        //resp.contentType = headerValue("plain/text");
         resp.jsonData = ssLog.str();
-        //resp.data = textData(ssLog.str());
         return resp;
     }
-    catch(std::exception& e)
+    catch(const std::exception& )
     {
         pmlLog(pml::LOG_WARN) << "Could not convert start and end times " << sStart << " " << sEnd;
         return pml::restgoose::response(400, "Could not convert start and end times");
@@ -825,14 +816,14 @@ pml::restgoose::response Server::GetLog(const std::string& sLogger, const std::s
 void Server::StatusCallback(const std::string& sLoggerId, const Json::Value& jsStatus)
 {
     //lock as jsStatus can be called by pipe thread and server thread
-    std::lock_guard<std::mutex> lg(m_mutex);
+    std::scoped_lock<std::mutex> lg(m_mutex);
     m_server.SendWebsocketMessage({endpoint(EP_WS_LOGGERS.Get()+"/"+sLoggerId)}, jsStatus);
 }
 
 void Server::ExitCallback(const std::string& sLoggerId, int nExit, bool bRemove)
 {
     //lock as jsStatus can be called by pipe thread and server thread
-    std::lock_guard<std::mutex> lg(m_mutex);
+    std::scoped_lock<std::mutex> lg(m_mutex);
 
     auto jsStatus = Json::Value(Json::objectValue);    //reset
 
@@ -933,11 +924,10 @@ pml::restgoose::response Server::Reboot(int nCommand)
     return theResponse;
 }
 
-bool Server::WebsocketAuthenticate(const endpoint& theEndpoint, const query& theQuery, const userName& theUser, const ipAddress& peer)
+bool Server::WebsocketAuthenticate(const endpoint&, const query&, const userName& theUser, const ipAddress& peer)
 {
     ipAddress theSocket = peer;
-    auto nPos = theSocket.Get().find(':');
-    if(nPos != std::string::npos)
+    if(auto nPos = theSocket.Get().find(':'); nPos != std::string::npos)
     {
         theSocket = ipAddress(theSocket.Get().substr(0, nPos));
     }
@@ -945,13 +935,13 @@ bool Server::WebsocketAuthenticate(const endpoint& theEndpoint, const query& the
     return DoAuthenticateToken(theUser.Get(), theSocket);
 }
 
-bool Server::WebsocketMessage(const endpoint& theEndpoint, const Json::Value& jsData)
+bool Server::WebsocketMessage(const endpoint&, const Json::Value& jsData)
 {
     pmlLog() << "Websocket message '" << jsData << "'";
     return true;
 }
 
-void Server::WebsocketClosed(const endpoint& theEndpoint, const ipAddress& peer)
+void Server::WebsocketClosed(const endpoint&, const ipAddress& peer)
 {
     pmlLog() << "Websocket closed from " << peer;
 }
@@ -964,8 +954,8 @@ bool Server::AuthenticateToken(const std::string& sToken)
 bool Server::DoAuthenticateToken(const std::string& sToken, const ipAddress& peer)
 {
     pmlLog() << "AuthenticateToken " << peer << "=" << sToken;
-    auto itToken = m_mTokens.find(peer);
-    if(itToken != m_mTokens.end() && itToken->second->GetId() == sToken)
+    
+    if(auto itToken = m_mTokens.find(peer); itToken != m_mTokens.end() && itToken->second->GetId() == sToken)
     {
         itToken->second->Accessed();
         pmlLog() << "AuthenticateToken succes";
@@ -977,8 +967,7 @@ bool Server::DoAuthenticateToken(const std::string& sToken, const ipAddress& pee
 
 pml::restgoose::response Server::PostLogin(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
 {
-    auto theResponse = ConvertPostDataToJson(vData);
-    if(theResponse.nHttpCode == 200)
+    if(auto theResponse = ConvertPostDataToJson(vData); theResponse.nHttpCode == 200)
     {
         if(theResponse.jsonData.isMember(jsonConsts::username) && theResponse.jsonData.isMember(jsonConsts::password) && theResponse.jsonData[jsonConsts::password].asString().empty() == false)
         {
@@ -986,7 +975,7 @@ pml::restgoose::response Server::PostLogin(const query& theQuery, const postData
             {
                 auto pCookie = std::make_shared<SessionCookie>(userName(theResponse.jsonData[jsonConsts::username].asString()), m_server.GetCurrentPeer(false));
 
-                auto [itToken, ins] = m_mTokens.insert(std::make_pair(m_server.GetCurrentPeer(false), pCookie));
+                auto [itToken, ins] = m_mTokens.try_emplace(m_server.GetCurrentPeer(false), pCookie);
                 if(ins == false)
                 {
                     itToken->second = pCookie;
@@ -1002,13 +991,13 @@ pml::restgoose::response Server::PostLogin(const query& theQuery, const postData
     return pml::restgoose::response(401, "Username or password incorrect");
 }
 
-pml::restgoose::response Server::DeleteLogin(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
+pml::restgoose::response Server::DeleteLogin(const query& , const postData& , const endpoint& , const userName& )
 {
     m_mTokens.erase(m_server.GetCurrentPeer(false));
     return RedirectToLogin();
 }
 
-pml::restgoose::response Server::RedirectToLogin()
+pml::restgoose::response Server::RedirectToLogin() const
 {
     pml::restgoose::response theResponse(302);
     theResponse.mHeaders = {{headerName("Location"), headerValue("/")}};

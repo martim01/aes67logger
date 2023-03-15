@@ -21,12 +21,12 @@ class LoggerObserver
 
         const encodedFiles& GetEncodedFiles() const { return m_mFiles;}
 
-        pml::restgoose::response CreateDownloadFile(const std::string& sType, const query& theQuery);
+        pml::restgoose::response CreateDownloadFile(const std::string& sType, const query& theQuery) const;
 
     private:
 
         void Init(iniManager& config);
-        std::set<std::filesystem::path> EnumFiles(const std::filesystem::path& path, const std::string& sExt);
+        std::set<std::filesystem::path> EnumFiles(const std::filesystem::path& path, const std::string& sExt) const;
         void OnFileCreated(int nWd, const std::filesystem::path& path, uint32_t mask, bool bDirectory);
         void OnFileDeleted(int nWd, const std::filesystem::path& path, uint32_t mask, bool bDirectory);
 

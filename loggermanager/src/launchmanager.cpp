@@ -7,10 +7,7 @@
 
 using namespace std::placeholders;
 
-LaunchManager::LaunchManager()
-{
-
-}
+LaunchManager::LaunchManager()=default;
 
 LaunchManager::~LaunchManager()
 {
@@ -22,18 +19,19 @@ LaunchManager::~LaunchManager()
     //loggers will shutdown in the launcher destructor
 }
 
-void LaunchManager::Init(const iniManager& iniConfig, std::function<void(const std::string&, const Json::Value&)> statusCallback, std::function<void(const std::string&, int, bool)> exitCallback)
+void LaunchManager::Init(const iniManager& iniConfig, const std::function<void(const std::string&, const Json::Value&)>& statusCallback, 
+const std::function<void(const std::string&, int, bool)>& exitCallback)
 {
     m_pathLaunchers.assign(iniConfig.Get(jsonConsts::path, jsonConsts::loggers, "/usr/local/etc/loggers"));
     m_pathSockets.assign(iniConfig.Get(jsonConsts::path, jsonConsts::sockets, "/var/local/loggers/sockets"));
     m_pathAudio.assign(iniConfig.Get(jsonConsts::path, jsonConsts::audio, "/var/local/loggers/audio"));
 
-    m_bUseTransmissionTime = iniConfig.Get(jsonConsts::logger, jsonConsts::useTransmission, false);
+    m_bUseTransmissionTime = iniConfig.GetBool(jsonConsts::logger, jsonConsts::useTransmission, false);
     m_sLoggerInterface = iniConfig.Get(jsonConsts::logger, jsonConsts::interface, "eth0");
-    m_nHeartbeatGap = iniConfig.Get(jsonConsts::logger, jsonConsts::gap, 2500);
-    m_nAoipBuffer = iniConfig.Get(jsonConsts::logger, jsonConsts::buffer, 4096);
-    m_nLoggerConsoleLevel = iniConfig.Get(jsonConsts::logger, jsonConsts::console, -1);
-    m_nLoggerFileLevel = iniConfig.Get(jsonConsts::logger, jsonConsts::file, 2);
+    m_nHeartbeatGap = iniConfig.Get(jsonConsts::logger, jsonConsts::gap, 2500l);
+    m_nAoipBuffer = iniConfig.Get(jsonConsts::logger, jsonConsts::buffer, 4096l);
+    m_nLoggerConsoleLevel = iniConfig.Get(jsonConsts::logger, jsonConsts::console, -1l);
+    m_nLoggerFileLevel = iniConfig.Get(jsonConsts::logger, jsonConsts::file, 2l);
 
     m_statusCallback = statusCallback;
     m_exitCallback = exitCallback;
@@ -47,7 +45,7 @@ void LaunchManager::EnumLoggers()
 {
     pmlLog() << "EnumLoggers...";
 
-    std::lock_guard<std::mutex> lg(m_mutex);
+    std::scoped_lock<std::mutex> lg(m_mutex);
 
     try
     {
@@ -59,9 +57,9 @@ void LaunchManager::EnumLoggers()
             {
                 pmlLog() << "Logger: '" << entry.path().stem() << "' found";
 
-                m_mLaunchers.insert({entry.path().stem(), std::make_shared<Launcher>(m_context, entry.path(),
+                m_mLaunchers.try_emplace(entry.path().stem(), std::make_shared<Launcher>(m_context, entry.path(),
                                                                                      MakeSocketFullPath(entry.path().stem()),
-                                                                                     m_statusCallback, std::bind(&LaunchManager::ExitCallback, this, _1,_2,_3))});
+                                                                                     m_statusCallback, std::bind(&LaunchManager::ExitCallback, this, _1,_2,_3)));
             }
         }
         m_pathSdp = m_pathLaunchers;
@@ -75,14 +73,14 @@ void LaunchManager::EnumLoggers()
     }
 }
 
-std::filesystem::path LaunchManager::MakeConfigFullPath(const std::string& sLogger)
+std::filesystem::path LaunchManager::MakeConfigFullPath(const std::string& sLogger) const
 {
     auto path = m_pathLaunchers;
     path /= std::string(sLogger+".ini");
     return path;
 }
 
-std::filesystem::path LaunchManager::MakeSocketFullPath(const std::string& sLogger)
+std::filesystem::path LaunchManager::MakeSocketFullPath(const std::string& sLogger) const
 {
     auto path = m_pathSockets;
     path /= sLogger;
@@ -91,7 +89,7 @@ std::filesystem::path LaunchManager::MakeSocketFullPath(const std::string& sLogg
 
 void LaunchManager::LaunchAll()
 {
-    std::lock_guard<std::mutex> lg(m_mutex);
+    std::scoped_lock<std::mutex> lg(m_mutex);
 
     pmlLog() << "Start all loggers";
 
@@ -103,7 +101,7 @@ void LaunchManager::LaunchAll()
 
 }
 
-void LaunchManager::LaunchLogger(std::shared_ptr<Launcher> pLauncher)
+void LaunchManager::LaunchLogger(std::shared_ptr<Launcher> pLauncher) const
 {
     if(pLauncher->IsRunning() == false)
     {
@@ -129,11 +127,11 @@ pml::restgoose::response LaunchManager::AddLogger(const pml::restgoose::response
 
 
 
-    std::lock_guard<std::mutex> lg(m_mutex);
+    std::scoped_lock<std::mutex> lg(m_mutex);
 
     pmlLog() << "Add logger '" << theData.jsonData[jsonConsts::name].asString() << "'";
-    auto itLogger = m_mLaunchers.find(theData.jsonData[jsonConsts::name].asString());
-    if(itLogger != m_mLaunchers.end())
+
+    if(m_mLaunchers.find(theData.jsonData[jsonConsts::name].asString()) != m_mLaunchers.end())
     {
         return pml::restgoose::response(409, "logger with name "+theData.jsonData[jsonConsts::name].asString()+" already exists");
     }
@@ -147,7 +145,7 @@ pml::restgoose::response LaunchManager::AddLogger(const pml::restgoose::response
                                                            std::bind(&LaunchManager::ExitCallback, this, _1,_2,_3));
 
 
-    m_mLaunchers.insert({theData.jsonData[jsonConsts::name].asString(),pLauncher});
+    m_mLaunchers.try_emplace(theData.jsonData[jsonConsts::name].asString(),pLauncher);
     LaunchLogger(pLauncher);
 
 
@@ -156,7 +154,7 @@ pml::restgoose::response LaunchManager::AddLogger(const pml::restgoose::response
     return theResponse;
 }
 
-void LaunchManager::CreateLoggerConfig(const Json::Value& jsData)
+void LaunchManager::CreateLoggerConfig(const Json::Value& jsData) const
 {
 
     iniManager config;
@@ -169,7 +167,7 @@ void LaunchManager::CreateLoggerConfig(const Json::Value& jsData)
     }
     else
     {
-        config.Set(jsonConsts::log, jsonConsts::console, m_nLoggerConsoleLevel);
+        config.Set(jsonConsts::log, jsonConsts::console, (int)m_nLoggerConsoleLevel);
     }
     if(CheckJsonMembers(jsData, {{jsonConsts::file, enumJsonType::NUMBER}}))
     {
@@ -177,7 +175,7 @@ void LaunchManager::CreateLoggerConfig(const Json::Value& jsData)
     }
     else
     {
-        config.Set(jsonConsts::log, jsonConsts::console, m_nLoggerFileLevel);
+        config.Set(jsonConsts::log, jsonConsts::console, (int)m_nLoggerFileLevel);
     }
     config.Set(jsonConsts::path, jsonConsts::logs, m_sLogPath);
     config.Set(jsonConsts::path, jsonConsts::sockets, m_pathSockets);
@@ -189,7 +187,7 @@ void LaunchManager::CreateLoggerConfig(const Json::Value& jsData)
     }
     else
     {
-        config.Set(jsonConsts::heartbeat, jsonConsts::gap, m_nHeartbeatGap);
+        config.Set(jsonConsts::heartbeat, jsonConsts::gap, (int)m_nHeartbeatGap);
     }
 
     if(CheckJsonMembers(jsData, {{jsonConsts::interface, enumJsonType::STRING}}))
@@ -206,7 +204,7 @@ void LaunchManager::CreateLoggerConfig(const Json::Value& jsData)
     }
     else
     {
-        config.Set(jsonConsts::aoip, jsonConsts::aoip, m_nAoipBuffer);
+        config.Set(jsonConsts::aoip, jsonConsts::aoip,(int)m_nAoipBuffer);
     }
     config.Set(jsonConsts::aoip, jsonConsts::useTransmission, m_bUseTransmissionTime);
 
@@ -238,8 +236,7 @@ pml::restgoose::response LaunchManager::RemoveLogger(const std::string& sName)
 {
     pmlLog() << "Remove logger '" << sName << "'";
 
-    auto itLogger = m_mLaunchers.find(sName);
-    if(itLogger != m_mLaunchers.end())
+    if(auto itLogger = m_mLaunchers.find(sName); itLogger != m_mLaunchers.end())
     {
         itLogger->second->RemoveLogger();
         return pml::restgoose::response(200);
@@ -266,7 +263,7 @@ void LaunchManager::PipeThread()
     {
         pmlLog() << "Pipe Thread started";
 
-        auto work = asio::require(m_context.get_executor(), asio::execution::outstanding_work.tracked);
+        auto work = asio::require(m_context.get_executor(), asio::execution::outstanding_work_t::tracked);
 
 
         if(m_context.stopped())
@@ -279,19 +276,19 @@ void LaunchManager::PipeThread()
     });
 }
 
-pml::restgoose::response LaunchManager::GetLoggerConfig(const std::string& sName)
+pml::restgoose::response LaunchManager::GetLoggerConfig(const std::string& sName) const
 {
     iniManager ini;
     if(ini.Read(MakeConfigFullPath(sName)))
     {
         pml::restgoose::response theResponse(200);
-        theResponse.jsonData[jsonConsts::logs][jsonConsts::console] = ini.Get(jsonConsts::logs, jsonConsts::console, -1);
-        theResponse.jsonData[jsonConsts::logs][jsonConsts::file] = ini.Get(jsonConsts::logs, jsonConsts::file, 2);
+        theResponse.jsonData[jsonConsts::logs][jsonConsts::console] = ini.Get(jsonConsts::logs, jsonConsts::console, -1l);
+        theResponse.jsonData[jsonConsts::logs][jsonConsts::file] = ini.Get(jsonConsts::logs, jsonConsts::file, 2l);
         theResponse.jsonData[jsonConsts::logs][jsonConsts::path] = ini.Get(jsonConsts::logs, jsonConsts::path, "/var/loggers/log");
-        theResponse.jsonData[jsonConsts::heartbeat][jsonConsts::gap] = ini.Get(jsonConsts::heartbeat, jsonConsts::gap, 10000);
+        theResponse.jsonData[jsonConsts::heartbeat][jsonConsts::gap] = ini.Get(jsonConsts::heartbeat, jsonConsts::gap, 10000l);
 
         theResponse.jsonData[jsonConsts::aoip][jsonConsts::interface] = ini.Get(jsonConsts::aoip, jsonConsts::interface, "eth0");
-        theResponse.jsonData[jsonConsts::aoip][jsonConsts::buffer] = ini.Get(jsonConsts::aoip, jsonConsts::buffer, 4096);
+        theResponse.jsonData[jsonConsts::aoip][jsonConsts::buffer] = ini.Get(jsonConsts::aoip, jsonConsts::buffer, 4096l);
 
         theResponse.jsonData[jsonConsts::general][jsonConsts::name] = ini.Get(jsonConsts::general, jsonConsts::name, sName);
 
@@ -359,8 +356,7 @@ Json::Value LaunchManager::GetStatusSummary() const
 
 pml::restgoose::response LaunchManager::RestartLogger(const std::string& sName)
 {
-    auto itLauncher = m_mLaunchers.find(sName);
-    if(itLauncher != m_mLaunchers.end())
+    if(auto itLauncher = m_mLaunchers.find(sName); itLauncher != m_mLaunchers.end())
     {
         itLauncher->second->RestartLogger();
         return pml::restgoose::response(200);

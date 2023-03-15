@@ -21,27 +21,27 @@ class PlaybackServer
 
 
 
-        pml::restgoose::response GetRoot(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
-        pml::restgoose::response GetApi(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
+        pml::restgoose::response GetRoot(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser) const;
+        pml::restgoose::response GetApi(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser) const;
 
-        pml::restgoose::response GetLoggers(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
-        pml::restgoose::response GetLogger(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
-        pml::restgoose::response GetLoggerFiles(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
-        pml::restgoose::response DownloadLoggerFile(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
+        pml::restgoose::response GetLoggers(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser) const;
+        pml::restgoose::response GetLogger(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser) const;
+        pml::restgoose::response GetLoggerFiles(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser) const;
+        pml::restgoose::response DownloadLoggerFile(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser) const;
 
 
         pml::restgoose::response PostLogin(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
         pml::restgoose::response DeleteLogin(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
 
-        pml::restgoose::response RedirectToLogin();
+        pml::restgoose::response RedirectToLogin() const;
 
 
 
         void LoopCallback(std::chrono::milliseconds durationSince);
 
         bool WebsocketAuthenticate(const endpoint& theEndpoint, const query& theQuery, const userName& theUser, const ipAddress& peer);
-        bool WebsocketMessage(const endpoint& theEndpoint, const Json::Value& jsData);
-        void WebsocketClosed(const endpoint& theEndpoint, const ipAddress& peer);
+        bool WebsocketMessage(const endpoint& theEndpoint, const Json::Value& jsData) const;
+        void WebsocketClosed(const endpoint& theEndpoint, const ipAddress& peer) const;
 
 
         void LoggerCreated(const std::string& sLogger, std::shared_ptr<LoggerObserver> pLogger);
@@ -66,7 +66,7 @@ class PlaybackServer
         bool AuthenticateToken(const std::string& sToken);
         bool DoAuthenticateToken(const std::string& sToken, const ipAddress& peer);
 
-        time_t GetDateTime(time_t date, const std::vector<std::string>& vLine);
+        time_t GetDateTime(time_t date, const std::vector<std::string>& vLine) const;
 
         void AddLoggerEndpoints();
         void AddLoggerEndpoints(const std::string& sName, std::shared_ptr<LoggerObserver> pLogger);
@@ -88,11 +88,11 @@ class PlaybackServer
         static const std::string DOWNLOAD;
         static const std::string WS;
 
-        unsigned int m_nTimeSinceLastCall;
+        unsigned int m_nTimeSinceLastCall = 0;
 
-        int m_nLogToConsole;
-        int m_nLogToFile;
-        bool m_bLoggedThisHour;
+        ssize_t m_nLogToConsole = -1;
+        ssize_t m_nLogToFile= -1;
+        bool m_bLoggedThisHour = false;
 
         std::unique_ptr<LoggerManager> m_pManager;
 
