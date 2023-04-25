@@ -228,7 +228,15 @@ void LaunchManager::CreateLoggerConfig(const Json::Value& jsData) const
     config.Set(jsonConsts::keep, jsonConsts::opus, jsData[jsonConsts::opus].asString());
     config.Set(jsonConsts::keep, jsonConsts::flac, jsData[jsonConsts::flac].asString());
 
-    config.Set(jsonConsts::aoip, jsonConsts::filelength, jsData[jsonConsts::filelength].asString());
+
+    if(jsData[jsonConsts::filelength].asUInt() > 0)
+    {
+        config.Set(jsonConsts::aoip, jsonConsts::filelength, jsData[jsonConsts::filelength].asString());
+    }
+    else
+    {
+        config.Set(jsonConsts::aoip, jsonConsts::filelength, "1");
+    }
 
     config.Write(MakeConfigFullPath(jsData[jsonConsts::name].asString()));
 }
