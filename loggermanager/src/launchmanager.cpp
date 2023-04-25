@@ -120,7 +120,8 @@ pml::restgoose::response LaunchManager::AddLogger(const pml::restgoose::response
                                            {jsonConsts::sdp, enumJsonType::STRING},
                                            {jsonConsts::wav, enumJsonType::NUMBER},
                                            {jsonConsts::opus, enumJsonType::NUMBER},
-                                           {jsonConsts::flac, enumJsonType::NUMBER}}) == false)
+                                           {jsonConsts::flac, enumJsonType::NUMBER},
+                                           {jsonConsts::filelength, enumJsonType::NUMBER}}) == false)
     {
         return pml::restgoose::response(400, "Json missing required parameters");
     }
@@ -226,6 +227,8 @@ void LaunchManager::CreateLoggerConfig(const Json::Value& jsData) const
     config.Set(jsonConsts::keep, jsonConsts::wav, jsData[jsonConsts::wav].asString());
     config.Set(jsonConsts::keep, jsonConsts::opus, jsData[jsonConsts::opus].asString());
     config.Set(jsonConsts::keep, jsonConsts::flac, jsData[jsonConsts::flac].asString());
+
+    config.Set(jsonConsts::aoip, jsonConsts::filelength, jsData[jsonConsts::filelength].asString());
 
     config.Write(MakeConfigFullPath(jsData[jsonConsts::name].asString()));
 }

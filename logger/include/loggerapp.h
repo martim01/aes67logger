@@ -68,8 +68,6 @@ class LoggerApp
         void StreamFail();
 
 
-        std::string CreateFileName(const std::chrono::system_clock& tp);
-
         std::string m_sName;
         std::filesystem::path m_pathWav;
         std::filesystem::path m_pathSockets;
@@ -99,6 +97,7 @@ class LoggerApp
 
         bool m_bReceivingAudio = false;
         bool m_bUseTransmissionTime = false;
+        unsigned long m_nFileLength = 1;
 
         std::shared_ptr<AsioServer> m_pServer = nullptr;
 

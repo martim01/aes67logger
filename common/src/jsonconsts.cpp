@@ -108,3 +108,5 @@ const std::string jsonConsts::keep               = "keep";
 const std::string jsonConsts::wav                = "wav";
 const std::string jsonConsts::opus               = "opus";
 const std::string jsonConsts::flac               = "flac";
+
+const std::string jsonConsts::filelength         = "filelength";

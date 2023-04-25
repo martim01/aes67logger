@@ -90,6 +90,8 @@ bool LoggerApp::LoadConfig(const std::filesystem::path& config)
 
         m_bUseTransmissionTime = m_config.GetBool(jsonConsts::aoip, jsonConsts::useTransmission, false);
 
+        m_nFileLength = m_config.Get(jsonConsts::aoip, jsonConsts::filelength, 1l);
+
         try
         {
             std::filesystem::create_directories(m_pathWav);
@@ -352,14 +354,17 @@ void LoggerApp::WriteToSoundFile(std::shared_ptr<pml::aoip::AoIPSource>, std::sh
 
 
         auto filePath = m_pathWav;
+        unsigned long nFileName = 0;
         if(m_bUseTransmissionTime)
         {
-            filePath /= (ConvertTimeToString(pBuffer->GetTransmissionTime(), "%Y-%m-%dT%H-%M")+".wav");
+            nFileName = std::chrono::duration_cast<std::chrono::minutes>(pBuffer->GetTransmissionTime().time_since_epoch()).count();
         }
         else
         {
-            filePath /= (ConvertTimeToString(std::chrono::system_clock::now(), "%Y-%m-%dT%H-%M")+".wav");
+            nFileName = std::chrono::duration_cast<std::chrono::minutes>(std::chrono::system_clock::now().time_since_epoch()).count();
         }
+        nFileName -= (nFileName % m_nFileLength);   //round so files are the correct length
+        filePath /= std::to_string(nFileName)+".wav";
 
         if(m_sf.GetFilename() != filePath)
         {

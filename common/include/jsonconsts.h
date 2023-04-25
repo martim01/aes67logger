@@ -116,4 +116,6 @@ struct jsonConsts
     static const std::string wav;
     static const std::string opus;
     static const std::string flac;
+
+    static const std::string filelength;
 };

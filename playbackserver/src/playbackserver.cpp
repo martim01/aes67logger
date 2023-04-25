@@ -293,19 +293,17 @@ pml::restgoose::response PlaybackServer::GetLoggerFiles(const query& , const pos
         auto itFiles = itLogger->second->GetEncodedFiles().find(vPath.back());
         if(itFiles != itLogger->second->GetEncodedFiles().end() && itFiles->second.empty() == false)
         {
-            std::string sFormat = "%Y-%m-%dT%H-%M";
-
-            auto start = ConvertStringToTimePoint((*itFiles->second.begin()).stem().string(), sFormat);
-            auto end = ConvertStringToTimePoint((*itFiles->second.rbegin()).stem().string(), sFormat);
+            try
+            {        
+                auto start = std::stoul((*itFiles->second.begin()).stem().string());
+                auto end = std::stoul((*itFiles->second.rbegin()).stem().string());
             
-            if(start && end)
-            {
                 bool bInRange = false;
                 Json::Value jsRange;
-                for(auto tp = (*start); tp <= (*end); tp += std::chrono::minutes(1))
+                for(auto tp = start; tp <= end; tp += 1)        //this should be the file length loaded from the ini file
                 {
                     auto filePath = (*itFiles->second.begin()).parent_path();
-                    filePath /= ConvertTimeToString(tp, sFormat);
+                    filePath /= std::to_string(tp);
         		    filePath.replace_extension(vPath.back());
 
                     auto itFile = itFiles->second.find(filePath);
@@ -327,10 +325,17 @@ pml::restgoose::response PlaybackServer::GetLoggerFiles(const query& , const pos
                 if(bInRange)
                 {
                     theResponse.jsonData.append(jsRange);
-                    bInRange = false;
                 }
+                return theResponse;
             }
-            return theResponse;
+            catch(const std::invalid_argument& e)
+            {
+                return pml::restgoose::response(500, "Logger filenames incorrect "+vPath.back());    
+            }
+            catch(const std::out_of_range& e)
+            {
+                return pml::restgoose::response(500, "Logger filenames incorrect "+vPath.back());    
+            }
         }
         else
         {
