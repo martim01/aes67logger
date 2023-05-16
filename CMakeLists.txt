@@ -149,6 +149,7 @@ add_subdirectory(loggermanager)
 
 add_subdirectory(encoderserver)
 add_subdirectory(opusencoder)
+add_subdirectory(flacencoder)
 
 add_subdirectory(playbackserver)
 

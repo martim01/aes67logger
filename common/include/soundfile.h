@@ -23,6 +23,9 @@ public:
 
 	bool OpenToWrite(const std::filesystem::path& path, unsigned short nChannels, unsigned long nSampleRate, unsigned short nBitLength);
 	bool WriteAudio(std::shared_ptr<pml::aoip::timedbuffer> pBuffer);
+	bool WriteAudio(const std::vector<float>& vBuffer);
+
+	bool OpenToWriteFlac(const std::filesystem::path& path, unsigned short nChannels, unsigned long nSampleRate, unsigned short nBitLength);
 
 	bool IsOpen() const { return (m_pHandle!=nullptr);}
 
@@ -31,6 +34,7 @@ public:
 	int GetFormat() const;
 	int GetSampleRate() const;
 	int GetChannelCount() const;
+	int GetBitDepth() const;
 
 	bool ReadAudio(std::vector<float>& vBuffer);
 
