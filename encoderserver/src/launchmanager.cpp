@@ -89,10 +89,10 @@ std::filesystem::path LaunchManager::MakeConfigFullPath(const std::string& sLogg
     return path;
 }
 
-std::filesystem::path LaunchManager::MakeSocketFullPath(const std::string& sLogger) const
+std::filesystem::path LaunchManager::MakeSocketFullPath(const std::string& sEncoder) const
 {
     auto path = m_pathSockets;
-    path /= sLogger;
+    path /= sEncoder;
     return path;
 }
 
@@ -203,8 +203,10 @@ void LaunchManager::CheckLoggerConfig(const std::filesystem::path& pathConfig)
         if(config.Get(jsonConsts::keep, jsonConsts::opus, 0L) != 0)
         {
             pmlLog() << "Logger " << pathConfig.stem().string() << " requires an Opus encoder";
-            m_mLaunchers.try_emplace(pathConfig.stem().string()+jsonConsts::opus, std::make_shared<Launcher>(m_context, m_sOpusApp, pathConfig,
-                                                                                     MakeSocketFullPath(pathConfig.stem()),
+            auto sEncoder = pathConfig.stem().string()+"_"+jsonConsts::opus;
+
+            m_mLaunchers.try_emplace(sEncoder, std::make_shared<Launcher>(m_context, m_sOpusApp, pathConfig,
+                                                                                     MakeSocketFullPath(sEncoder),
                                                                                      m_statusCallback, std::bind(&LaunchManager::ExitCallback, this, _1,_2,_3)));
 
             if(m_encoderCallback)
@@ -215,8 +217,9 @@ void LaunchManager::CheckLoggerConfig(const std::filesystem::path& pathConfig)
         if(config.Get(jsonConsts::keep, jsonConsts::flac, 0L) != 0)
         {
             pmlLog() << "Logger " << pathConfig.stem().string() << " requires an FLAC encoder";
-            m_mLaunchers.try_emplace(pathConfig.stem().string()+jsonConsts::flac, std::make_shared<Launcher>(m_context, m_sFlacApp, pathConfig,
-                                                                                     MakeSocketFullPath(pathConfig.stem()),
+            auto sEncoder = pathConfig.stem().string()+"_"+jsonConsts::flac;
+            m_mLaunchers.try_emplace(sEncoder, std::make_shared<Launcher>(m_context, m_sFlacApp, pathConfig,
+                                                                                     MakeSocketFullPath(sEncoder),
                                                                                      m_statusCallback, std::bind(&LaunchManager::ExitCallback, this, _1,_2,_3)));
 
             //@todo signal to websockets...

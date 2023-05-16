@@ -34,6 +34,8 @@ class OpusEncoder
 
         void OnWavWritten(int nWd, const std::filesystem::path& path, uint32_t mask, bool bDirectory);
 
+        void SendError(const std::string& sMessage, const std::filesystem::path& path);
+
         std::filesystem::path GetNextFile();
 
         std::string m_sName;
