@@ -110,3 +110,5 @@ const std::string jsonConsts::opus               = "opus";
 const std::string jsonConsts::flac               = "flac";
 
 const std::string jsonConsts::filelength         = "filelength";
+
+const std::string jsonConsts::created            = "created";

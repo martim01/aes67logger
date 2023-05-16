@@ -8,7 +8,10 @@
                 "/home/matt/log/include",
                 "/home/matt/Restgoose/include",
                 "/home/matt/jsoncpp/dist",
-                "/home/matt/asio/asio/include"
+                "/home/matt/asio/asio/include",
+                "/usr/local/include/opus",
+                "/usr/include/opus",
+                "${workspaceFolder}/opusencoder/include"
             ],
             "defines": [],
             "compilerPath": "/bin/gcc",

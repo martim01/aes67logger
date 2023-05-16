@@ -17,7 +17,7 @@ using encodedFiles = std::map<std::string, std::set<std::filesystem::path>>;
 class LoggerObserver
 {
     public:
-        LoggerObserver(PlaybackServer& server, const std::string& sName, iniManager& config, pml::filewatch::Observer& observer);
+        LoggerObserver(PlaybackServer& server, const std::string& sName, const iniManager& config, pml::filewatch::Observer& observer);
 
         const encodedFiles& GetEncodedFiles() const { return m_mFiles;}
 
@@ -25,14 +25,16 @@ class LoggerObserver
 
     private:
 
-        void Init(iniManager& config);
         std::set<std::filesystem::path> EnumFiles(const std::filesystem::path& path, const std::string& sExt) const;
         void OnFileCreated(int nWd, const std::filesystem::path& path, uint32_t mask, bool bDirectory);
         void OnFileDeleted(int nWd, const std::filesystem::path& path, uint32_t mask, bool bDirectory);
 
+        std::pair<std::chrono::minutes, std::chrono::seconds> GetBaseFileName(unsigned long nTime) const;
+
         PlaybackServer& m_server;
         std::string m_sName;
         encodedFiles m_mFiles;
-        std::map<int, std::string> m_mWatches;        
+        std::map<int, std::string> m_mWatches;  
+        unsigned long m_nFileLength = 0;      
         
 };

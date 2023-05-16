@@ -115,6 +115,28 @@ endif()
 unset(AOIP_TEMP_DIR2)
 
 
+SET(DIR_OBSERVER ${DIR_BASE}/observer CACHE STRING "location of Observer")
+
+#Get pbserver
+find_path(OBSERVER_TEMP_DIR NAMES "CMakeLists.txt" PATHS ${DIR_OBSERVER})
+if((NOT OBSERVER_TEMP_DIR) OR (NOT EXISTS ${OBSERVER_TEMP_DIR}))
+	message(STATUS "pml_observer not found - clone from GitHub")
+	execute_process(COMMAND git clone https://github.com/martim01/observer ${DIR_OBSERVER})
+    
+    find_path(OBSERVER_TEMP_DIR2 NAMES "CMakeLists.txt" PATHS ${DIR_OBSERVER})
+    if((NOT OBSERVER_TEMP_DIR2) OR (NOT EXISTS ${OBSERVER_TEMP_DIR2}))
+	    message(FATAL_ERROR "Failed to clone pml_observer")
+    endif()
+else()
+    message(STATUS "pml_observer found - update to latest version")
+    execute_process(COMMAND git -C ${DIR_OBSERVER} pull)
+endif()
+unset(OBSERVER_TEMP_DIR2)
+
+message(STATUS "Configure pml::observer")
+add_subdirectory(${DIR_OBSERVER} ${CMAKE_SOURCE_DIR}/build/observer)
+
+
 message(STATUS "Configure pml::log")
 add_subdirectory(${DIR_LOG} ${CMAKE_SOURCE_DIR}/build/log)
 message(STATUS "Configure Restgoose")
@@ -124,5 +146,9 @@ add_subdirectory(${DIR_AOIP} ${DIR_AOIP}/build)
 
 add_subdirectory(logger)
 add_subdirectory(loggermanager)
+
+add_subdirectory(encoderserver)
+add_subdirectory(opusencoder)
+
 add_subdirectory(playbackserver)
 

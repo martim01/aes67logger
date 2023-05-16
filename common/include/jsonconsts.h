@@ -118,4 +118,5 @@ struct jsonConsts
     static const std::string flac;
 
     static const std::string filelength;
+    static const std::string created;
 };

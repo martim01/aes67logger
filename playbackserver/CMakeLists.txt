@@ -5,26 +5,6 @@ execute_process(COMMAND ${CMAKE_COMMAND} -DNAMESPACE=${PROJECT_NAME} -DMAJOR=${P
 
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
-SET(DIR_OBSERVER ${DIR_BASE}/observer CACHE STRING "location of Observer")
-
-#Get pbserver
-find_path(OBSERVER_TEMP_DIR NAMES "CMakeLists.txt" PATHS ${DIR_OBSERVER})
-if((NOT OBSERVER_TEMP_DIR) OR (NOT EXISTS ${OBSERVER_TEMP_DIR}))
-	message(STATUS "pml_observer not found - clone from GitHub")
-	execute_process(COMMAND git clone https://github.com/martim01/observer ${DIR_OBSERVER})
-    
-    find_path(OBSERVER_TEMP_DIR2 NAMES "CMakeLists.txt" PATHS ${DIR_OBSERVER})
-    if((NOT OBSERVER_TEMP_DIR2) OR (NOT EXISTS ${OBSERVER_TEMP_DIR2}))
-	    message(FATAL_ERROR "Failed to clone pml_observer")
-    endif()
-else()
-    message(STATUS "pml_observer found - update to latest version")
-    execute_process(COMMAND git -C ${DIR_OBSERVER} pull)
-endif()
-unset(OBSERVER_TEMP_DIR2)
-
-message(STATUS "Configure pml::observer")
-add_subdirectory(${DIR_OBSERVER} ${CMAKE_SOURCE_DIR}/build/observer)
 
 include_directories("include")
 include_directories("../common/include")

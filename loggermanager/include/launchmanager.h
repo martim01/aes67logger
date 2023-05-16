@@ -52,6 +52,7 @@ class LaunchManager
 
         void CreateLoggerConfig(const Json::Value& jsData) const;
 
+
         
         std::filesystem::path m_pathLaunchers;
         std::filesystem::path m_pathSdp;

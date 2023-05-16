@@ -384,3 +384,5 @@ void LaunchManager::ExitCallback(const std::string& sLogger, int nExitCode, bool
     }
     m_exitCallback(sLogger, nExitCode, bRemove);
 }
+
+

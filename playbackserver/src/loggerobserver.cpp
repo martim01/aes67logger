@@ -8,12 +8,13 @@
     
 using namespace std::placeholders;
 
-LoggerObserver::LoggerObserver(PlaybackServer& server, const std::string& sName, iniManager& config, pml::filewatch::Observer& observer) :
+LoggerObserver::LoggerObserver(PlaybackServer& server, const std::string& sName, const iniManager& config, pml::filewatch::Observer& observer) :
 m_server(server),
 m_sName(sName)
 {
     std::filesystem::path pathAudio = config.Get(jsonConsts::path, jsonConsts::audio, ".");
     
+    m_nFileLength = config.Get(jsonConsts::aoip, jsonConsts::filelength, 1L);
 
     auto pSection = config.GetSection(jsonConsts::keep);
     if(pSection)
@@ -28,10 +29,10 @@ m_sName(sName)
                     auto path = pathAudio;
                     path /= key;
                     path /= m_sName;
+                    
                     m_mFiles.try_emplace(key, EnumFiles(path, "."+key));
-
-                    auto nWatch = observer.AddWatch(path, pml::filewatch::Observer::CREATED | pml::filewatch::Observer::DELETED, false);
-                    if(nWatch != 0)
+                    
+                    if(auto nWatch = observer.AddWatch(path, pml::filewatch::Observer::CREATED | pml::filewatch::Observer::DELETED, false); nWatch != 0)
                     {
                         m_mWatches.try_emplace(nWatch, key);
                         observer.AddWatchHandler(nWatch, std::bind(&LoggerObserver::OnFileCreated, this, _1, _2, _3, _4), pml::filewatch::Observer::enumWatch::CREATED);
@@ -125,10 +126,19 @@ void LoggerObserver::OnFileDeleted(int nWd, const std::filesystem::path& path, u
     }
 }
 
+std::pair<std::chrono::minutes, std::chrono::seconds> LoggerObserver::GetBaseFileName(unsigned long nTime) const
+{
+     //get the base start time
+    auto nBase = nTime / 60;
+    nBase -= (nBase % m_nFileLength);
+
+    //get the difference between the base start time and asked for time
+    return {std::chrono::minutes(nBase), std::chrono::seconds(nTime - (nBase*60))};
+}
 
 pml::restgoose::response LoggerObserver::CreateDownloadFile(const std::string& sType, const query& theQuery) const
 {
-    if(auto itFiles = GetEncodedFiles().find(sType); itFiles != GetEncodedFiles().end())
+    if(auto itFiles = GetEncodedFiles().find(sType); itFiles != GetEncodedFiles().end() && itFiles->second.empty() == false)
     {
         auto itStart = theQuery.find(queryKey("start_time"));
         auto itEnd = theQuery.find(queryKey("end_time"));
@@ -137,24 +147,28 @@ pml::restgoose::response LoggerObserver::CreateDownloadFile(const std::string& s
             return pml::restgoose::response(400, "No start time or end time sent");
         }
 
+
         try
-        {
-            auto nStart = std::stoul(itStart->second.Get());
-            auto nEnd = std::stoul(itEnd->second.Get());
-            auto tpStart = std::chrono::system_clock::from_time_t(time_t(std::min(nStart, nEnd)));
-            auto tpEnd = std::chrono::system_clock::from_time_t(time_t(std::max(nStart, nEnd)));
-
+        {       
+            auto [baseStart, diffStart] = GetBaseFileName(std::min(std::stoul(itStart->second.Get()), std::stoul(itEnd->second.Get())));
+            auto [baseEnd, diffEnd] = GetBaseFileName(std::max(std::stoul(itStart->second.Get()), std::stoul(itEnd->second.Get())));
+           
             //check we have all the necessary files
-            std::vector<std::string> vFiles;
+            std::vector<std::filesystem::path> vFiles;
 
-            for(auto tp  = tpStart; tp <= tpEnd; tp+=std::chrono::minutes(1))
+            auto audioPath = (*itFiles->second.begin()).parent_path();
+
+            for(auto tp  = baseStart; tp <= baseEnd; tp+=std::chrono::minutes(m_nFileLength))
             {
-                auto sFile = ConvertTimeToString(tp, "%Y-%m-%DT%H-%M");
-                if(itFiles->second.find(sFile) == itFiles->second.end())
+                auto path = audioPath;
+                path /= std::to_string(tp.count());
+                path.replace_extension(sType);
+
+                if(itFiles->second.find(path) == itFiles->second.end())
                 {
-                    return pml::restgoose::response(500, "File "+sFile+" is missing");
+                    return pml::restgoose::response(500, "File "+path.stem().string()+" is missing");
                 }
-                vFiles.push_back(sFile);
+                vFiles.push_back(path);
             }
 
             //now use ffmpeg to create a single file from these files....

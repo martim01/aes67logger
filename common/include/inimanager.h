@@ -153,7 +153,6 @@ private:
     std::filesystem::path m_filepath;
 
     void DeleteSections();
-public:
 
 };
 

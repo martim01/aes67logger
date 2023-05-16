@@ -46,7 +46,7 @@ bool LoggerApp::Init(const std::filesystem::path& config)
     m_pServer->Run();
 
 
-    m_heartbeatGap = std::chrono::milliseconds(m_config.Get(jsonConsts::heartbeat, jsonConsts::gap, 10000l));
+    m_heartbeatGap = std::chrono::milliseconds(m_config.Get(jsonConsts::heartbeat, jsonConsts::gap, 10000L));
 
     return true;
 
@@ -90,7 +90,7 @@ bool LoggerApp::LoadConfig(const std::filesystem::path& config)
 
         m_bUseTransmissionTime = m_config.GetBool(jsonConsts::aoip, jsonConsts::useTransmission, false);
 
-        m_nFileLength = m_config.Get(jsonConsts::aoip, jsonConsts::filelength, 1l);
+        m_nFileLength = m_config.Get(jsonConsts::aoip, jsonConsts::filelength, 1L);
 
         try
         {
@@ -114,8 +114,8 @@ bool LoggerApp::LoadConfig(const std::filesystem::path& config)
 
 void LoggerApp::CreateLogging()
 {
-    auto nConsole = m_config.Get(jsonConsts::logs, jsonConsts::console, -1l);
-    auto nFile = m_config.Get(jsonConsts::logs, jsonConsts::file, 2l);
+    auto nConsole = m_config.Get(jsonConsts::logs, jsonConsts::console, -1L);
+    auto nFile = m_config.Get(jsonConsts::logs, jsonConsts::file, 2L);
     if(nConsole > -1)
     {
         if(m_nLogOutputConsole == -1)
@@ -148,7 +148,7 @@ void LoggerApp::CreateLogging()
 
 void LoggerApp::StartRecording()
 {
-    m_pClient = std::make_unique<pml::aoip::AoipClient>(m_config.Get(jsonConsts::aoip, jsonConsts::interface, "eth0"), m_config.Get(jsonConsts::general, jsonConsts::name, "test"), m_config.Get(jsonConsts::aoip, jsonConsts::buffer, 4096l));
+    m_pClient = std::make_unique<pml::aoip::AoipClient>(m_config.Get(jsonConsts::aoip, jsonConsts::interface, "eth0"), m_config.Get(jsonConsts::general, jsonConsts::name, "test"), m_config.Get(jsonConsts::aoip, jsonConsts::buffer, 4096L));
 
     m_pClient->AddAudioCallback(std::bind(&LoggerApp::WriteToSoundFile, this, _1, _2));
     m_pClient->AddQosCallback(std::bind(&LoggerApp::QoSCallback, this, _1, _2));
@@ -366,10 +366,10 @@ void LoggerApp::WriteToSoundFile(std::shared_ptr<pml::aoip::AoIPSource>, std::sh
         nFileName -= (nFileName % m_nFileLength);   //round so files are the correct length
         filePath /= std::to_string(nFileName)+".wav";
 
-        if(m_sf.GetFilename() != filePath)
+        if(m_sf.GetFile() != filePath)
         {
             m_sf.Close();
-            m_sf.OpenToWrite(filePath.string(), (unsigned short)m_subsession.nChannels, m_subsession.nSampleRate, 24);   //bit depth =0 implies float
+            m_sf.OpenToWrite(filePath, (unsigned short)m_subsession.nChannels, m_subsession.nSampleRate, 24);   //bit depth =0 implies float
 
             OutputFileJson();
         }
@@ -389,10 +389,9 @@ void LoggerApp::WriteToSoundFile(std::shared_ptr<pml::aoip::AoIPSource>, std::sh
 
 void LoggerApp::OutputFileJson()
 {
-    std::filesystem::path pathWav(m_sf.GetFilename());
     m_jsStatus[jsonConsts::id] = m_sName;
-    m_jsStatus[jsonConsts::file][jsonConsts::filename] = pathWav.stem().string();
-    m_jsStatus[jsonConsts::file][jsonConsts::filepath] = pathWav.string();
+    m_jsStatus[jsonConsts::file][jsonConsts::filename] = m_sf.GetFile().stem().string();
+    m_jsStatus[jsonConsts::file][jsonConsts::filepath] = m_sf.GetFile().string();
     m_jsStatus[jsonConsts::file][jsonConsts::open] = m_sf.IsOpen();
     JsonWriter::Get().writeToSocket(m_jsStatus, m_pServer);
 
