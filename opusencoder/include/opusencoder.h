@@ -47,7 +47,7 @@ class OpusEncoder
         std::shared_ptr<AsioServer> m_pServer = nullptr;
 
         std::queue<std::filesystem::path> m_qToEncode;
-        size_t m_nBufferSize = 4096;
+        size_t m_nBufferSize = 65536;
 
         iniManager m_config;
         std::filesystem::path m_pathSockets;

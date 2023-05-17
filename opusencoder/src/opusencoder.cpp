@@ -133,9 +133,11 @@ std::filesystem::path OpusEncoder::GetNextFile()
     {
         path = m_qToEncode.front();
         m_qToEncode.pop();
+	pmlLog(pml::LOG_DEBUG) << "Queue=" << m_qToEncode.size();
     }
     jsStatus["encoding"] = path.string();
     
+    pmlLog(pml::LOG_DEBUG) << jsStatus;
     JsonWriter::Get().writeToSocket(jsStatus, m_pServer);
 
     return path;
@@ -143,6 +145,8 @@ std::filesystem::path OpusEncoder::GetNextFile()
 
 int OpusEncoder::Run()
 {
+    pmlLog(pml::LOG_DEBUG) << "Run";
+
     CreateInitialFileQueue();
     StartObserver();
 
@@ -160,8 +164,11 @@ int OpusEncoder::Run()
                 m_condition.wait(lk, [this]{return m_qToEncode.empty() == false;});
             }
         }
+	pmlLog(pml::LOG_DEBUG) << "Finished OK";
         return 0;
     }
+    pmlLog(pml::LOG_DEBUG) << "Finished ERROR";
+
     return -1;
 }
 
@@ -186,22 +193,32 @@ bool OpusEncoder::EncodeFile(const std::filesystem::path& wavFile)
         SendError("Could not read wav file", wavFile);
         return false;
     }
+    pmlLog(pml::LOG_DEBUG) << "Opened wav fie " << wavFile;
+    auto path = m_pathOpus;
+    path /= wavFile.stem();
+    path.replace_extension(".opus");
+
     if(m_pEncoder == nullptr)
     {
-        m_pEncoder = ope_encoder_create_file(wavFile.stem().string().c_str(), m_pComments, sf.GetSampleRate(), sf.GetChannelCount(), 0, nullptr);
+        m_pEncoder = ope_encoder_create_file(path.string().c_str(), m_pComments, sf.GetSampleRate(), sf.GetChannelCount(), 0, nullptr);
         if(m_pEncoder == nullptr)
-	    {
+        {
             pmlLog(pml::LOG_ERROR) << "Failed to open encoder";
 
             SendError("Could not create encoder", wavFile);
             return false;
         }
-	}
-    else if(ope_encoder_continue_new_file(m_pEncoder, wavFile.stem().string().c_str(), m_pComments ) != OPE_OK)
+        pmlLog(pml::LOG_DEBUG) << "Opened encoder";
+    }
+    else if(ope_encoder_continue_new_file(m_pEncoder, path.string().c_str(), m_pComments ) != OPE_OK)
     {
         pmlLog(pml::LOG_ERROR) << "Failed to open encoder for new file";
         SendError("Could not reopen encoder", wavFile);
         return false;
+    }
+    else
+    {
+	pmlLog(pml::LOG_DEBUG) << "Continue new file " << path;
     }
 
     std::vector<float> vBuffer(m_nBufferSize);
@@ -215,7 +232,7 @@ bool OpusEncoder::EncodeFile(const std::filesystem::path& wavFile)
                 pmlLog(pml::LOG_WARN) << "Failed to set LSB_DEPTH, continuing anyway...";
                 SendError("Failed to set LSB_DEPTH", wavFile);
             }
-            if(ope_encoder_write_float(m_pEncoder, vBuffer.data(), vBuffer.size()) != OPE_OK)
+            if(ope_encoder_write_float(m_pEncoder, vBuffer.data(), vBuffer.size()/2) != OPE_OK)
             {
                 pmlLog(pml::LOG_ERROR) << "Failed to encode file " << wavFile.string();
                 SendError("Failed to encode file", wavFile);
@@ -224,7 +241,7 @@ bool OpusEncoder::EncodeFile(const std::filesystem::path& wavFile)
         }
 
     } while (bOk && vBuffer.size() == m_nBufferSize);
-
+    pmlLog() << "Encoded " << path;
     return true;
 }
 
@@ -257,6 +274,7 @@ void OpusEncoder::CreateInitialFileQueue()
         //and add all the files to the queue
         for(const auto& [name, path] : mWavFiles)
         {
+	   pmlLog(pml::LOG_DEBUG) << "Add " << path << " to queue";
             m_qToEncode.push(path);
         }
     }
@@ -270,7 +288,7 @@ void OpusEncoder::CreateInitialFileQueue()
 
 void OpusEncoder::StartObserver()
 {
-    auto nWatch = m_observer.AddWatch(m_pathWav, pml::filewatch::Observer::CLOSED, false);
+    auto nWatch = m_observer.AddWatch(m_pathWav, pml::filewatch::Observer::CLOSED_WRITE, false);
     if(nWatch != -1)
     {
         m_observer.AddWatchHandler(nWatch, std::bind(&OpusEncoder::OnWavWritten, this, _1, _2, _3, _4), pml::filewatch::Observer::enumWatch::CLOSED);
@@ -285,6 +303,9 @@ void OpusEncoder::StartObserver()
 void OpusEncoder::OnWavWritten(int nWd, const std::filesystem::path& path, uint32_t mask, bool bDirectory)
 {
     std::scoped_lock<std::mutex> lg(m_mutex);
+   
+     pmlLog(pml::LOG_DEBUG) << "Add " << path << " to queue now its written";
+
     m_qToEncode.push(path);
     m_condition.notify_one();
 }
@@ -296,4 +317,5 @@ void OpusEncoder::SendError(const std::string& sMessage, const std::filesystem::
     jsStatus["message"] = sMessage;
     jsStatus["path"] = path.string();
     JsonWriter::Get().writeToSocket(jsStatus, m_pServer);
+    pmlLog(pml::LOG_DEBUG) << jsStatus;
 }
