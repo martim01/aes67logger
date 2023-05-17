@@ -11,7 +11,7 @@
 class OpusEncoder
 {
     public:
-        OpusEncoder() = default;
+        OpusEncoder();
         ~OpusEncoder();
 
 
@@ -59,6 +59,7 @@ class OpusEncoder
         std::condition_variable m_condition;
 
         pml::filewatch::Observer m_observer;
+        std::chrono::time_point<std::chrono::system_clock> m_tpStart;
 
         bool m_bRun = true;
 

@@ -8,6 +8,11 @@
 
 using namespace std::placeholders;
 
+OpusEncoder::OpusEncoder() : m_tpStart(std::chrono::system_clock::now())
+{
+
+}
+
 OpusEncoder::~OpusEncoder()
 {
     if(m_pEncoder)
@@ -134,14 +139,7 @@ std::filesystem::path OpusEncoder::GetNextFile()
         pmlLog(pml::LOG_DEBUG) << "Queue=" << m_qToEncode.size();
     }
 
-    Json::Value jsStatus;
-    jsStatus["action"] = "status";
-    jsStatus["queue"] = m_qToEncode.size();
-    jsStatus["encoded"] = 0.0;
-    jsStatus["encoding"] = path.string();
-        
-    pmlLog(pml::LOG_DEBUG) << jsStatus;
-    JsonWriter::Get().writeToSocket(jsStatus, m_pServer);
+    OutputEncodedStats(path, 0.0);
 
     return path;
 }
@@ -328,20 +326,32 @@ void OpusEncoder::OnWavWritten(int nWd, const std::filesystem::path& path, uint3
 void OpusEncoder::SendError(const std::string& sMessage, const std::filesystem::path& path)
 {
     Json::Value jsStatus;
+    jsStatus[jsonConsts::id] = m_pathSockets.stem();
     jsStatus["action"] = "error";
     jsStatus["message"] = sMessage;
     jsStatus["path"] = path.string();
     JsonWriter::Get().writeToSocket(jsStatus, m_pServer);
+    
+    jsStatus[jsonConsts::heartbeat][jsonConsts::timestamp] = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    jsStatus[jsonConsts::heartbeat][jsonConsts::start_time] = std::chrono::duration_cast<std::chrono::seconds>(m_tpStart.time_since_epoch()).count();
+    jsStatus[jsonConsts::heartbeat][jsonConsts::up_time] = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now()-m_tpStart).count();
+    
     pmlLog(pml::LOG_DEBUG) << jsStatus;
 }
 
 void OpusEncoder::OutputEncodedStats(const std::filesystem::path& wavFile, double dDone)
 {
     Json::Value jsStatus;
+    jsStatus[jsonConsts::id] = m_pathSockets.stem();
     jsStatus["action"] = "status";
     jsStatus["encoding"] = wavFile.string();
     jsStatus["queue"] = m_qToEncode.size();
     jsStatus["encoded"] = dDone;
+
+    jsStatus[jsonConsts::heartbeat][jsonConsts::timestamp] = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    jsStatus[jsonConsts::heartbeat][jsonConsts::start_time] = std::chrono::duration_cast<std::chrono::seconds>(m_tpStart.time_since_epoch()).count();
+    jsStatus[jsonConsts::heartbeat][jsonConsts::up_time] = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now()-m_tpStart).count();
+
     JsonWriter::Get().writeToSocket(jsStatus, m_pServer);
     pmlLog(pml::LOG_DEBUG) << jsStatus;
 }
