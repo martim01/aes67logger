@@ -145,9 +145,9 @@ message(STATUS "Configure aoip")
 add_subdirectory(${DIR_AOIP} ${DIR_AOIP}/build)
 
 add_subdirectory(logger)
-add_subdirectory(loggermanager)
+add_subdirectory(loggingserver)
 
-add_subdirectory(encoderserver)
+add_subdirectory(encodingserver)
 add_subdirectory(opusencoder)
 add_subdirectory(flacencoder)
 
