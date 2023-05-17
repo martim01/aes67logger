@@ -35,6 +35,7 @@ class OpusEncoder
         void OnWavWritten(int nWd, const std::filesystem::path& path, uint32_t mask, bool bDirectory);
 
         void SendError(const std::string& sMessage, const std::filesystem::path& path);
+        void OutputEncodedStats(const std::filesystem::path& wavFile, double dDone);
 
         std::filesystem::path GetNextFile();
 
@@ -60,4 +61,6 @@ class OpusEncoder
         pml::filewatch::Observer m_observer;
 
         bool m_bRun = true;
+
+        size_t m_nFileEncoded = 0;
 };

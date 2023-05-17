@@ -18,7 +18,7 @@
 #include "jsonconsts.h"
 #include <iomanip>
 
-#include "loggermanager_version.h"
+#include "loggingserver_version.h"
 
 using namespace std::placeholders;
 using namespace pml;
@@ -119,7 +119,7 @@ void Server::InitLogging()
         if(m_nLogToFile == -1)
         {
             std::filesystem::path pathLog = m_config.Get(jsonConsts::path,jsonConsts::log,".");
-            pathLog /= "loggermanager";
+            pathLog /= "loggingserver";
             m_nLogToFile = pml::LogStream::AddOutput(std::make_unique<pml::LogToFile>(pathLog));
         }
         pml::LogStream::SetOutputLevel(m_nLogToFile, pml::enumLevel(m_config.Get("logging", "file", (long)pml::LOG_INFO)));
@@ -164,7 +164,7 @@ int Server::Run(const std::string& sConfigFile)
                                           methodpoint(pml::restgoose::GET, endpoint("/uikit/*")),
                                           methodpoint(pml::restgoose::GET, endpoint("/images/*"))});
 
-        m_server.SetStaticDirectory(m_config.Get(jsonConsts::api,jsonConsts::static_pages, "/var/www"));
+        m_server.SetStaticDirectory(m_config.Get(jsonConsts::api,jsonConsts::static_pages, "/var/www/loggingserver"));
 
 
         //add luauncher callbacks
@@ -529,15 +529,15 @@ pml::restgoose::response Server::GetUpdate(const query&, const postData&, const 
     //get all the version numbers...
     pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "GetUpdate" ;
     pml::restgoose::response theResponse;
-    theResponse.jsonData[jsonConsts::server][jsonConsts::git][jsonConsts::rev] = pml::loggermanager::GIT_REV;
-    theResponse.jsonData[jsonConsts::server][jsonConsts::git][jsonConsts::tag] = pml::loggermanager::GIT_TAG;
-    theResponse.jsonData[jsonConsts::server][jsonConsts::git][jsonConsts::branch] = pml::loggermanager::GIT_BRANCH;
-    theResponse.jsonData[jsonConsts::server][jsonConsts::git][jsonConsts::date] = pml::loggermanager::GIT_DATE;
-    theResponse.jsonData[jsonConsts::server][jsonConsts::major] = pml::loggermanager::VERSION_MAJOR;
-    theResponse.jsonData[jsonConsts::server][jsonConsts::minor] = pml::loggermanager::VERSION_MINOR;
-    theResponse.jsonData[jsonConsts::server][jsonConsts::patch] = pml::loggermanager::VERSION_PATCH;
-    theResponse.jsonData[jsonConsts::server][jsonConsts::version] = pml::loggermanager::VERSION_STRING;
-    theResponse.jsonData[jsonConsts::server][jsonConsts::date] = pml::loggermanager::BUILD_TIME;
+    theResponse.jsonData[jsonConsts::server][jsonConsts::git][jsonConsts::rev] = pml::loggingserver::GIT_REV;
+    theResponse.jsonData[jsonConsts::server][jsonConsts::git][jsonConsts::tag] = pml::loggingserver::GIT_TAG;
+    theResponse.jsonData[jsonConsts::server][jsonConsts::git][jsonConsts::branch] = pml::loggingserver::GIT_BRANCH;
+    theResponse.jsonData[jsonConsts::server][jsonConsts::git][jsonConsts::date] = pml::loggingserver::GIT_DATE;
+    theResponse.jsonData[jsonConsts::server][jsonConsts::major] = pml::loggingserver::VERSION_MAJOR;
+    theResponse.jsonData[jsonConsts::server][jsonConsts::minor] = pml::loggingserver::VERSION_MINOR;
+    theResponse.jsonData[jsonConsts::server][jsonConsts::patch] = pml::loggingserver::VERSION_PATCH;
+    theResponse.jsonData[jsonConsts::server][jsonConsts::version] = pml::loggingserver::VERSION_STRING;
+    theResponse.jsonData[jsonConsts::server][jsonConsts::date] = pml::loggingserver::BUILD_TIME;
 
     auto js = ConvertToJson(Exec("logger -v"));
     if(js)

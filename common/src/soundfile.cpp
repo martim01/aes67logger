@@ -165,3 +165,8 @@ int SoundFile::GetBitDepth() const
     }
     return -1;
 }
+
+unsigned int SoundFile::GetFileLength() const
+{
+    return m_pHandle ? (m_pHandle->frames()*m_pHandle->channels()) : 0;
+}

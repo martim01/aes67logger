@@ -78,7 +78,7 @@ int main(int argc,  char** argv)
 
     if(argc < 2)
     {
-        std::cout << "Usage: loggermanager [config file full path]" << std::endl;
+        std::cout << "Usage: loggingserver [config file full path]" << std::endl;
         return -1;
     }
 

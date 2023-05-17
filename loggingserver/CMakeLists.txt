@@ -20,7 +20,7 @@ link_directories("../lib")
 
 
 
-add_executable(loggingserver "../common/src/jsonconsts.cpp" "../common/src/inimanager.cpp" "../common/src/aes67utils.cpp" "../common/src/inisection.cpp" "${DIR_JSON}/dist/jsoncpp.cpp" "src/launcher.cpp"  "../common/src/session.cpp" "src/launchmanager.cpp" "src/main.cpp" "src/ntpstatus.cpp" "src/proccheck.cpp" "src/server.cpp" "src/sysinfomanager.cpp" "../common/uuid/guid.cpp" "../common/uuid/md5.cpp" ${CMAKE_BINARY_DIR}/src/${PROJECT_NAME}_version.cpp)
+add_executable(loggingserver "../common/src/jsonconsts.cpp" "../common/src/inimanager.cpp" "../common/src/aes67utils.cpp" "../common/src/inisection.cpp" "${DIR_JSON}/dist/jsoncpp.cpp" "src/launcher.cpp"  "../common/src/session.cpp" "src/launchmanager.cpp" "src/main.cpp" "../common/src/ntpstatus.cpp" "../common/src/proccheck.cpp" "src/server.cpp" "../common/src/sysinfomanager.cpp" "../common/uuid/guid.cpp" "../common/uuid/md5.cpp" ${CMAKE_BINARY_DIR}/src/${PROJECT_NAME}_version.cpp)
 
 list(APPEND flags "-fPIC" "-Wall" "-fpermissive"  "-std=c++17")
 if(CMAKE_BUILD_TYPE MATCHES Release)

@@ -125,16 +125,19 @@ std::filesystem::path OpusEncoder::GetNextFile()
     std::scoped_lock<std::mutex> lg(m_mutex);
     std::filesystem::path path;
             
-    Json::Value jsStatus;
-    jsStatus["action"] = "status";
-    jsStatus["queue"] = m_qToEncode.size();
-
+    
+    
     if(m_qToEncode.empty() == false)
     {
         path = m_qToEncode.front();
         m_qToEncode.pop();
-	pmlLog(pml::LOG_DEBUG) << "Queue=" << m_qToEncode.size();
+	    pmlLog(pml::LOG_DEBUG) << "Queue=" << m_qToEncode.size();
     }
+
+    Json::Value jsStatus;
+    jsStatus["action"] = "status";
+    jsStatus["queue"] = m_qToEncode.size();
+    jsStatus["encoded"] = 0.0;
     jsStatus["encoding"] = path.string();
     
     pmlLog(pml::LOG_DEBUG) << jsStatus;
@@ -198,6 +201,8 @@ bool OpusEncoder::EncodeFile(const std::filesystem::path& wavFile)
     path /= wavFile.stem();
     path.replace_extension(".opus");
 
+    m_nFileEncoded = 0;
+
     if(m_pEncoder == nullptr)
     {
         m_pEncoder = ope_encoder_create_file(path.string().c_str(), m_pComments, sf.GetSampleRate(), sf.GetChannelCount(), 0, nullptr);
@@ -218,8 +223,10 @@ bool OpusEncoder::EncodeFile(const std::filesystem::path& wavFile)
     }
     else
     {
-	pmlLog(pml::LOG_DEBUG) << "Continue new file " << path;
+	    pmlLog(pml::LOG_DEBUG) << "Continue new file " << path;
     }
+
+    auto tpStart = std::chrono::system_clock::now();
 
     std::vector<float> vBuffer(m_nBufferSize);
     bool bOk = true;
@@ -227,6 +234,8 @@ bool OpusEncoder::EncodeFile(const std::filesystem::path& wavFile)
     {
         if((bOk = sf.ReadAudio(vBuffer)))
         {
+            m_nFileEncoded += vBuffer.size();
+
             if(ope_encoder_ctl(m_pEncoder, OPUS_SET_LSB_DEPTH(24)) != OPE_OK)
             {
                 pmlLog(pml::LOG_WARN) << "Failed to set LSB_DEPTH, continuing anyway...";
@@ -238,6 +247,12 @@ bool OpusEncoder::EncodeFile(const std::filesystem::path& wavFile)
                 SendError("Failed to encode file", wavFile);
                 bOk = false;
             }
+        }
+        auto elapsed = std::chrono::system_clock::now()-tpStart;
+        if(std::chrono::duration_cast<std::chrono::seconds>(elapsed).count() > 2)
+        {
+            OutputEncodedStats(wavFile, static_cast<double>(m_nFileEncoded)/static_cast<double>(sf.GetFileLength()));
+            tpStart = std::chrono::system_clock::now();
         }
 
     } while (bOk && vBuffer.size() == m_nBufferSize);
@@ -318,4 +333,14 @@ void OpusEncoder::SendError(const std::string& sMessage, const std::filesystem::
     jsStatus["path"] = path.string();
     JsonWriter::Get().writeToSocket(jsStatus, m_pServer);
     pmlLog(pml::LOG_DEBUG) << jsStatus;
+}
+
+void OpusEncoder::OutputEncodedStats(const std::filesystem::path& wavFile, double dDone)
+{
+    Json::Value jsStatus;
+    jsStatus["action"] = "status";
+    jsStatus["encoding"] = wavFile.string();
+    jsStatus["queue"] = m_qToEncode.size();
+    jsStatus["encoded"] = dDone;
+    JsonWriter::Get().writeToSocket(jsStatus, m_pServer);
 }

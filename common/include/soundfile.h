@@ -18,6 +18,7 @@ public:
 
 	bool Close(void);
 	unsigned int GetLengthWritten() const;
+	unsigned int GetFileLength() const;
 
 	bool OpenToRead(const std::filesystem::path& path);
 
