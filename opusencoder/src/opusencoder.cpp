@@ -131,7 +131,7 @@ std::filesystem::path OpusEncoder::GetNextFile()
     {
         path = m_qToEncode.front();
         m_qToEncode.pop();
-	    pmlLog(pml::LOG_DEBUG) << "Queue=" << m_qToEncode.size();
+        pmlLog(pml::LOG_DEBUG) << "Queue=" << m_qToEncode.size();
     }
 
     Json::Value jsStatus;
@@ -139,7 +139,7 @@ std::filesystem::path OpusEncoder::GetNextFile()
     jsStatus["queue"] = m_qToEncode.size();
     jsStatus["encoded"] = 0.0;
     jsStatus["encoding"] = path.string();
-    
+        
     pmlLog(pml::LOG_DEBUG) << jsStatus;
     JsonWriter::Get().writeToSocket(jsStatus, m_pServer);
 
@@ -164,7 +164,7 @@ int OpusEncoder::Run()
             else
             {
                 std::unique_lock<std::mutex> lk(m_mutex);
-                m_condition.wait(lk, [this]{return m_qToEncode.empty() == false;});
+                m_condition.wait_for(lk, std::chrono::seconds(2), [this]{return m_qToEncode.empty() == false;});
             }
         }
 	pmlLog(pml::LOG_DEBUG) << "Finished OK";
@@ -248,8 +248,8 @@ bool OpusEncoder::EncodeFile(const std::filesystem::path& wavFile)
                 bOk = false;
             }
         }
-        auto elapsed = std::chrono::system_clock::now()-tpStart;
-        if(std::chrono::duration_cast<std::chrono::seconds>(elapsed).count() > 2)
+        auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now()-tpStart);
+        if(elapsed.count() > 2)
         {
             OutputEncodedStats(wavFile, static_cast<double>(m_nFileEncoded)/static_cast<double>(sf.GetFileLength()));
             tpStart = std::chrono::system_clock::now();
@@ -343,4 +343,5 @@ void OpusEncoder::OutputEncodedStats(const std::filesystem::path& wavFile, doubl
     jsStatus["queue"] = m_qToEncode.size();
     jsStatus["encoded"] = dDone;
     JsonWriter::Get().writeToSocket(jsStatus, m_pServer);
+    pmlLog(pml::LOG_DEBUG) << jsStatus;
 }
