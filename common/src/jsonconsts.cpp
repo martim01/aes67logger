@@ -112,3 +112,8 @@ const std::string jsonConsts::flac               = "flac";
 const std::string jsonConsts::filelength         = "filelength";
 
 const std::string jsonConsts::created            = "created";
+
+const std::string jsonConsts::encoders           = "encoders";
+const std::string jsonConsts::action             = "action";
+const std::string jsonConsts::queue              = "queue";
+const std::string jsonConsts::encoded            = "encoded";

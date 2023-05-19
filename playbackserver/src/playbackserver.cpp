@@ -13,195 +13,43 @@
 using namespace std::placeholders;
 using namespace pml;
 
-const std::string PlaybackServer::ROOT        = "/";             //GET
-const std::string PlaybackServer::API         = "x-api";          //GET
-const std::string PlaybackServer::LOGIN       = "login";
 const std::string PlaybackServer::LOGGERS     = "loggers";
 const std::string PlaybackServer::DOWNLOAD    = "download";
-const std::string PlaybackServer::WS          = "ws";
 
-const endpoint PlaybackServer::EP_ROOT        = endpoint("");
-const endpoint PlaybackServer::EP_API         = endpoint(ROOT+API);
-const endpoint PlaybackServer::EP_LOGIN       = endpoint(EP_API.Get()+"/"+LOGIN);
 const endpoint PlaybackServer::EP_LOGGERS     = endpoint(EP_API.Get()+"/"+LOGGERS);
 const endpoint PlaybackServer::EP_WS          = endpoint(EP_API.Get()+"/"+WS);
-const endpoint PlaybackServer::EP_WS_LOGGERS  = endpoint(EP_API.Get()+"/"+WS+"/"+LOGGERS);
+const endpoint PlaybackServer::EP_WS_LOGGERS  = endpoint(EP_WS.Get()+"/"+LOGGERS);
 
 
-static pml::restgoose::response ConvertPostDataToJson(const postData& vData)
+
+PlaybackServer::PlaybackServer() : Server()
 {
-    pml::restgoose::response resp(404, "No data sent or incorrect data sent");
-    if(vData.size() == 1)
-    {
-        auto js = ConvertToJson(vData[0].data.Get());
-        if(js)
-        {
-            resp.nHttpCode = 200;
-            resp.jsonData = *js;
-        }
-        else
-        {
-            resp.nHttpCode = 400;
-        }
-    }
-    else if(vData.size() > 1)
-    {
-        resp.nHttpCode = 200;
-        resp.jsonData.clear();
-        for(size_t i = 0; i < vData.size(); i++)
-        {
-            pmlLog() << "ConvertPostDataToJson: data " << i <<"=" << vData[i].data.Get();
-            if(vData[i].name.Get().empty() == false)
-            {
-                if(vData[i].filepath.Get().empty() == true)
-                {
-                    resp.jsonData[vData[i].name.Get()] = vData[i].data.Get();
-                }
-                else
-                {
-                    resp.jsonData[vData[i].name.Get()][jsonConsts::name] = vData[i].data.Get();
-                    resp.jsonData[vData[i].name.Get()][jsonConsts::location] = vData[i].filepath.Get();
-                }
-            }
-        }
-    }
-    return resp;
-}
-
-
-PlaybackServer::PlaybackServer()=default;
-
-
-
-void PlaybackServer::InitLogging()
-{
-    if(m_config.Get("logging", "console", 0L) > -1 )
-    {
-        if(m_nLogToConsole == -1)
-        {
-            m_nLogToConsole = pml::LogStream::AddOutput(std::make_unique<pml::LogOutput>());
-        }
-        pml::LogStream::SetOutputLevel(m_nLogToConsole, pml::enumLevel(m_config.Get("logging", "console",(long) pml::LOG_TRACE)));
-    }
-    else if(m_nLogToConsole != -1)
-    {
-        pml::LogStream::RemoveOutput(m_nLogToConsole);
-        m_nLogToConsole = -1;
-    }
-
-    if(m_config.Get("logging", "file", (long)pml::LOG_INFO) > -1)
-    {
-        if(m_nLogToFile == -1)
-        {
-            std::filesystem::path pathLog = m_config.Get(jsonConsts::path,jsonConsts::log,".");
-            pathLog /= "loggermanager";
-            m_nLogToFile = pml::LogStream::AddOutput(std::make_unique<pml::LogToFile>(pathLog));
-        }
-        pml::LogStream::SetOutputLevel(m_nLogToFile, pml::enumLevel(m_config.Get("logging", "file", (long)pml::LOG_INFO)));
-    }
-    else if(m_nLogToFile != -1)
-    {
-        pml::LogStream::RemoveOutput(m_nLogToFile);
-        m_nLogToFile = -1;
-    }
 
 }
 
-int PlaybackServer::Run(const std::string& sConfigFile)
+void PlaybackServer::Init()
 {
-    if(m_config.Read(sConfigFile) == false)
-    {
-        pml::LogStream::AddOutput(std::make_unique<pml::LogOutput>());
-        pmlLog(pml::LOG_CRITICAL) << "Could not open '" << sConfigFile << "' exiting.";
-        return -1;
-    }
-
-    InitLogging();
-
-    pmlLog() << "Core\tStart" ;
-
     m_pManager = std::make_unique<LoggerManager>(*this);
     m_pManager->EnumLoggers();
     m_pManager->WatchLoggerPath();
-
-
-    auto addr = ipAddress(GetIpAddress(m_config.Get(jsonConsts::api, jsonConsts::interface, "eth0")));
-
-    if(m_server.Init(fileLocation(m_config.Get(jsonConsts::api, "sslCert", "")), fileLocation(m_config.Get(jsonConsts::api, "sslKey", "")), 
-    addr, m_config.Get(jsonConsts::api, "port", 8080L), EP_API, true,true))
-    {
-
-        m_server.SetAuthorizationTypeBearer(std::bind(&PlaybackServer::AuthenticateToken, this, _1), std::bind(&PlaybackServer::RedirectToLogin, this), true);
-        m_server.SetUnprotectedEndpoints({methodpoint(pml::restgoose::GET, endpoint("")),
-                                          methodpoint(pml::restgoose::GET, endpoint("/index.html")),
-                                          methodpoint(pml::restgoose::POST, EP_LOGIN),
-                                          methodpoint(pml::restgoose::GET, endpoint("/js/*")),
-                                          methodpoint(pml::restgoose::GET, endpoint("/uikit/*")),
-                                          methodpoint(pml::restgoose::GET, endpoint("/images/*"))});
-
-        m_server.SetStaticDirectory(m_config.Get(jsonConsts::api,jsonConsts::static_pages, "/var/www"));
-
-
-        //add server callbacks
-        CreateEndpoints();
-        
-        AddLoggerEndpoints();
-
-        //start the server loop
-        m_server.Run(false, std::chrono::milliseconds(50));
-
-        pmlLog() << "Core\tStop" ;
-        DeleteEndpoints();
-
-        return 0;
-    }
-    return -2;
 }
 
-bool PlaybackServer::CreateEndpoints()
+void PlaybackServer::AddCustomEndpoints()
 {
-
-    pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "CreateEndpoints" ;
-
-    m_server.AddEndpoint(pml::restgoose::POST, EP_LOGIN, std::bind(&PlaybackServer::PostLogin, this, _1,_2,_3,_4));
-    m_server.AddEndpoint(pml::restgoose::HTTP_DELETE, EP_LOGIN, std::bind(&PlaybackServer::DeleteLogin, this, _1,_2,_3,_4));
-    m_server.AddEndpoint(pml::restgoose::GET, EP_API, std::bind(&PlaybackServer::GetApi, this, _1,_2,_3,_4));
 
     m_server.AddEndpoint(pml::restgoose::GET, EP_LOGGERS, std::bind(&PlaybackServer::GetLoggers, this, _1,_2,_3,_4));
+    AddLoggerEndpoints();
 
-    m_server.AddWebsocketEndpoint(EP_WS, std::bind(&PlaybackServer::WebsocketAuthenticate, this, _1,_2, _3, _4), std::bind(&PlaybackServer::WebsocketMessage, this, _1, _2), std::bind(&PlaybackServer::WebsocketClosed, this, _1, _2));
+    m_server.AddWebsocketEndpoint(EP_WS_LOGGERS, std::bind(&Server::WebsocketAuthenticate, this, _1,_2, _3, _4), std::bind(&Server::WebsocketMessage, this, _1, _2), std::bind(&Server::WebsocketClosed, this, _1, _2));
 
-    m_server.AddWebsocketEndpoint(EP_WS_LOGGERS, std::bind(&PlaybackServer::WebsocketAuthenticate, this, _1,_2, _3, _4), std::bind(&PlaybackServer::WebsocketMessage, this, _1, _2), std::bind(&PlaybackServer::WebsocketClosed, this, _1, _2));
-
-
-    //Add the loop callback function
-    m_server.SetLoopCallback(std::bind(&PlaybackServer::LoopCallback, this, _1));
-
-    return true;
 }
 
 
-void PlaybackServer::DeleteEndpoints()
+void PlaybackServer::DeleteCustomEndpoints()
 {
-
-    pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "DeleteEndpoints" ;
-
-    m_server.DeleteEndpoint(pml::restgoose::GET, EP_API);
-
-
-    m_server.DeleteEndpoint(pml::restgoose::GET, EP_LOGGERS);
-
-    
+    m_server.DeleteEndpoint(pml::restgoose::GET, EP_LOGGERS);   
 }
 
-pml::restgoose::response PlaybackServer::GetRoot(const query& , const postData& , const endpoint& , const userName& ) const
-{
-    pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "GetRoot" ;
-    pml::restgoose::response theResponse;
-    theResponse.jsonData = Json::Value(Json::arrayValue);
-    theResponse.jsonData.append(API);
-    return theResponse;
-}
 
 pml::restgoose::response PlaybackServer::GetApi(const query& , const postData& , const endpoint& , const userName& ) const
 {
@@ -212,6 +60,26 @@ pml::restgoose::response PlaybackServer::GetApi(const query& , const postData& ,
     return theResponse;
 }
 
+Json::Value PlaybackServer::GetVersion() const
+{
+     Json::Value jsonData;
+    jsonData[jsonConsts::server][jsonConsts::git][jsonConsts::rev] = pml::playbackserver::GIT_REV;
+    jsonData[jsonConsts::server][jsonConsts::git][jsonConsts::tag] = pml::playbackserver::GIT_TAG;
+    jsonData[jsonConsts::server][jsonConsts::git][jsonConsts::branch] = pml::playbackserver::GIT_BRANCH;
+    jsonData[jsonConsts::server][jsonConsts::git][jsonConsts::date] = pml::playbackserver::GIT_DATE;
+    jsonData[jsonConsts::server][jsonConsts::major] = pml::playbackserver::VERSION_MAJOR;
+    jsonData[jsonConsts::server][jsonConsts::minor] = pml::playbackserver::VERSION_MINOR;
+    jsonData[jsonConsts::server][jsonConsts::patch] = pml::playbackserver::VERSION_PATCH;
+    jsonData[jsonConsts::server][jsonConsts::version] = pml::playbackserver::VERSION_STRING;
+    jsonData[jsonConsts::server][jsonConsts::date] = pml::playbackserver::BUILD_TIME;
+    return jsonData;
+
+}
+
+Json::Value PlaybackServer::GetCustomStatusSummary() const
+{
+    return Json::Value(Json::objectValue);
+}
 
 void PlaybackServer::AddLoggerEndpoints()
 {
@@ -328,148 +196,6 @@ pml::restgoose::response PlaybackServer::DownloadLoggerFile(const query& theQuer
 }
 
 
-time_t PlaybackServer::GetDateTime(time_t date, const std::vector<std::string>& vLine) const
-{
-    time_t timeMessage(0);
-    std::tm atm= {};
-    atm.tm_isdst = -1;
-
-    if(vLine.empty() == false)
-    {
-        auto sTime = vLine[0];
-        //remove the milliseconds
-        if(auto nPos = sTime.find('.'); nPos != std::string::npos)
-        {
-            sTime = sTime.substr(0,nPos);
-        }
-
-        std::stringstream ssDateTime;
-        ssDateTime << std::put_time(localtime(&date), "%Y-%m-%d");
-        ssDateTime << " " << sTime;
-        ssDateTime >> std::get_time(&atm, "%Y-%m-%d %H:%M:%S");
-        if(ssDateTime.fail())
-        {
-            pmlLog(pml::LOG_DEBUG) << "failed to parse date time: " << ssDateTime.str();
-        }
-        else
-        {
-            if(atm.tm_year < 100)
-            {
-                atm.tm_year += 100;
-            }
-            timeMessage = mktime(&atm);
-        }
-    }
-    return timeMessage;
-}
-
-
-
-void PlaybackServer::LoopCallback(std::chrono::milliseconds durationSince)
-{
-    m_nTimeSinceLastCall += durationSince.count();
-
-
-    if(m_nTimeSinceLastCall > 2000)
-    {
-        m_nTimeSinceLastCall = 0;
-    }
-
-    time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-    tm local_time = *localtime(&now);
-    if(local_time.tm_min == 0 && local_time.tm_sec == 0)
-    {
-        if(m_bLoggedThisHour == false)
-        {
-            m_bLoggedThisHour = true;
-            pmlLog() << GetCurrentTimeAsIsoString() ;
-        }
-    }
-    else
-    {
-        m_bLoggedThisHour = false;
-    }
-}
-
-
-
-bool PlaybackServer::WebsocketAuthenticate(const endpoint&, const query&, const userName& theUser, const ipAddress& peer)
-{
-    ipAddress theSocket = peer;
-
-    if(auto nPos = theSocket.Get().find(':'); nPos != std::string::npos)
-    {
-        theSocket = ipAddress(theSocket.Get().substr(0, nPos));
-    }
-    pmlLog() << "Websocket connection request from " << theSocket;
-    return DoAuthenticateToken(theUser.Get(), theSocket);
-}
-
-bool PlaybackServer::WebsocketMessage(const endpoint&, const Json::Value& jsData) const
-{
-    pmlLog() << "Websocket message '" << jsData << "'";
-    return true;
-}
-
-void PlaybackServer::WebsocketClosed(const endpoint&, const ipAddress& peer) const
-{
-    pmlLog() << "Websocket closed from " << peer;
-}
-
-bool PlaybackServer::AuthenticateToken(const std::string& sToken)
-{
-    return DoAuthenticateToken(sToken, m_server.GetCurrentPeer(false));
-}
-
-bool PlaybackServer::DoAuthenticateToken(const std::string& sToken, const ipAddress& peer)
-{
-    pmlLog() << "AuthenticateToken " << peer << "=" << sToken;
-    if(auto itToken = m_mTokens.find(peer); itToken != m_mTokens.end() && itToken->second->GetId() == sToken)
-    {
-        itToken->second->Accessed();
-        pmlLog() << "AuthenticateToken succes";
-        return true;
-    }
-    pmlLog(pml::LOG_WARN) << "AuthenticateToken failed";
-    return false;
-}
-
-pml::restgoose::response PlaybackServer::PostLogin(const query&, const postData& vData, const endpoint&, const userName&)
-{
-    if(auto theResponse = ConvertPostDataToJson(vData); 
-       theResponse.nHttpCode == 200 && theResponse.jsonData.isMember(jsonConsts::username) && 
-       theResponse.jsonData.isMember(jsonConsts::password) && theResponse.jsonData[jsonConsts::password].asString().empty() == false && 
-       m_config.Get("users", theResponse.jsonData[jsonConsts::username].asString(), "") == theResponse.jsonData[jsonConsts::password].asString())
-    {
-        auto pCookie = std::make_shared<SessionCookie>(userName(theResponse.jsonData[jsonConsts::username].asString()), m_server.GetCurrentPeer(false));
-
-        auto [itToken, ins] = m_mTokens.try_emplace(m_server.GetCurrentPeer(false), pCookie);
-        if(ins == false)
-        {
-            itToken->second = pCookie;
-        }
-
-        pml::restgoose::response resp(200);
-        resp.jsonData["token"] = pCookie->GetId();
-        pmlLog() << "Login complete: ";
-        return resp;
-    }
-    return pml::restgoose::response(401, "Username or password incorrect");
-}
-
-pml::restgoose::response PlaybackServer::DeleteLogin(const query&, const postData&, const endpoint&, const userName&)
-{
-    m_mTokens.erase(m_server.GetCurrentPeer(false));
-    return RedirectToLogin();
-}
-
-pml::restgoose::response PlaybackServer::RedirectToLogin() const
-{
-    pml::restgoose::response theResponse(302);
-    theResponse.mHeaders = {{headerName("Location"), headerValue("/")}};
-    return theResponse;
-}
-
 
 void PlaybackServer::LoggerCreated(const std::string& sLogger, std::shared_ptr<LoggerObserver> pLogger)
 {
@@ -515,4 +241,10 @@ void PlaybackServer::FileDeleted(const std::string& sLogger, const std::filesyst
     jsValue["file"] = path.stem().string();
 
     m_server.SendWebsocketMessage({endpoint(EP_WS_LOGGERS.Get()+"/"+sLogger+"/"+path.extension().string())}, jsValue);
+}
+
+pml::restgoose::response PlaybackServer::GetStatus(const query&, const postData&, const endpoint&, const userName&) const
+{
+    pml::restgoose::response theResponse(200);
+    return theResponse;
 }

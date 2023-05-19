@@ -1,11 +1,11 @@
 #include <iostream>
-#include "encoderserver.h"
+#include "encodingserver.h"
 #include "log.h"
 #include <unistd.h>
 #include <signal.h>
 #include <execinfo.h>
 
-EncoderServer g_server;
+EncodingServer g_server;
 
 static void sig(int signo)
 {

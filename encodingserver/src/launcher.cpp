@@ -286,24 +286,16 @@ void Launcher::CreateSummary()
     m_jsStatusSummary[jsonConsts::name] = m_pathSocket.stem().string();
     m_jsStatusSummary[jsonConsts::running] = IsRunning();
 
-    if(m_jsStatus.isMember(jsonConsts::streaming))
-    {
-        m_jsStatusSummary[jsonConsts::streaming] = m_jsStatus[jsonConsts::streaming];
-    }
-    if(m_jsStatus.isMember(jsonConsts::session))
-    {
-        m_jsStatusSummary[jsonConsts::session] = m_jsStatus[jsonConsts::session][jsonConsts::name];
-    }
-
+    
     if(m_jsStatus.isMember(jsonConsts::heartbeat))
     {
         m_jsStatusSummary[jsonConsts::timestamp] = m_jsStatus[jsonConsts::heartbeat][jsonConsts::timestamp];
         m_jsStatusSummary[jsonConsts::up_time] = m_jsStatus[jsonConsts::heartbeat][jsonConsts::up_time];
     }
 
-    if(m_jsStatus.isMember(jsonConsts::file) && m_jsStatus[jsonConsts::file].isMember(jsonConsts::filename))
+    if(m_jsStatus.isMember(jsonConsts::filename))
     {
-        m_jsStatusSummary[jsonConsts::filename] = m_jsStatus[jsonConsts::file][jsonConsts::filename];
+        m_jsStatusSummary[jsonConsts::filename] = m_jsStatus[jsonConsts::filename];
     }
 
 }

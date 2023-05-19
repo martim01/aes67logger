@@ -5,7 +5,7 @@
 #include "log.h"
 #include "logtofile.h"
 #include <spawn.h>
-#include <sys/wait.h>
+
 #include <sys/types.h>
 //#include "epi_version.h"
 #include <unistd.h>
@@ -14,11 +14,8 @@
 #include "proccheck.h"
 #include <chrono>
 #include "aes67utils.h"
-#include "launcher.h"
 #include "jsonconsts.h"
 #include <iomanip>
-
-#include "loggingserver_version.h"
 
 using namespace std::placeholders;
 using namespace pml;
@@ -26,34 +23,29 @@ using namespace pml;
 const std::string Server::ROOT        = "/";             //GET
 const std::string Server::API         = "x-api";          //GET
 const std::string Server::LOGIN       = "login";
-const std::string Server::LOGGERS     = "loggers";
 const std::string Server::POWER       = "power";
 const std::string Server::CONFIG      = "config";
 const std::string Server::STATUS      = "status";
 const std::string Server::INFO        = "info";
 const std::string Server::UPDATE      = "update";
 const std::string Server::LOGS        = "logs";
-const std::string Server::SOURCES     = "sources";
 const std::string Server::WS          = "ws";        //GET PUT
 
 const endpoint Server::EP_ROOT        = endpoint("");
 const endpoint Server::EP_API         = endpoint(ROOT+API);
 const endpoint Server::EP_LOGIN       = endpoint(EP_API.Get()+"/"+LOGIN);
-const endpoint Server::EP_LOGGERS     = endpoint(EP_API.Get()+"/"+LOGGERS);
 const endpoint Server::EP_POWER       = endpoint(EP_API.Get()+"/"+POWER);
 const endpoint Server::EP_CONFIG      = endpoint(EP_API.Get()+"/"+CONFIG);
-const endpoint Server::EP_SOURCES     = endpoint(EP_API.Get()+"/"+SOURCES);
 const endpoint Server::EP_UPDATE      = endpoint(EP_API.Get()+"/"+UPDATE);
 const endpoint Server::EP_INFO        = endpoint(EP_API.Get()+"/"+INFO);
 const endpoint Server::EP_STATUS      = endpoint(EP_API.Get()+"/"+STATUS);
 const endpoint Server::EP_LOGS        = endpoint(EP_API.Get()+"/"+LOGS);
 const endpoint Server::EP_WS          = endpoint(EP_API.Get()+"/"+WS);
-const endpoint Server::EP_WS_LOGGERS  = endpoint(EP_WS.Get()+"/"+LOGGERS);
 const endpoint Server::EP_WS_INFO     = endpoint(EP_WS.Get()+"/"+INFO);
 const endpoint Server::EP_WS_STATUS   = endpoint(EP_WS.Get()+"/"+STATUS);
 
 
-static pml::restgoose::response ConvertPostDataToJson(const postData& vData)
+pml::restgoose::response ConvertPostDataToJson(const postData& vData)
 {
     pml::restgoose::response resp(404, "No data sent or incorrect data sent");
     if(vData.size() == 1)
@@ -145,9 +137,7 @@ int Server::Run(const std::string& sConfigFile)
 
     pmlLog() << "Core\tStart" ;
 
-    ReadDiscoveryConfig();
-
-
+    
     m_info.SetDiskPath(m_config.Get(jsonConsts::path, jsonConsts::audio, "/var/loggers"));
 
     auto addr = ipAddress(GetIpAddress(m_config.Get(jsonConsts::api, jsonConsts::interface, "eth0")));
@@ -164,11 +154,11 @@ int Server::Run(const std::string& sConfigFile)
                                           methodpoint(pml::restgoose::GET, endpoint("/uikit/*")),
                                           methodpoint(pml::restgoose::GET, endpoint("/images/*"))});
 
-        m_server.SetStaticDirectory(m_config.Get(jsonConsts::api,jsonConsts::static_pages, "/var/www/loggingserver"));
+        m_server.SetStaticDirectory(m_config.Get(jsonConsts::api,jsonConsts::static_pages, "/var/www"));
 
 
-        //add luauncher callbacks
-        m_launcher.Init(m_config, std::bind(&Server::StatusCallback, this, _1,_2), std::bind(&Server::ExitCallback, this, _1,_2,_3));
+        //Derived class init
+        Init();
 
         //add server callbacks
         CreateEndpoints();
@@ -184,13 +174,6 @@ int Server::Run(const std::string& sConfigFile)
     return -2;
 }
 
-void Server::ReadDiscoveryConfig()
-{
-    if(m_discovery.Read(m_config.Get(jsonConsts::path, "discovery","discovery.ini")) == false)
-    {
-        pmlLog(pml::LOG_ERROR) << "Unable to read discovery config file, won't be able to find stream sources";
-    }
-}
 
 bool Server::CreateEndpoints()
 {
@@ -200,11 +183,8 @@ bool Server::CreateEndpoints()
     m_server.AddEndpoint(pml::restgoose::POST, EP_LOGIN, std::bind(&Server::PostLogin, this, _1,_2,_3,_4));
     m_server.AddEndpoint(pml::restgoose::HTTP_DELETE, EP_LOGIN, std::bind(&Server::DeleteLogin, this, _1,_2,_3,_4));
     m_server.AddEndpoint(pml::restgoose::GET, EP_API, std::bind(&Server::GetApi, this, _1,_2,_3,_4));
-    m_server.AddEndpoint(pml::restgoose::GET, EP_SOURCES, std::bind(&Server::GetSources, this, _1,_2,_3,_4));
 
-    m_server.AddEndpoint(pml::restgoose::GET, EP_LOGGERS, std::bind(&Server::GetLoggers, this, _1,_2,_3,_4));
-    m_server.AddEndpoint(pml::restgoose::GET, EP_STATUS, std::bind(&Server::GetLoggersStatus, this, _1,_2,_3,_4));
-    m_server.AddEndpoint(pml::restgoose::POST, EP_LOGGERS, std::bind(&Server::PostLogger, this, _1,_2,_3,_4));
+    m_server.AddEndpoint(pml::restgoose::GET, EP_STATUS, std::bind(&Server::GetStatus, this, _1,_2,_3,_4));
 
     m_server.AddEndpoint(pml::restgoose::GET, EP_CONFIG, std::bind(&Server::GetConfig, this, _1,_2,_3,_4));
     m_server.AddEndpoint(pml::restgoose::PATCH, EP_CONFIG, std::bind(&Server::PatchConfig, this, _1,_2,_3,_4));
@@ -222,35 +202,12 @@ bool Server::CreateEndpoints()
     m_server.AddWebsocketEndpoint(EP_WS, std::bind(&Server::WebsocketAuthenticate, this, _1,_2,_3,_4), std::bind(&Server::WebsocketMessage, this, _1,_2), std::bind(&Server::WebsocketClosed, this, _1,_2));
     m_server.AddWebsocketEndpoint(EP_WS_INFO, std::bind(&Server::WebsocketAuthenticate, this, _1,_2,_3,_4), std::bind(&Server::WebsocketMessage, this, _1,_2), std::bind(&Server::WebsocketClosed, this, _1,_2));
     m_server.AddWebsocketEndpoint(EP_WS_STATUS, std::bind(&Server::WebsocketAuthenticate, this, _1,_2,_3,_4), std::bind(&Server::WebsocketMessage, this, _1,_2), std::bind(&Server::WebsocketClosed, this, _1,_2));
-    m_server.AddWebsocketEndpoint(EP_WS_LOGGERS, std::bind(&Server::WebsocketAuthenticate, this, _1,_2,_3,_4), std::bind(&Server::WebsocketMessage, this, _1,_2), std::bind(&Server::WebsocketClosed, this, _1,_2));
 
-    //now add all the dynamic methodpoints
-    for(const auto& [sName, pLauncher] : m_launcher.GetLaunchers())
-    {
-        AddLoggerEndpoints(sName);
-    }
-
-
-
-
+    AddCustomEndpoints();
     //Add the loop callback function
     m_server.SetLoopCallback(std::bind(&Server::LoopCallback, this, _1));
 
     return true;
-}
-
-void Server::AddLoggerEndpoints(const std::string& sName)
-{
-    m_server.AddEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName), std::bind(&Server::GetLogger, this, _1,_2,_3,_4));
-    m_server.AddEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName+"/"+STATUS), std::bind(&Server::GetLoggerStatus, this, _1,_2,_3,_4));
-    m_server.AddEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName+"/"+CONFIG), std::bind(&Server::GetLoggerConfig, this, _1,_2,_3,_4));
-    m_server.AddEndpoint(pml::restgoose::HTTP_DELETE, endpoint(EP_LOGGERS.Get()+"/"+sName), std::bind(&Server::DeleteLogger, this, _1,_2,_3,_4));
-
-    m_server.AddEndpoint(pml::restgoose::PATCH, endpoint(EP_LOGGERS.Get()+"/"+sName+"/"+CONFIG), std::bind(&Server::PatchLoggerConfig, this, _1,_2,_3,_4));
-
-    m_server.AddEndpoint(pml::restgoose::PUT, endpoint(EP_LOGGERS.Get()+"/"+sName), std::bind(&Server::PutLoggerPower, this, _1,_2,_3,_4));
-
-    m_server.AddWebsocketEndpoint(endpoint(EP_WS_LOGGERS.Get()+"/"+sName), std::bind(&Server::WebsocketAuthenticate, this, _1,_2,_3,_4), std::bind(&Server::WebsocketMessage, this, _1,_2), std::bind(&Server::WebsocketClosed, this, _1,_2));
 }
 
 void Server::DeleteEndpoints()
@@ -259,10 +216,7 @@ void Server::DeleteEndpoints()
     pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "DeleteEndpoints" ;
 
     m_server.DeleteEndpoint(pml::restgoose::GET, EP_API);
-
-
-    m_server.DeleteEndpoint(pml::restgoose::GET, EP_LOGGERS);
-    m_server.DeleteEndpoint(pml::restgoose::POST, EP_LOGGERS);
+    m_server.DeleteEndpoint(pml::restgoose::GET, EP_STATUS);
 
     m_server.DeleteEndpoint(pml::restgoose::GET, EP_CONFIG);
     m_server.DeleteEndpoint(pml::restgoose::PATCH, EP_CONFIG);
@@ -275,17 +229,8 @@ void Server::DeleteEndpoints()
     m_server.DeleteEndpoint(pml::restgoose::GET, EP_UPDATE);
     m_server.DeleteEndpoint(pml::restgoose::PUT, EP_UPDATE);
 
-    //now Delete all the dynamic methodpoints
-    for(const auto& [sName, pLauncher] : m_launcher.GetLaunchers())
-    {
-        m_server.DeleteEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName));
-        m_server.DeleteEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName+"/"+STATUS));
-        m_server.DeleteEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName+"/"+CONFIG));
+    DeleteCustomEndpoints();
 
-        m_server.DeleteEndpoint(pml::restgoose::HTTP_DELETE, endpoint(EP_LOGGERS.Get()+"/"+sName));
-        m_server.DeleteEndpoint(pml::restgoose::PUT, endpoint(EP_LOGGERS.Get()+"/"+sName+"/"+CONFIG));
-
-    }
 }
 
 pml::restgoose::response Server::GetRoot(const query&, const postData&, const endpoint&, const userName&) const
@@ -297,196 +242,6 @@ pml::restgoose::response Server::GetRoot(const query&, const postData&, const en
     return theResponse;
 }
 
-pml::restgoose::response Server::GetApi(const query&, const postData&, const endpoint&, const userName&) const
-{
-    pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "GetApi" ;
-    pml::restgoose::response theResponse;
-    theResponse.jsonData = Json::Value(Json::arrayValue);
-    theResponse.jsonData.append(LOGGERS);
-    theResponse.jsonData.append(POWER);
-    theResponse.jsonData.append(CONFIG);
-    theResponse.jsonData.append(STATUS);
-    theResponse.jsonData.append(INFO);
-    theResponse.jsonData.append(SOURCES);
-    theResponse.jsonData.append(UPDATE);
-    return theResponse;
-}
-
-pml::restgoose::response Server::GetSources(const query&, const postData&, const endpoint&, const userName&) const
-{
-    pml::restgoose::response theResponse;
-    theResponse.jsonData[jsonConsts::rtsp] = GetDiscoveredRtspSources();
-    theResponse.jsonData[jsonConsts::sdp] = GetDiscoveredSdpSources();
-    return theResponse;
-}
-
-Json::Value Server::GetDiscoveredRtspSources() const
-{
-    Json::Value jsArray(Json::arrayValue);
-
-    if(iniManager inirtsp; inirtsp.Read(m_discovery.Get("rtsp", "file", "./rtsp.ini")))
-    {
-        auto pSection = inirtsp.GetSection("rtsp");
-        if(pSection)
-        {
-            for(const auto& [key, value] : pSection->GetData())
-            {
-                jsArray.append(key);
-            }
-        }
-        else
-        {
-            pmlLog(pml::LOG_WARN) << "Read rtsp ini file " << " but no rtsp section";
-        }
-    }
-    else
-    {
-        pmlLog(pml::LOG_WARN) << "Unable to read rtsp ini file ";
-    }
-    return jsArray;
-}
-
-Json::Value Server::GetDiscoveredSdpSources() const
-{
-    Json::Value jsArray(Json::arrayValue);
-
-    for(const auto& entry : std::filesystem::directory_iterator(m_discovery.Get("sdp","path",".")))
-    {
-        jsArray.append(entry.path().stem().string());
-    }
-    return jsArray;
-}
-
-pml::restgoose::response Server::GetLoggersStatus(const query&, const postData&, const endpoint&, const userName&) const
-{
-    pml::restgoose::response theResponse(200);
-    theResponse.jsonData = m_launcher.GetStatusSummary();
-    return theResponse;
-}
-
-pml::restgoose::response Server::GetLoggers(const query&, const postData&, const endpoint&, const userName&) const
-{
-    pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "GetLoggers" ;
-    pml::restgoose::response theResponse;
-    theResponse.jsonData = Json::Value(Json::arrayValue);
-    for(const auto& [sName, pLauncher] : m_launcher.GetLaunchers())
-    {
-        theResponse.jsonData.append(sName);
-    }
-    return theResponse;
-}
-
-pml::restgoose::response Server::GetLogger(const query&, const postData&, const endpoint& theEndpoint, const userName&) const
-{
-    pml::restgoose::response theResponse(400);
-    auto vPath = SplitString(theEndpoint.Get(),'/');
-
-    if(m_launcher.GetLaunchers().find(vPath.back()) != m_launcher.GetLaunchers().end())
-    {
-        theResponse.nHttpCode = 200;
-        theResponse.jsonData.append(CONFIG);
-        theResponse.jsonData.append(STATUS);
-    }
-    else
-    {
-        theResponse.jsonData[jsonConsts::reason].append("Logger '"+vPath.back() + "' not found");
-    }
-    return theResponse;
-}
-
-pml::restgoose::response Server::GetLoggerStatus(const query&, const postData&, const endpoint& theEndpoint, const userName&) const
-{
-    pmlLog() << "Server::GetLogger " << theEndpoint;
-    pml::restgoose::response theResponse(400);
-    auto vPath = SplitString(theEndpoint.Get(),'/');
-    
-    if(auto itLogger = m_launcher.GetLaunchers().find(vPath[vPath.size()-2]); itLogger != m_launcher.GetLaunchers().end())
-    {
-        theResponse.nHttpCode = 200;
-        theResponse.jsonData = itLogger->second->GetJsonStatus();
-    }
-    else
-    {
-        theResponse.jsonData[jsonConsts::reason].append("Logger '"+vPath.back() + "' not found");
-    }
-    return theResponse;
-}
-
-pml::restgoose::response Server::GetLoggerConfig(const query&, const postData&, const endpoint& theEndpoint, const userName& ) const
-{
-    auto vPath = SplitString(theEndpoint.Get(),'/');
-    return m_launcher.GetLoggerConfig(vPath[vPath.size()-2]);
-}
-
-
-pml::restgoose::response Server::PostLogger(const query&, const postData& vData, const endpoint&, const userName&)
-{
-    auto theData = ConvertPostDataToJson(vData);
-    if(theData.nHttpCode == 200)
-    {
-        auto theResponse = m_launcher.AddLogger(theData);
-        if(theResponse.nHttpCode == 200)
-        {
-            AddLoggerEndpoints(theData.jsonData[jsonConsts::name].asString());
-        }
-        return theResponse;
-    }
-    return theData;
-
-}
-
-pml::restgoose::response Server::DeleteLogger(const query&, const postData& vData, const endpoint& theEndpoint, const userName&)
-{
-    auto theResponse = ConvertPostDataToJson(vData);
-    if(theResponse.nHttpCode == 200)
-    {
-        if(theResponse.jsonData.isMember("password") == false)
-        {
-            return pml::restgoose::response(401, "No password sent");
-        }
-        if(theResponse.jsonData["password"].asString() != m_config.Get(jsonConsts::api, jsonConsts::password, "2rnfgesgy8w!"))
-        {
-            return pml::restgoose::response(403, "Password is incorrect");
-        }
-
-        auto vUrl = SplitString(theEndpoint.Get(), '/');
-        return m_launcher.RemoveLogger(vUrl.back());
-    }
-    return theResponse;
-}
-
-pml::restgoose::response Server::PatchLoggerConfig(const query&, const postData& vData, const endpoint& theEndpoint, const userName&)
-{
-    auto theResponse = ConvertPostDataToJson(vData);
-    if(theResponse.nHttpCode == 200)
-    {
-        auto vPath = SplitString(theEndpoint.Get(),'/');
-        theResponse = m_launcher.UpdateLoggerConfig(vPath[vPath.size()-2], theResponse.jsonData);
-    }
-
-    return theResponse;
-}
-
-pml::restgoose::response Server::PutLoggerPower(const query&, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
-{
-    auto theResponse = ConvertPostDataToJson(vData);
-    if(theResponse.nHttpCode == 200)
-    {
-        if(theResponse.jsonData.isMember("password") == false)
-        {
-            return pml::restgoose::response(401, "No password sent");
-        }
-        if(theResponse.jsonData["password"].asString() != m_config.Get(jsonConsts::api, jsonConsts::password, "2rnfgesgy8w!"))
-        {
-            pmlLog(pml::LOG_DEBUG) << "Sent " << theResponse.jsonData["password"].asString() << " should be " << m_config.Get(jsonConsts::api, jsonConsts::password, "2rnfgesgy8w!");
-            return pml::restgoose::response(403, "Password is incorrect");
-        }
-
-        auto vPath = SplitString(theEndpoint.Get(),'/');
-        return m_launcher.RestartLogger(vPath[vPath.size()-1]);
-    }
-    return theResponse;
-}
 
 
 pml::restgoose::response Server::PutUpdate(const query&, const postData&, const endpoint&, const userName&) const
@@ -494,9 +249,6 @@ pml::restgoose::response Server::PutUpdate(const query&, const postData&, const 
     pml::restgoose::response theResponse(405, "not written yet");
     return theResponse;
 }
-
-
-
 
 
 pml::restgoose::response Server::GetConfig(const query&, const postData&, const endpoint&, const userName&) const
@@ -529,22 +281,8 @@ pml::restgoose::response Server::GetUpdate(const query&, const postData&, const 
     //get all the version numbers...
     pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "GetUpdate" ;
     pml::restgoose::response theResponse;
-    theResponse.jsonData[jsonConsts::server][jsonConsts::git][jsonConsts::rev] = pml::loggingserver::GIT_REV;
-    theResponse.jsonData[jsonConsts::server][jsonConsts::git][jsonConsts::tag] = pml::loggingserver::GIT_TAG;
-    theResponse.jsonData[jsonConsts::server][jsonConsts::git][jsonConsts::branch] = pml::loggingserver::GIT_BRANCH;
-    theResponse.jsonData[jsonConsts::server][jsonConsts::git][jsonConsts::date] = pml::loggingserver::GIT_DATE;
-    theResponse.jsonData[jsonConsts::server][jsonConsts::major] = pml::loggingserver::VERSION_MAJOR;
-    theResponse.jsonData[jsonConsts::server][jsonConsts::minor] = pml::loggingserver::VERSION_MINOR;
-    theResponse.jsonData[jsonConsts::server][jsonConsts::patch] = pml::loggingserver::VERSION_PATCH;
-    theResponse.jsonData[jsonConsts::server][jsonConsts::version] = pml::loggingserver::VERSION_STRING;
-    theResponse.jsonData[jsonConsts::server][jsonConsts::date] = pml::loggingserver::BUILD_TIME;
-
-    auto js = ConvertToJson(Exec("logger -v"));
-    if(js)
-    {
-        theResponse.jsonData[jsonConsts::logger] = *js;
-    }
-
+    theResponse.jsonData = GetVersion();
+    
     //get versions of other applications...
     return theResponse;
 }
@@ -812,68 +550,7 @@ pml::restgoose::response Server::GetLog(const std::string& sLogger, const std::s
 
 }
 
-
-void Server::StatusCallback(const std::string& sLoggerId, const Json::Value& jsStatus)
-{
-    //lock as jsStatus can be called by pipe thread and server thread
-    std::scoped_lock<std::mutex> lg(m_mutex);
-    m_server.SendWebsocketMessage({endpoint(EP_WS_LOGGERS.Get()+"/"+sLoggerId)}, jsStatus);
-}
-
-void Server::ExitCallback(const std::string& sLoggerId, int nExit, bool bRemove)
-{
-    //lock as jsStatus can be called by pipe thread and server thread
-    std::scoped_lock<std::mutex> lg(m_mutex);
-
-    auto jsStatus = Json::Value(Json::objectValue);    //reset
-
-    jsStatus[jsonConsts::id] = sLoggerId;
-    jsStatus[jsonConsts::status] = jsonConsts::stopped;
-
-    if(WIFEXITED(nExit))
-    {
-        jsStatus[jsonConsts::exit][jsonConsts::code] = WEXITSTATUS(nExit);
-        pmlLog() << "Logger exited " << "Code: " << WEXITSTATUS(nExit);
-    }
-    if(WIFSIGNALED(nExit))
-    {
-        jsStatus[jsonConsts::exit][jsonConsts::signal][jsonConsts::code] = WTERMSIG(nExit);
-        jsStatus[jsonConsts::exit][jsonConsts::signal][jsonConsts::description] = strsignal(WTERMSIG(nExit));
-        pmlLog() << "Logger signaled "  << "Code: " << WTERMSIG(nExit) << " " << strsignal(WTERMSIG(nExit));
-
-        if(WCOREDUMP(nExit))
-        {
-            jsStatus[jsonConsts::exit][jsonConsts::core_dump] = true;
-        }
-    }
-    if(WIFSTOPPED(nExit))
-    {
-        jsStatus[jsonConsts::stopped][jsonConsts::signal] = WSTOPSIG(nExit);
-        pmlLog() << "Logger stopped "  << "Signal: " << WSTOPSIG(nExit);
-    }
-    if(WIFCONTINUED(nExit))
-    {
-        jsStatus[jsonConsts::resumed][jsonConsts::signal] = WSTOPSIG(nExit);
-        pmlLog() << "Logger resumed Signal:" << WSTOPSIG(nExit);
-    }
-
-    m_server.SendWebsocketMessage({endpoint(EP_WS_LOGGERS.Get()+"/"+sLoggerId)}, jsStatus);
-
-
-    if(bRemove)
-    {
-        m_server.DeleteEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sLoggerId));
-        m_server.DeleteEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sLoggerId+"/"+STATUS));
-        m_server.DeleteEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sLoggerId+"/"+CONFIG));
-        m_server.DeleteEndpoint(pml::restgoose::HTTP_DELETE, endpoint(EP_LOGGERS.Get()+"/"+sLoggerId));
-        m_server.DeleteEndpoint(pml::restgoose::PUT, endpoint(EP_LOGGERS.Get()+"/"+sLoggerId+"/"+CONFIG));
-        m_server.DeleteEndpoint(pml::restgoose::PUT, endpoint(EP_LOGGERS.Get()+"/"+sLoggerId));
-
-        //@todo remove websocket endpoints
-        //m_server.AddWebsocketEndpoint(endpoint(EP_WS_LOGGERS.Get()+"/"+sName), std::bind(&Server::WebsocketAuthenticate, this, _1,_2,_3,_4), std::bind(&Server::WebsocketMessage, this, _1,_2), std::bind(&Server::WebsocketClosed, this, _1,_2));
-    }
-}
-
+//m_launcher.GetStatusSummary()
 
 void Server::LoopCallback(std::chrono::milliseconds durationSince)
 {
@@ -883,7 +560,7 @@ void Server::LoopCallback(std::chrono::milliseconds durationSince)
     if(m_nTimeSinceLastCall > 2000)
     {
         m_server.SendWebsocketMessage({EP_WS_INFO}, m_info.GetInfo());
-        m_server.SendWebsocketMessage({EP_WS_STATUS}, m_launcher.GetStatusSummary());
+        m_server.SendWebsocketMessage({EP_WS_STATUS}, GetCustomStatusSummary());
         m_nTimeSinceLastCall = 0;
     }
 

@@ -1,11 +1,11 @@
 #include <iostream>
-#include "server.h"
+#include "loggingserver.h"
 #include "log.h"
 #include <unistd.h>
 #include <signal.h>
 #include <execinfo.h>
 
-Server g_server;
+LoggingServer g_server;
 
 static void sig(int signo)
 {

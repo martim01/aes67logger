@@ -119,4 +119,9 @@ struct jsonConsts
 
     static const std::string filelength;
     static const std::string created;
+
+    static const std::string encoders;
+    static const std::string action;
+    static const std::string queue;
+    static const std::string encoded;
 };

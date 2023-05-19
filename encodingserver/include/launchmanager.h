@@ -14,7 +14,7 @@
 
 class Launcher;
 class iniManager;
-
+class iniSection;
 class LaunchManager
 {
     public:
@@ -35,7 +35,7 @@ class LaunchManager
 
         Json::Value GetStatusSummary() const;
 
-
+        Json::Value GetEncoderVersions() const;
 
     private:
         void PipeThread();
@@ -54,6 +54,8 @@ class LaunchManager
 
         void CheckLoggerConfig(const std::filesystem::path& pathConfig);
 
+        void LaunchEncoders(const std::filesystem::path& pathConfig, std::shared_ptr<iniSection> pSection);
+        void LaunchEncoder(const std::filesystem::path& pathConfig, const std::string& sType);
         
         
         std::filesystem::path m_pathLaunchers;
@@ -61,6 +63,7 @@ class LaunchManager
         std::filesystem::path m_pathSockets;
         std::filesystem::path m_pathAudio;
 
+        std::map<std::string, std::string> m_mEncoderApps;
         std::map<std::string, std::shared_ptr<Launcher>> m_mLaunchers;
 
 
@@ -74,9 +77,7 @@ class LaunchManager
         long m_nLoggerConsoleLevel = -1;
         long m_nLoggerFileLevel = 2;
 
-        std::string m_sOpusApp = "/usr/local/bin/opusencoder";
-        std::string m_sFlacApp = "/usr/local/bin/flacencoder";
-
+        
         std::mutex m_mutex;
         std::unique_ptr<std::thread> m_pThread = nullptr;
 

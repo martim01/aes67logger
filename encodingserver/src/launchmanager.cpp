@@ -4,7 +4,7 @@
 #include "inimanager.h"
 #include "jsonconsts.h"
 #include "aes67utils.h"
-
+#include "inisection.h"
 using namespace std::placeholders;
 
 LaunchManager::LaunchManager()=default;
@@ -32,6 +32,16 @@ const std::function<void(const std::string&, int, bool)>& exitCallback)
     m_statusCallback = statusCallback;
     m_exitCallback = exitCallback;
     m_encoderCallback = encoderCallback;
+
+   
+    if(auto pSection = iniConfig.GetSection(jsonConsts::encoders); pSection)
+    {
+        for(const auto& [sType, sPath] : pSection->GetData())
+        {
+            m_mEncoderApps.try_emplace(sType, sPath);
+        }
+    }
+
 
     EnumLoggers();
     WatchLoggerPath();
@@ -200,30 +210,66 @@ void LaunchManager::CheckLoggerConfig(const std::filesystem::path& pathConfig)
     iniManager config;
     if(config.Read(pathConfig))
     {
-        if(config.Get(jsonConsts::keep, jsonConsts::opus, 0L) != 0)
+        if(auto pSection = config.GetSection(jsonConsts::keep); pSection)
         {
-            pmlLog() << "Logger " << pathConfig.stem().string() << " requires an Opus encoder";
-            auto sEncoder = pathConfig.stem().string()+"_"+jsonConsts::opus;
-
-            m_mLaunchers.try_emplace(sEncoder, std::make_shared<Launcher>(m_context, m_sOpusApp, pathConfig,
-                                                                                     MakeSocketFullPath(sEncoder),
-                                                                                     m_statusCallback, std::bind(&LaunchManager::ExitCallback, this, _1,_2,_3)));
-
-            if(m_encoderCallback)
-            {
-                m_encoderCallback(pathConfig.stem(), jsonConsts::opus, true);
-            }
-        }
-        if(config.Get(jsonConsts::keep, jsonConsts::flac, 0L) != 0)
-        {
-            pmlLog() << "Logger " << pathConfig.stem().string() << " requires an FLAC encoder";
-            auto sEncoder = pathConfig.stem().string()+"_"+jsonConsts::flac;
-            m_mLaunchers.try_emplace(sEncoder, std::make_shared<Launcher>(m_context, m_sFlacApp, pathConfig,
-                                                                                     MakeSocketFullPath(sEncoder),
-                                                                                     m_statusCallback, std::bind(&LaunchManager::ExitCallback, this, _1,_2,_3)));
-
-            //@todo signal to websockets...
-            m_encoderCallback(pathConfig.stem(), jsonConsts::flac, true);
+            LaunchEncoders(pathConfig, pSection);
         }
     }
+}
+
+void LaunchManager::LaunchEncoders(const std::filesystem::path& pathConfig, std::shared_ptr<iniSection> pSection)
+{
+    for(const auto& [sType, sValue] : pSection->GetData())
+    {
+        if(sType != jsonConsts::wav)
+        {
+            try
+            {
+                if(auto nHours = std::stoul(sValue); nHours > 0)
+                {
+                    LaunchEncoder(pathConfig, sType);
+                }
+            }
+            catch(std::exception& e)
+            {
+                pmlLog(pml::LOG_WARN) << "Keep: " << sType << " is invalid " << sValue;
+            }
+        }
+    }
+}
+void LaunchManager::LaunchEncoder(const std::filesystem::path& pathConfig, const std::string& sType)
+{
+    pmlLog() << "Logger " << pathConfig.stem().string() << " requires a " << sType << " encoder";
+    auto itApp = m_mEncoderApps.find(sType);
+    if(itApp != m_mEncoderApps.end())
+    {
+        auto sEncoder = pathConfig.stem().string()+"_"+sType;
+
+        m_mLaunchers.try_emplace(sEncoder, std::make_shared<Launcher>(m_context, itApp->second, pathConfig,
+                                                                                     MakeSocketFullPath(sEncoder),
+                                                                                     m_statusCallback, std::bind(&LaunchManager::ExitCallback, this, _1,_2,_3)));
+
+        if(m_encoderCallback)
+        {
+            m_encoderCallback(pathConfig.stem(), sType, true);
+        }
+    }
+    else
+    {
+        pmlLog(pml::LOG_ERROR) << "No encoder app associated with " << sType;
+    }
+}
+
+Json::Value LaunchManager::GetEncoderVersions() const
+{
+    Json::Value jsEncoders;
+    for(const auto& [sType, sApp] : m_mEncoderApps)
+    {
+        auto js = ConvertToJson(Exec(sApp+" -v"));
+        if(js)
+        {
+            jsEncoders[sType] = *js;
+        }
+    }
+    return jsEncoders;
 }

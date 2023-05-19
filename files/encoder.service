@@ -4,7 +4,7 @@ After=network-online.target
 Wants=network-online.target
 
 [Service]
-User=encoder_service
+User=aes67_service
 Type=simple
 Restart=always
 RestartSec=1
@@ -13,7 +13,10 @@ IgnoreSIGPIPE=no
 KillMode=process
 GuessMainPID=no
 SuccessExitStatus=5 6
-ExecStart=python3 /usr/local/bin/encoder.py /usr/local/etc/aes67logger/encoder.ini
+ExecStart=/usr/local/bin/encodingserver /usr/local/etc/aes67logger/encodingserver.ini
+CapabilityBoundingSet=CAP_SYS_BOOT CAP_KILL CAP_NET_BIND_SERVICE
+AmbientCapabilities=CAP_SYS_BOOT CAP_KILL CAP_NET_BIND_SERVICE
+#Capabilities=CAP_SYS_BOOT+epi
 
 [Install]
 WantedBy=multi-user.target
