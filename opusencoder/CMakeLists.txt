@@ -18,7 +18,7 @@ include_directories(${DIR_OBSERVER}/include)
 link_directories(${CMAKE_SOURCE_DIR}/lib)
 
 
-add_executable(opusencoder "../common/src/jsonconsts.cpp" "../common/src/inimanager.cpp" "../common/src/inisection.cpp" "../common/src/jsonwriter.cpp" "${DIR_JSON}/dist/jsoncpp.cpp" "../common/src/asiosession.cpp" "src/opusencoder.cpp" "src/main.cpp" "../common/src/soundfile.cpp" ${CMAKE_BINARY_DIR}/src/${PROJECT_NAME}_version.cpp)
+add_executable(opusencoder "../common/src/jsonconsts.cpp" "../common/src/inimanager.cpp" "../common/src/inisection.cpp" "../common/src/jsonwriter.cpp" "${DIR_JSON}/dist/jsoncpp.cpp" "../common/src/asiosession.cpp" "../common/src/encoder.cpp" "src/opusencoder.cpp" "src/main.cpp" "../common/src/soundfile.cpp" ${CMAKE_BINARY_DIR}/src/${PROJECT_NAME}_version.cpp)
 
 list(APPEND flags "-fPIC" "-Wall" "-fpermissive"  "-std=c++17")
 if(CMAKE_BUILD_TYPE MATCHES Release)
