@@ -82,7 +82,7 @@ bool Encoder::LoadConfig(const std::filesystem::path& config)
 
 void Encoder::CreateLogging()
 {
-    if(m_config.Get("logging", "console", 0L) > -1 )
+    if(m_config.Get("logging", "console", -1L) > -1 )
     {
         if(m_nLogToConsole == -1)
         {
@@ -101,8 +101,7 @@ void Encoder::CreateLogging()
         if(m_nLogToFile == -1)
         {
             std::filesystem::path pathLog = m_config.Get(jsonConsts::path,jsonConsts::log,".");
-            pathLog /= "Encoder";
-            pathLog /= m_sName;
+            pathLog /= (m_sName+"_"+m_sType);
             m_nLogToFile = pml::LogStream::AddOutput(std::make_unique<pml::LogToFile>(pathLog));
         }
         pml::LogStream::SetOutputLevel(m_nLogToFile, pml::enumLevel(m_config.Get("logging", "file", (long)pml::LOG_INFO)));
@@ -205,8 +204,7 @@ void Encoder::CreateInitialFileQueue()
 
 void Encoder::StartObserver()
 {
-    auto nWatch = m_observer.AddWatch(m_pathWav, pml::filewatch::Observer::CLOSED_WRITE, false);
-    if(nWatch != -1)
+    if(auto nWatch = m_observer.AddWatch(m_pathWav, pml::filewatch::Observer::CLOSED_WRITE, false); nWatch != -1)
     {
         m_observer.AddWatchHandler(nWatch, std::bind(&Encoder::OnWavWritten, this, _1, _2, _3, _4), pml::filewatch::Observer::enumWatch::CLOSED);
     }
@@ -217,7 +215,7 @@ void Encoder::StartObserver()
     m_observer.Run();
 }
 
-void Encoder::OnWavWritten(int nWd, const std::filesystem::path& path, uint32_t mask, bool bDirectory)
+void Encoder::OnWavWritten(int , const std::filesystem::path& path, uint32_t , bool )
 {
     std::scoped_lock<std::mutex> lg(m_mutex);
    
@@ -227,7 +225,7 @@ void Encoder::OnWavWritten(int nWd, const std::filesystem::path& path, uint32_t 
     m_condition.notify_one();
 }
 
-void Encoder::SendError(const std::string& sMessage, const std::filesystem::path& path)
+void Encoder::SendError(const std::string& sMessage, const std::filesystem::path& path) const
 {
     Json::Value jsStatus;
     jsStatus[jsonConsts::id] = m_pathSockets.stem().string();
@@ -243,7 +241,7 @@ void Encoder::SendError(const std::string& sMessage, const std::filesystem::path
     pmlLog(pml::LOG_DEBUG) << jsStatus;
 }
 
-void Encoder::OutputEncodedStats(const std::filesystem::path& wavFile, double dDone)
+void Encoder::OutputEncodedStats(const std::filesystem::path& wavFile, double dDone) const
 {
     Json::Value jsStatus;
     jsStatus[jsonConsts::id] = m_pathSockets.stem().string();

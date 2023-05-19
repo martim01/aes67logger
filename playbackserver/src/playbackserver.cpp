@@ -16,9 +16,8 @@ using namespace pml;
 const std::string PlaybackServer::LOGGERS     = "loggers";
 const std::string PlaybackServer::DOWNLOAD    = "download";
 
-const endpoint PlaybackServer::EP_LOGGERS     = endpoint(EP_API.Get()+"/"+LOGGERS);
-const endpoint PlaybackServer::EP_WS          = endpoint(EP_API.Get()+"/"+WS);
-const endpoint PlaybackServer::EP_WS_LOGGERS  = endpoint(EP_WS.Get()+"/"+LOGGERS);
+const endpoint PlaybackServer::EP_LOGGERS     = endpoint("x-api/"+LOGGERS);
+const endpoint PlaybackServer::EP_WS_LOGGERS  = endpoint("x-api/ws/"+LOGGERS);
 
 
 

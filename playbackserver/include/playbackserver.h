@@ -42,7 +42,6 @@ class PlaybackServer : public Server
         void RemoveLoggerEndpoints(const std::string& sName, std::shared_ptr<LoggerObserver> pLogger);
 
         static const endpoint EP_LOGGERS;
-        static const endpoint EP_WS;
         static const endpoint EP_WS_LOGGERS;
         static const std::string LOGGERS;
         static const std::string DOWNLOAD;

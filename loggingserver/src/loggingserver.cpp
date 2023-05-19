@@ -12,9 +12,9 @@ using namespace pml;
 const std::string LoggingServer::LOGGERS     = "loggers";
 const std::string LoggingServer::SOURCES     = "sources";
 
-const endpoint LoggingServer::EP_LOGGERS     = endpoint(EP_API.Get()+"/"+LOGGERS);
-const endpoint LoggingServer::EP_SOURCES     = endpoint(EP_API.Get()+"/"+SOURCES);
-const endpoint LoggingServer::EP_WS_LOGGERS  = endpoint(EP_WS.Get()+"/"+LOGGERS);
+const endpoint LoggingServer::EP_LOGGERS     = endpoint("/x-api/"+LOGGERS);
+const endpoint LoggingServer::EP_SOURCES     = endpoint("/x-api/"+SOURCES);
+const endpoint LoggingServer::EP_WS_LOGGERS  = endpoint("/x-api/"+LOGGERS);
 
 
 

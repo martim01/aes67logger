@@ -3,13 +3,13 @@
 #include "jsonconsts.h"
 #include "log.h"
 #include <sys/wait.h>
+
 using namespace std::placeholders;
 using namespace pml;
 
 const std::string EncodingServer::ENCODERS    = "encoders";
-
-const endpoint EncodingServer::EP_ENCODERS    = endpoint(EP_API.Get()+"/"+ENCODERS);
-const endpoint EncodingServer::EP_WS_ENCODERS = endpoint(EP_API.Get()+"/"+WS+"/"+ENCODERS);
+const endpoint EncodingServer::EP_ENCODERS    = endpoint("x-api/"+ENCODERS);
+const endpoint EncodingServer::EP_WS_ENCODERS = endpoint("x-api/ws/"+ENCODERS);
 
 
 EncodingServer::EncodingServer() : Server()
@@ -30,7 +30,7 @@ void EncodingServer::Init()
 void EncodingServer::AddCustomEndpoints()
 {
 
-    pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "CreateEndpoints" ;
+    pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "AddCustomEndpoints";
 
     m_server.AddEndpoint(pml::restgoose::GET, endpoint("/x-api/encoders"), std::bind(&EncodingServer::GetEncoders, this, _1,_2,_3,_4));
 

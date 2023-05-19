@@ -220,7 +220,6 @@ void Launcher::HandleRead(std::error_code ec, std::size_t nLength)
             if(js)
             {
                 m_jsStatus = *js;
-                //pmlLog(pml::LOG_DEBUG) << m_jsStatus;
                 CreateSummary();
             }
         }
@@ -239,15 +238,12 @@ void Launcher::HandleRead(std::error_code ec, std::size_t nLength)
 }
 std::vector<std::string> Launcher::ExtractReadBuffer(size_t nLength)
 {
-    //std::lock_guard<std::mutex> lg(m_mutex);
-
     m_sOut.append(m_data.begin(), m_data.begin()+nLength);
 
     std::vector<std::string> vLines;
 
     //do we have at least \n
-    size_t nLastLineBreak = m_sOut.find_last_of('\n');
-    if(nLastLineBreak != std::string::npos)
+    if(size_t nLastLineBreak = m_sOut.find_last_of('\n'); nLastLineBreak != std::string::npos)
     {
         std::string sComplete = m_sOut.substr(0, nLastLineBreak);
         vLines = SplitString(sComplete, '\n');

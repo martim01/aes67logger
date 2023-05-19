@@ -33,8 +33,8 @@ class Encoder
 
         void OnWavWritten(int nWd, const std::filesystem::path& path, uint32_t mask, bool bDirectory);
 
-        void SendError(const std::string& sMessage, const std::filesystem::path& path);
-        void OutputEncodedStats(const std::filesystem::path& wavFile, double dDone);
+        void SendError(const std::string& sMessage, const std::filesystem::path& path) const;
+        void OutputEncodedStats(const std::filesystem::path& wavFile, double dDone) const;
 
         std::filesystem::path GetNextFile();
 
