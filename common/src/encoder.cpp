@@ -82,13 +82,13 @@ bool Encoder::LoadConfig(const std::filesystem::path& config)
 
 void Encoder::CreateLogging()
 {
-    if(m_config.Get("logging", "console", -1L) > -1 )
+    if(m_config.Get(jsonConsts::log, jsonConsts::console, -1L) > -1 )
     {
         if(m_nLogToConsole == -1)
         {
             m_nLogToConsole = pml::LogStream::AddOutput(std::make_unique<pml::LogOutput>());
         }
-        pml::LogStream::SetOutputLevel(m_nLogToConsole, pml::enumLevel(m_config.Get("logging", "console",(long) pml::LOG_TRACE)));
+        pml::LogStream::SetOutputLevel(m_nLogToConsole, pml::enumLevel(m_config.Get(jsonConsts::log, jsonConsts::console,(long) pml::LOG_TRACE)));
     }
     else if(m_nLogToConsole != -1)
     {
@@ -96,7 +96,7 @@ void Encoder::CreateLogging()
         m_nLogToConsole = -1;
     }
 
-    if(m_config.Get("logging", "file", (long)pml::LOG_INFO) > -1)
+    if(m_config.Get(jsonConsts::log, jsonConsts::file, (long)pml::LOG_INFO) > -1)
     {
         if(m_nLogToFile == -1)
         {
@@ -104,7 +104,7 @@ void Encoder::CreateLogging()
             pathLog /= (m_sName+"_"+m_sType);
             m_nLogToFile = pml::LogStream::AddOutput(std::make_unique<pml::LogToFile>(pathLog));
         }
-        pml::LogStream::SetOutputLevel(m_nLogToFile, pml::enumLevel(m_config.Get("logging", "file", (long)pml::LOG_INFO)));
+        pml::LogStream::SetOutputLevel(m_nLogToFile, pml::enumLevel(m_config.Get(jsonConsts::log, jsonConsts::file, (long)pml::LOG_INFO)));
     }
     else if(m_nLogToFile != -1)
     {
@@ -206,7 +206,14 @@ void Encoder::StartObserver()
 {
     if(auto nWatch = m_observer.AddWatch(m_pathWav, pml::filewatch::Observer::CLOSED_WRITE, false); nWatch != -1)
     {
-        m_observer.AddWatchHandler(nWatch, std::bind(&Encoder::OnWavWritten, this, _1, _2, _3, _4), pml::filewatch::Observer::enumWatch::CLOSED);
+        if(m_observer.AddWatchHandler(nWatch, std::bind(&Encoder::OnWavWritten, this, _1, _2, _3, _4), pml::filewatch::Observer::enumWatch::CLOSED_WRITE))
+        {
+            pmlLog() << m_sName << " added watch handler to " << m_pathWav;
+        }
+        else
+        {
+            pmlLog(pml::LOG_ERROR) << "Failed to attach watch handler to " << m_pathWav;
+        }
     }
     else
     {
