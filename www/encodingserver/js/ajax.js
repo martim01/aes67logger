@@ -132,10 +132,10 @@ function showEncoder(encoder)
     divSessionGrid.classList.add('uk-child-width-expand', 'uk-grid-small', 'uk-text-left', 'uk-grid');
     var divSessionTitle = document.createElement('div');
     divSessionTitle.classList.add('uk-width-1-2', 'uk-text-primary')
-    divSessionTitle.innerHTML = 'Session:'
+    divSessionTitle.innerHTML = 'Queue:'
     var divSession  = document.createElement('div');
     //divSession.classList.add('uk-label');
-    divSession.id = 'session_'+encoder; 
+    divSession.id = 'queue_'+encoder; 
     divSessionGrid.appendChild(divSessionTitle);
     divSessionGrid.appendChild(divSession);
     divBody.appendChild(divSessionGrid);
@@ -161,7 +161,7 @@ function showEncoder(encoder)
 
     divMain.appendChild(aEncoder);
     
-    grid.insertBefore(divMain, document.getElementById('encoder_add'));
+    grid.appendChild(divMain);
 }
 
 function dashboard()
@@ -231,9 +231,10 @@ function statusUpdate(jsonObj)
 }
 function statusUpdateEncoder(jsonObj)
 {
+	
 	if(jsonObj === null)
 		return;
-
+	console.log(jsonObj);
     if('name' in jsonObj)
     {
 		var card = document.getElementById(jsonObj['name']);
@@ -279,6 +280,11 @@ function statusUpdateEncoder(jsonObj)
             span.innerHTML = zeroPad(days,4)+" "+zeroPad(hours,2)+":"+zeroPad(minutes,2)+":"+zeroPad(up_time,2);
             
         }
+	if('queue' in jsonObj)
+	{
+            var span = document.getElementById('queue_'+jsonObj['name']);
+            span.innerHTML = jsonObj['queue'];
+	}
         if('filename' in jsonObj)
         {
             var span = document.getElementById('file_'+jsonObj['name']);
@@ -818,6 +824,7 @@ function connectToEncoder(status, jsonObj)
 
 function handleEncoderInfo(jsonObj)
 {
+	console.log(jsonObj);
 	if("id" in jsonObj)
 	{
 		document.getElementById('encoder').innerHTML = jsonObj.id;
@@ -844,10 +851,17 @@ function handleEncoderInfo(jsonObj)
 	}
 	if('filename' in jsonObj)
 	{
-		var elm = document.getElementById('file-filename');
-		elm.innerHTML = jsonObj.filename;
-		elm.className = 'uk-text-success';
+var elm = document.getElementById('file-filename');
+                elm.innerHTML = jsonObj.filename;
+                elm.className = 'uk-text-success';
 	}
+	if('queue' in jsonObj)
+	{
+		var elm = document.getElementById('queue');
+                elm.innerHTML = jsonObj.queue;
+                elm.className = 'uk-text-success';
+	}
+
 }
 
 function ShowClock(jsonObj)

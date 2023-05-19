@@ -329,7 +329,7 @@ void OpusEncoder::SendError(const std::string& sMessage, const std::filesystem::
     jsStatus[jsonConsts::id] = m_pathSockets.stem().string();
     jsStatus[jsonConsts::action] = "error";
     jsStatus[jsonConsts::message] = sMessage;
-    jsStatus[jsonConsts::filename] = path.string();
+    jsStatus[jsonConsts::filename] = path.stem().string();
     JsonWriter::Get().writeToSocket(jsStatus, m_pServer);
     
     jsStatus[jsonConsts::heartbeat][jsonConsts::timestamp] = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
@@ -344,7 +344,7 @@ void OpusEncoder::OutputEncodedStats(const std::filesystem::path& wavFile, doubl
     Json::Value jsStatus;
     jsStatus[jsonConsts::id] = m_pathSockets.stem().string();
     jsStatus[jsonConsts::action] = "status";
-    jsStatus[jsonConsts::filename] = wavFile.string();
+    jsStatus[jsonConsts::filename] = wavFile.stem().string();
     jsStatus[jsonConsts::queue] = m_qToEncode.size();
     jsStatus[jsonConsts::encoded] = dDone;
 

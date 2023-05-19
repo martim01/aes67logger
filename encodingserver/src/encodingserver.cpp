@@ -32,7 +32,7 @@ void EncodingServer::AddCustomEndpoints()
 
     pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "CreateEndpoints" ;
 
-    m_server.AddEndpoint(pml::restgoose::GET, EP_ENCODERS, std::bind(&EncodingServer::GetEncoders, this, _1,_2,_3,_4));
+    m_server.AddEndpoint(pml::restgoose::GET, endpoint("/x-api/encoders"), std::bind(&EncodingServer::GetEncoders, this, _1,_2,_3,_4));
 
     AddEncoderEndpoints();
 
