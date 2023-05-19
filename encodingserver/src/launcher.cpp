@@ -298,6 +298,12 @@ void Launcher::CreateSummary()
         m_jsStatusSummary[jsonConsts::filename] = m_jsStatus[jsonConsts::filename];
     }
 
+    if(m_jsStatus.isMember(jsonConsts::queue))
+    {
+        m_jsStatusSummary[jsonConsts::queue] = m_jsStatus[jsonConsts::queue];
+    }
+
+
 }
 const Json::Value& Launcher::GetStatusSummary() const
 {
