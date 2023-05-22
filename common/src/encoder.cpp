@@ -46,6 +46,8 @@ bool Encoder::Init(const std::filesystem::path& config)
 
 bool Encoder::LoadConfig(const std::filesystem::path& config)
 {
+    std::cout << "LoadConfig " << config << std::endl;
+
     if(m_config.Read(config))
     {
         m_sName = m_config.Get(jsonConsts::general, jsonConsts::name, "");
@@ -84,6 +86,7 @@ void Encoder::CreateLogging()
 {
     if(m_config.Get(jsonConsts::log, jsonConsts::console, -1L) > -1 )
     {
+	std::cout << "Log to console " << std::endl;
         if(m_nLogToConsole == -1)
         {
             m_nLogToConsole = pml::LogStream::AddOutput(std::make_unique<pml::LogOutput>());
@@ -98,10 +101,13 @@ void Encoder::CreateLogging()
 
     if(m_config.Get(jsonConsts::log, jsonConsts::file, (long)pml::LOG_INFO) > -1)
     {
+	std::cout << "Log to file " << std::endl;
         if(m_nLogToFile == -1)
         {
-            std::filesystem::path pathLog = m_config.Get(jsonConsts::path,jsonConsts::log,".");
+            std::filesystem::path pathLog = m_config.Get(jsonConsts::path,jsonConsts::logs,".");
             pathLog /= (m_sName+"_"+m_sType);
+
+	    std::cout << " file=" << pathLog;
             m_nLogToFile = pml::LogStream::AddOutput(std::make_unique<pml::LogToFile>(pathLog));
         }
         pml::LogStream::SetOutputLevel(m_nLogToFile, pml::enumLevel(m_config.Get(jsonConsts::log, jsonConsts::file, (long)pml::LOG_INFO)));
