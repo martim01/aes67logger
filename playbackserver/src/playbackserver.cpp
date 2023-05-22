@@ -21,7 +21,7 @@ const endpoint PlaybackServer::EP_WS_LOGGERS  = endpoint("x-api/ws/"+LOGGERS);
 
 
 
-PlaybackServer::PlaybackServer() : Server()
+PlaybackServer::PlaybackServer() : Server("playbackserver")
 {
 
 }
