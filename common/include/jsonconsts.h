@@ -124,4 +124,5 @@ struct jsonConsts
     static const std::string action;
     static const std::string queue;
     static const std::string encoded;
+    static const std::string files_encoded;
 };

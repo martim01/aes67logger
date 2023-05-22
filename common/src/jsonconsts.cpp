@@ -117,3 +117,4 @@ const std::string jsonConsts::encoders           = "encoders";
 const std::string jsonConsts::action             = "action";
 const std::string jsonConsts::queue              = "queue";
 const std::string jsonConsts::encoded            = "encoded";
+const std::string jsonConsts::files_encoded      = "files_encoded";

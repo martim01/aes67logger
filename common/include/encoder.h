@@ -62,4 +62,5 @@ class Encoder
         bool m_bRun = true;
 
         size_t m_nFileEncoded = 0;
+        size_t m_nFilesEncoded = 0;
 };

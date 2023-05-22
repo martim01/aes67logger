@@ -246,6 +246,7 @@ void Encoder::SendError(const std::string& sMessage, const std::filesystem::path
     jsStatus[jsonConsts::message] = sMessage;
     jsStatus[jsonConsts::queue] = m_qToEncode.size();
     jsStatus[jsonConsts::filename] = path.stem().string();
+    jsStatus[jsonConsts::files_encoded] = m_nFilesEncoded;
     JsonWriter::Get().writeToSocket(jsStatus, m_pServer);
     
     jsStatus[jsonConsts::heartbeat][jsonConsts::timestamp] = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
@@ -262,6 +263,7 @@ void Encoder::OutputEncodedStats(const std::filesystem::path& wavFile, double dD
     jsStatus[jsonConsts::filename] = wavFile.stem().string();
     jsStatus[jsonConsts::queue] = m_qToEncode.size();
     jsStatus[jsonConsts::encoded] = dDone;
+    jsStatus[jsonConsts::files_encoded] = m_nFilesEncoded;
 
     jsStatus[jsonConsts::heartbeat][jsonConsts::timestamp] = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     jsStatus[jsonConsts::heartbeat][jsonConsts::start_time] = std::chrono::duration_cast<std::chrono::seconds>(m_tpStart.time_since_epoch()).count();
