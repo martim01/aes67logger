@@ -105,6 +105,7 @@ int main(int argc,  char** argv)
     }
     else
     {
+	std::cout << "opusencoder " << argv[1] << std::endl;
         init_signals();
         theApp.Init(argv[1]);
         return theApp.Run();

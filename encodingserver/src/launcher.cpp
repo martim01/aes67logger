@@ -66,7 +66,6 @@ int Launcher::LaunchEncoder()
             //create the args and launch the Encoder
             m_sConfigArg = m_pathConfig.string();
             char* args[] = {&m_sEncoderApp[0], &m_sConfigArg[0], nullptr};
-
             if(execv(m_sEncoderApp.c_str(), args) != 0)
             {
                 std::cout << "Exec failed: " << m_sEncoderApp << std::endl;
