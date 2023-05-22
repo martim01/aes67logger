@@ -86,7 +86,10 @@ pml::restgoose::response ConvertPostDataToJson(const postData& vData)
 }
 
 
-Server::Server() =default;
+Server::Server(const std::string sApp) : m_sApp(sApp)
+{
+
+}
 
 
 
@@ -111,7 +114,7 @@ void Server::InitLogging()
         if(m_nLogToFile == -1)
         {
             std::filesystem::path pathLog = m_config.Get(jsonConsts::path,jsonConsts::log,".");
-            pathLog /= "loggingserver";
+            pathLog /= m_sApp;
             m_nLogToFile = pml::LogStream::AddOutput(std::make_unique<pml::LogToFile>(pathLog));
         }
         pml::LogStream::SetOutputLevel(m_nLogToFile, pml::enumLevel(m_config.Get("logging", "file", (long)pml::LOG_INFO)));

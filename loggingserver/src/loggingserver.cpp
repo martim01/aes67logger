@@ -19,7 +19,7 @@ const endpoint LoggingServer::EP_WS_LOGGERS  = endpoint("/x-api/"+LOGGERS);
 
 
 
-LoggingServer::LoggingServer() : Server()
+LoggingServer::LoggingServer() : Server("loggingserver")
 {
 
 }

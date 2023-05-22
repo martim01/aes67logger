@@ -12,7 +12,7 @@ const endpoint EncodingServer::EP_ENCODERS    = endpoint("x-api/"+ENCODERS);
 const endpoint EncodingServer::EP_WS_ENCODERS = endpoint("x-api/ws/"+ENCODERS);
 
 
-EncodingServer::EncodingServer() : Server()
+EncodingServer::EncodingServer() : Server("encodingserver")
 {
 
 }

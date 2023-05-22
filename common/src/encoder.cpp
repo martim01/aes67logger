@@ -244,6 +244,7 @@ void Encoder::SendError(const std::string& sMessage, const std::filesystem::path
     jsStatus[jsonConsts::id] = m_pathSockets.stem().string();
     jsStatus[jsonConsts::action] = "error";
     jsStatus[jsonConsts::message] = sMessage;
+    jsStatus[jsonConsts::queue] = m_qToEncode.size();
     jsStatus[jsonConsts::filename] = path.stem().string();
     JsonWriter::Get().writeToSocket(jsStatus, m_pServer);
     
@@ -251,7 +252,6 @@ void Encoder::SendError(const std::string& sMessage, const std::filesystem::path
     jsStatus[jsonConsts::heartbeat][jsonConsts::start_time] = std::chrono::duration_cast<std::chrono::seconds>(m_tpStart.time_since_epoch()).count();
     jsStatus[jsonConsts::heartbeat][jsonConsts::up_time] = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now()-m_tpStart).count();
     
-    pmlLog(pml::LOG_DEBUG) << jsStatus;
 }
 
 void Encoder::OutputEncodedStats(const std::filesystem::path& wavFile, double dDone) const
@@ -268,5 +268,4 @@ void Encoder::OutputEncodedStats(const std::filesystem::path& wavFile, double dD
     jsStatus[jsonConsts::heartbeat][jsonConsts::up_time] = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now()-m_tpStart).count();
 
     JsonWriter::Get().writeToSocket(jsStatus, m_pServer);
-    pmlLog(pml::LOG_DEBUG) << jsStatus;
 }

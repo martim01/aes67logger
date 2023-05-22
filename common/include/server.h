@@ -13,7 +13,7 @@ extern pml::restgoose::response ConvertPostDataToJson(const postData& vData);
 class Server
 {
     public:
-        Server();
+        Server(const std::string sApp);
 
         int Run(const std::string& sConfigFile);
 
@@ -100,6 +100,7 @@ class Server
         static const std::string UPDATE;
         static const std::string WS;
 
+        std::string m_sApp;
         std::mutex m_mutex;
 
         unsigned int m_nTimeSinceLastCall = 0;
