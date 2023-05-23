@@ -35,6 +35,7 @@ class Encoder
 
         void SendError(const std::string& sMessage, const std::filesystem::path& path) const;
         void OutputEncodedStats(const std::filesystem::path& wavFile, double dDone) const;
+        void OutputJson(const std::filesystem::path& wavFile, Json::Value& jsStatus) const;
 
         std::filesystem::path GetNextFile();
 
