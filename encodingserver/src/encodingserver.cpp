@@ -132,7 +132,7 @@ void EncodingServer::StatusCallback(const std::string& sEncoderId, const Json::V
 {
     //lock as jsStatus can be called by pipe thread and server thread
     std::scoped_lock<std::mutex> lg(m_mutex);
-    m_server.SendWebsocketMessage({endpoint(EP_WS_ENCODERS.Get()+"/"+sEncoderId)}, jsStatus);
+    m_server.SendWebsocketMessage({endpoint(EP_WS_ENCODERS.Get()+"/"+sEncoderId), EP_WS_STATUS}, jsStatus);
 }
 
 

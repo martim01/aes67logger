@@ -6,6 +6,7 @@
 #include <thread>
 #include "observer.h"
 
+namespace Json{ class Value; }
 
 class Encoder
 {
