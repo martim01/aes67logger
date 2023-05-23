@@ -277,28 +277,9 @@ void Launcher::HandleConnect(const asio::error_code& e)
 
 void Launcher::CreateSummary()
 {
-    m_jsStatusSummary.clear();
-    m_jsStatusSummary[jsonConsts::name] = m_pathSocket.stem().string();
-    m_jsStatusSummary[jsonConsts::running] = IsRunning();
+    m_jsStatusSummary = m_jsStatus;
 
     
-    if(m_jsStatus.isMember(jsonConsts::heartbeat))
-    {
-        m_jsStatusSummary[jsonConsts::timestamp] = m_jsStatus[jsonConsts::heartbeat][jsonConsts::timestamp];
-        m_jsStatusSummary[jsonConsts::up_time] = m_jsStatus[jsonConsts::heartbeat][jsonConsts::up_time];
-    }
-
-    if(m_jsStatus.isMember(jsonConsts::filename))
-    {
-        m_jsStatusSummary[jsonConsts::filename] = m_jsStatus[jsonConsts::filename];
-    }
-
-    if(m_jsStatus.isMember(jsonConsts::queue))
-    {
-        m_jsStatusSummary[jsonConsts::queue] = m_jsStatus[jsonConsts::queue];
-    }
-
-
 }
 const Json::Value& Launcher::GetStatusSummary() const
 {
