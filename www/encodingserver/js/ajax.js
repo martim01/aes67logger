@@ -165,15 +165,15 @@ function showEncoder(encoder)
 
 
 	var divEncodedGrid = document.createElement('div');
-    divEncodedeGrid.classList.add('uk-child-width-expand', 'uk-grid-small', 'uk-text-left', 'uk-grid');
-    var divEncodedeTitle = document.createElement('div');
-    divEncodedeTitle.classList.add('uk-width-1-2', 'uk-text-primary')
-    divEncodedeTitle.innerHTML = 'Files Encoded:'
-    var divEncodede  = document.createElement('div');
-    divEncodede.id = 'encoded_'+encoder; 
-    divEncodedeGrid.appendChild(divEncodedeTitle);
-    divEncodedeGrid.appendChild(divEncodede);
-    divBody.appendChild(divEncodedeGrid);
+    divEncodedGrid.classList.add('uk-child-width-expand', 'uk-grid-small', 'uk-text-left', 'uk-grid');
+    var divEncodedTitle = document.createElement('div');
+    divEncodedTitle.classList.add('uk-width-1-2', 'uk-text-primary')
+    divEncodedTitle.innerHTML = 'Files Encoded:'
+    var divEncoded  = document.createElement('div');
+    divEncoded.id = 'encoded_'+encoder; 
+    divEncodedGrid.appendChild(divEncodedTitle);
+    divEncodedGrid.appendChild(divEncoded);
+    divBody.appendChild(divEncodedGrid);
 
 
 	aEncoder.appendChild(divBody);
