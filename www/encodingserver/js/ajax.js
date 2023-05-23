@@ -90,8 +90,6 @@ function showEncoder(encoder)
     aEncoder.href = '../encoders/index.html?encoder='+encoder;
     
     
-
-
     var divHeader = document.createElement('div');
     divHeader.className='uk-card-header';
     var titleH3 = document.createElement('h3');
@@ -133,8 +131,7 @@ function showEncoder(encoder)
     var divSessionTitle = document.createElement('div');
     divSessionTitle.classList.add('uk-width-1-2', 'uk-text-primary')
     divSessionTitle.innerHTML = 'Queue:'
-    var divSession  = document.createElement('div');
-    //divSession.classList.add('uk-label');
+	var divSession  = document.createElement('div');
     divSession.id = 'queue_'+encoder; 
     divSessionGrid.appendChild(divSessionTitle);
     divSessionGrid.appendChild(divSession);
@@ -143,16 +140,48 @@ function showEncoder(encoder)
     var divFileGrid = document.createElement('div');
     divFileGrid.classList.add('uk-child-width-expand', 'uk-grid-small', 'uk-text-left', 'uk-grid');
     var divFileTitle = document.createElement('div');
-    divFileTitle.classList.add('uk-width-1-2', 'uk-text-primary')
+    divFileTitle.classList.add('uk-width-1-3', 'uk-text-primary')
     divFileTitle.innerHTML = 'File:'
     var divFile  = document.createElement('div');
     divFile.id = 'file_'+encoder; 
+	var divPercent  = document.createElement('div');
+    divPercent.id = 'percent_'+encoder; 
     divFileGrid.appendChild(divFileTitle);
     divFileGrid.appendChild(divFile);
-    divBody.appendChild(divFileGrid)
-    aEncoder.appendChild(divBody);
+	divFileGrid.appendChild(divPercent);
+    divBody.appendChild(divFileGrid);
 
-    var divFooter = document.createElement('div');
+
+	var divLastFileGrid = document.createElement('div');
+    divLastFileGrid.classList.add('uk-child-width-expand', 'uk-grid-small', 'uk-text-left', 'uk-grid');
+    var divLastFileTitle = document.createElement('div');
+    divLastFileTitle.classList.add('uk-width-1-2', 'uk-text-primary')
+    divLastFileTitle.innerHTML = 'Last File:'
+    var divLastFile  = document.createElement('div');
+    divLastFile.id = 'last_file_'+encoder; 
+    divLastFileGrid.appendChild(divLastFileTitle);
+    divLastFileGrid.appendChild(divLastFile);
+    divBody.appendChild(divLastFileGrid);
+
+
+	var divEncodedGrid = document.createElement('div');
+    divEncodedeGrid.classList.add('uk-child-width-expand', 'uk-grid-small', 'uk-text-left', 'uk-grid');
+    var divEncodedeTitle = document.createElement('div');
+    divEncodedeTitle.classList.add('uk-width-1-2', 'uk-text-primary')
+    divEncodedeTitle.innerHTML = 'Files Encoded:'
+    var divEncodede  = document.createElement('div');
+    divEncodede.id = 'encoded_'+encoder; 
+    divEncodedeGrid.appendChild(divEncodedeTitle);
+    divEncodedeGrid.appendChild(divEncodede);
+    divBody.appendChild(divEncodedeGrid);
+
+
+	aEncoder.appendChild(divBody);
+
+
+
+
+	var divFooter = document.createElement('div');
     divFooter.className = 'uk-card-footer';
     var spanTimestamp  = document.createElement('span');
     spanTimestamp.id = 'timestamp_'+encoder; 
@@ -280,11 +309,23 @@ function statusUpdateEncoder(jsonObj)
             span.innerHTML = zeroPad(days,4)+" "+zeroPad(hours,2)+":"+zeroPad(minutes,2)+":"+zeroPad(up_time,2);
             
         }
-	if('queue' in jsonObj)
-	{
+		if('queue' in jsonObj)
+		{
             var span = document.getElementById('queue_'+jsonObj['name']);
             span.innerHTML = jsonObj['queue'];
-	}
+		}
+		if('last_encoded' in jsonObj)
+		{
+            var span = document.getElementById('last_file'+jsonObj['name']);
+            span.innerHTML = jsonObj['last_encoded'];
+		}
+
+		if('encoded' in jsonObj)
+		{
+            var span = document.getElementById('percent'+jsonObj['name']);
+            span.innerHTML = Math.round(jsonObj['encoded']*100.0)+"%";
+		}
+
         if('filename' in jsonObj)
         {
             var span = document.getElementById('file_'+jsonObj['name']);

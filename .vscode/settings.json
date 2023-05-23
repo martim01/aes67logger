@@ -73,7 +73,8 @@
         "typeinfo": "cpp",
         "variant": "cpp",
         "bitset": "cpp",
-        "netfwd": "cpp"
+        "netfwd": "cpp",
+        "*.ipp": "cpp"
     },
     "cmake.configureOnOpen": false
 }

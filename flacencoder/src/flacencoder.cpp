@@ -57,5 +57,7 @@ bool FlacEncoder::EncodeFile(const std::filesystem::path& wavFile)
 
     } while (bOk && vBuffer.size() == m_nBufferSize);
     pmlLog() << "Encoded " << path;
+
+    m_nFilesEncoded++;
     return true;
 }
