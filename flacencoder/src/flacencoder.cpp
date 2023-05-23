@@ -59,5 +59,6 @@ bool FlacEncoder::EncodeFile(const std::filesystem::path& wavFile)
     pmlLog() << "Encoded " << path;
 
     m_nFilesEncoded++;
+    m_lastEncoded = wavFile;
     return true;
 }

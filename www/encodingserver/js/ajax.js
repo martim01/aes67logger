@@ -170,7 +170,7 @@ function showEncoder(encoder)
     divEncodedTitle.classList.add('uk-width-1-2', 'uk-text-primary')
     divEncodedTitle.innerHTML = 'Files Encoded:'
     var divEncoded  = document.createElement('div');
-    divEncoded.id = 'encoded_'+encoder; 
+    divEncoded.id = 'files_encoded_'+encoder; 
     divEncodedGrid.appendChild(divEncodedTitle);
     divEncodedGrid.appendChild(divEncoded);
     divBody.appendChild(divEncodedGrid);
@@ -256,85 +256,91 @@ function handleEncodersStatus(status, jsonObj)
 
 function statusUpdate(jsonObj)
 {
-    jsonObj.forEach(statusUpdateEncoder)
+    if(Array.isArray(jsonObj))
+    {
+        jsonObj.forEach(statusUpdateEncoder);
+    }
+    else
+    {
+      statusUpdateEncoder(jsonObj);
+    }
 }
 function statusUpdateEncoder(jsonObj)
 {
 	
-	if(jsonObj === null)
-		return;
-	console.log(jsonObj);
-    if('name' in jsonObj)
+    if(jsonObj === null)
+        return;
+    console.log(jsonObj);
+    if('id' in jsonObj)
     {
-		var card = document.getElementById(jsonObj['name']);
-		if(card === null)
-		{	//card not created yet
-			return;
-		}
+        var card = document.getElementById(jsonObj['id']);
+	if(card === null)
+	{	//card not created yet
+	    return;
+	}
 
-        if('running' in jsonObj)
+        if('heartbeat' in jsonObj)
         {
-            var span = document.getElementById('running_'+jsonObj['name']);
+            var span = document.getElementById('running_'+jsonObj['id']);
             span.className = 'uk-label';
             span.classList.add('uk-card-badge');
-            if(jsonObj['running'] === true)
+            span.classList.add('uk-label-success');
+            span.innerHTML = 'running';
+
+   	    if('timestamp' in jsonObj['heartbeat'])
             {
-                span.classList.add('uk-label-success');
-                span.innerHTML = 'running';
+                var span = document.getElementById('timestamp_'+jsonObj['id']);
+                var dt = new Date(jsonObj['heartbeat']['timestamp']*1000);
+                span.innerHTML = dt.toISOString();
             }
-            else
+            if('up_time' in jsonObj.heartbeat)
             {
-                span.classList.add('uk-label-error');
-                span.innerHTML = 'not running';
-            }           
-        }
-		if('timestamp' in jsonObj)
-        {
-            var span = document.getElementById('timestamp_'+jsonObj['name']);
-            var dt = new Date(jsonObj['timestamp']*1000);
-            span.innerHTML = dt.toISOString();
-        }
-        if('up_time' in jsonObj)
-        {
-            var up_time = jsonObj['up_time'];
-            var span = document.getElementById('up_time_'+jsonObj['name']);
-            
-            var days = Math.floor(up_time / 86400);
-            up_time = up_time % 86400;
-            var hours = Math.floor(up_time / 3600);
-            up_time = up_time % 3600;
-            var minutes = Math.floor(up_time / 60);
-            up_time = up_time % 60;
+                var up_time = jsonObj.heartbeat['up_time'];
+                var span = document.getElementById('up_time_'+jsonObj['id']);
+                var days = Math.floor(up_time / 86400);
+                up_time = up_time % 86400;
+                var hours = Math.floor(up_time / 3600);
+                up_time = up_time % 3600;
+                var minutes = Math.floor(up_time / 60);
+                up_time = up_time % 60;
+                span.innerHTML = zeroPad(days,4)+" "+zeroPad(hours,2)+":"+zeroPad(minutes,2)+":"+zeroPad(up_time,2);
+           }
+     	   
+           if('queue' in jsonObj)
+	   {
+               var span = document.getElementById('queue_'+jsonObj['id']);
+               span.innerHTML = jsonObj['queue'];
+	   }
+	   if('last_encoded' in jsonObj)
+	   {
+               var span = document.getElementById('last_file_'+jsonObj['id']);
+               span.innerHTML = jsonObj['last_encoded'];
+	   }
+           if('files_encoded' in jsonObj)
+           {
+               var span = document.getElementById('files_encoded_'+jsonObj['id']);
+               span.innerHTML = jsonObj['files_encoded'];
+           }
 
-            span.innerHTML = zeroPad(days,4)+" "+zeroPad(hours,2)+":"+zeroPad(minutes,2)+":"+zeroPad(up_time,2);
-            
-        }
-		if('queue' in jsonObj)
-		{
-            var span = document.getElementById('queue_'+jsonObj['name']);
-            span.innerHTML = jsonObj['queue'];
-		}
-		if('last_encoded' in jsonObj)
-		{
-            var span = document.getElementById('last_file'+jsonObj['name']);
-            span.innerHTML = jsonObj['last_encoded'];
-		}
+	   if('encoded' in jsonObj)
+	   {
+               var span = document.getElementById('percent_'+jsonObj['id']);
+	       if(span !== null)
+               {
+	           span.innerHTML = Math.round(jsonObj['encoded']*100.0)+"%";
+	       }
+	   }
 
-		if('encoded' in jsonObj)
-		{
-            var span = document.getElementById('percent'+jsonObj['name']);
-            span.innerHTML = Math.round(jsonObj['encoded']*100.0)+"%";
-		}
-
-        if('filename' in jsonObj)
-        {
-            var span = document.getElementById('file_'+jsonObj['name']);
-            span.innerHTML = jsonObj['filename'];
-        }
-        else
-        {
-            var span = document.getElementById('file_'+jsonObj['name']);
-            span.innerHTML = "Not Recording";
+           if('filename' in jsonObj)
+           {
+               var span = document.getElementById('file_'+jsonObj['id']);
+               span.innerHTML = jsonObj['filename'];
+           }
+           else
+           {
+               var span = document.getElementById('file_'+jsonObj['id']);
+               span.innerHTML = "Not Encoding";
+           }
         }
     }
 }
