@@ -444,7 +444,6 @@ pml::restgoose::response Server::GetLogs(const query& theQuery, const postData&,
     return theResponse;
 }
 
-
 time_t Server::GetDateTime(time_t date, const std::vector<std::string>& vLine) const
 {
     time_t timeMessage(0);

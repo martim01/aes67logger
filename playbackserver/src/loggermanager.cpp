@@ -16,7 +16,7 @@ void LoggerManager::EnumLoggers()
 {
     try
     {
-        for(const auto& entry : std::filesystem::directory_iterator(m_server.GetConfig().Get(jsonConsts::path, jsonConsts::loggers,".")))
+        for(const auto& entry : std::filesystem::directory_iterator(m_server.GetIniManager().Get(jsonConsts::path, jsonConsts::loggers,".")))
         {
             if(entry.path().extension() == ".ini")
             {
@@ -32,7 +32,7 @@ void LoggerManager::EnumLoggers()
 
 void LoggerManager::WatchLoggerPath()
 {
-    auto nWatch = m_observer.AddWatch(m_server.GetConfig().Get(jsonConsts::path, jsonConsts::loggers,"."), pml::filewatch::Observer::CREATED | pml::filewatch::Observer::DELETED, false);
+    auto nWatch = m_observer.AddWatch(m_server.GetIniManager().Get(jsonConsts::path, jsonConsts::loggers,"."), pml::filewatch::Observer::CREATED | pml::filewatch::Observer::DELETED, false);
     if(nWatch != -1)
     {
         m_observer.AddWatchHandler(nWatch, std::bind(&LoggerManager::OnLoggerCreated, this, _1, _2, _3, _4), pml::filewatch::Observer::enumWatch::CREATED);

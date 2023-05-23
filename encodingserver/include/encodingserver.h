@@ -25,8 +25,6 @@ class EncodingServer : public Server
         void EncoderCreated(const std::string& sEncoder);
         void EncoderDeleted(const std::string& sEncoder);
 
-        const iniManager& GetIniConfig() const { return m_config;}
-
     private:
 
         void Init() final;

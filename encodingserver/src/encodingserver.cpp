@@ -20,7 +20,7 @@ EncodingServer::EncodingServer() : Server("encodingserver")
 void EncodingServer::Init()
 {
     
-    m_launcher.Init(m_config, std::bind(&EncodingServer::EncoderCallback, this, _1,_2,_3),
+    m_launcher.Init(GetIniManager(), std::bind(&EncodingServer::EncoderCallback, this, _1,_2,_3),
                                 std::bind(&EncodingServer::StatusCallback, this, _1, _2),
                                 std::bind(&EncodingServer::ExitCallback, this, _1, _2,_3));
 
@@ -32,12 +32,12 @@ void EncodingServer::AddCustomEndpoints()
 
     pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "AddCustomEndpoints";
 
-    m_server.AddEndpoint(pml::restgoose::GET, endpoint("/x-api/encoders"), std::bind(&EncodingServer::GetEncoders, this, _1,_2,_3,_4));
+    GetServer().AddEndpoint(pml::restgoose::GET, endpoint("/x-api/encoders"), std::bind(&EncodingServer::GetEncoders, this, _1,_2,_3,_4));
 
     AddEncoderEndpoints();
 
 
-    m_server.AddWebsocketEndpoint(EP_WS_ENCODERS, std::bind(&Server::WebsocketAuthenticate, this, _1,_2, _3, _4), std::bind(&Server::WebsocketMessage, this, _1, _2), std::bind(&Server::WebsocketClosed, this, _1, _2));
+    GetServer().AddWebsocketEndpoint(EP_WS_ENCODERS, std::bind(&Server::WebsocketAuthenticate, this, _1,_2, _3, _4), std::bind(&Server::WebsocketMessage, this, _1, _2), std::bind(&Server::WebsocketClosed, this, _1, _2));
 
 }
 
@@ -51,8 +51,7 @@ pml::restgoose::response EncodingServer::GetStatus(const query&, const postData&
 
 void EncodingServer::DeleteCustomEndpoints()
 {
-
-    m_server.DeleteEndpoint(pml::restgoose::GET, EP_ENCODERS);
+    GetServer().DeleteEndpoint(pml::restgoose::GET, EP_ENCODERS);
     
 }
 
@@ -81,16 +80,16 @@ void EncodingServer::AddEncoderEndpoints()
 
 void EncodingServer::AddEncoderEndpoints(const std::string& sName)
 {
-    m_server.AddEndpoint(pml::restgoose::GET, endpoint(EP_ENCODERS.Get()+"/"+sName), std::bind(&EncodingServer::GetEncoder, this, _1,_2,_3,_4));
+    GetServer().AddEndpoint(pml::restgoose::GET, endpoint(EP_ENCODERS.Get()+"/"+sName), std::bind(&EncodingServer::GetEncoder, this, _1,_2,_3,_4));
     
 
-    m_server.AddWebsocketEndpoint(endpoint(EP_WS_ENCODERS.Get()+"/"+sName), std::bind(&EncodingServer::WebsocketAuthenticate, this, _1,_2, _3, _4), std::bind(&EncodingServer::WebsocketMessage, this, _1, _2), std::bind(&EncodingServer::WebsocketClosed, this, _1, _2));
+    GetServer().AddWebsocketEndpoint(endpoint(EP_WS_ENCODERS.Get()+"/"+sName), std::bind(&EncodingServer::WebsocketAuthenticate, this, _1,_2, _3, _4), std::bind(&EncodingServer::WebsocketMessage, this, _1, _2), std::bind(&EncodingServer::WebsocketClosed, this, _1, _2));
 }
 
 
 void EncodingServer::RemoveEncoderEndpoints(const std::string& sName)
 {
-    m_server.DeleteEndpoint(pml::restgoose::GET, endpoint(EP_ENCODERS.Get()+"/"+sName));
+    GetServer().DeleteEndpoint(pml::restgoose::GET, endpoint(EP_ENCODERS.Get()+"/"+sName));
     //@todo remove websocket endpoints....
 }
 
@@ -131,15 +130,15 @@ pml::restgoose::response EncodingServer::GetEncoder(const query& , const postDat
 void EncodingServer::StatusCallback(const std::string& sEncoderId, const Json::Value& jsStatus)
 {
     //lock as jsStatus can be called by pipe thread and server thread
-    std::scoped_lock<std::mutex> lg(m_mutex);
-    m_server.SendWebsocketMessage({endpoint(EP_WS_ENCODERS.Get()+"/"+sEncoderId), EP_WS_STATUS}, jsStatus);
+    std::scoped_lock<std::mutex> lg(GetMutex());
+    GetServer().SendWebsocketMessage({endpoint(EP_WS_ENCODERS.Get()+"/"+sEncoderId), EP_WS_STATUS}, jsStatus);
 }
 
 
 void EncodingServer::ExitCallback(const std::string& sEncoderId, int nExit, bool bRemove)
 {
     //lock as jsStatus can be called by pipe thread and server thread
-    std::scoped_lock<std::mutex> lg(m_mutex);
+    std::scoped_lock<std::mutex> lg(GetMutex());
 
     auto jsStatus = Json::Value(Json::objectValue);    //reset
 
@@ -173,13 +172,13 @@ void EncodingServer::ExitCallback(const std::string& sEncoderId, int nExit, bool
         pmlLog() << "Logger resumed Signal:" << WSTOPSIG(nExit);
     }
 
-    m_server.SendWebsocketMessage({endpoint(EP_WS_ENCODERS.Get()+"/"+sEncoderId)}, jsStatus);
+    GetServer().SendWebsocketMessage({endpoint(EP_WS_ENCODERS.Get()+"/"+sEncoderId)}, jsStatus);
 
 
     if(bRemove)
     {
-        m_server.DeleteEndpoint(pml::restgoose::GET, endpoint(EP_ENCODERS.Get()+"/"+sEncoderId));
-        m_server.DeleteEndpoint(pml::restgoose::GET, endpoint(EP_ENCODERS.Get()+"/"+sEncoderId+"/"+STATUS));
+        GetServer().DeleteEndpoint(pml::restgoose::GET, endpoint(EP_ENCODERS.Get()+"/"+sEncoderId));
+        GetServer().DeleteEndpoint(pml::restgoose::GET, endpoint(EP_ENCODERS.Get()+"/"+sEncoderId+"/"+STATUS));
 
         //@todo remove websocket endpoints
     }
@@ -189,7 +188,7 @@ void EncodingServer::ExitCallback(const std::string& sEncoderId, int nExit, bool
 
 void EncodingServer::EncoderCallback(const std::string& sEncoderId, const std::string& sType, bool bAdded)
 {
-    std::scoped_lock<std::mutex> lg(m_mutex);
+    std::scoped_lock<std::mutex> lg(GetMutex());
     if(bAdded)
     {
         EncoderCreated(sEncoderId);
@@ -210,7 +209,7 @@ void EncodingServer::EncoderCreated(const std::string& sEncoder)
     jsValue["action"] = "created";
     jsValue["encoder"] = sEncoder;
 
-    m_server.SendWebsocketMessage({EP_WS_ENCODERS}, jsValue);
+    GetServer().SendWebsocketMessage({EP_WS_ENCODERS}, jsValue);
 }
 
 void EncodingServer::EncoderDeleted(const std::string& sEncoder)
@@ -219,7 +218,7 @@ void EncodingServer::EncoderDeleted(const std::string& sEncoder)
     jsValue["field"] = "encoder";
     jsValue["action"] = "deleted";
     jsValue["encoder"] = sEncoder;
-    m_server.SendWebsocketMessage({endpoint(EP_WS_ENCODERS.Get()+"/"+sEncoder)}, jsValue);
+    GetServer().SendWebsocketMessage({endpoint(EP_WS_ENCODERS.Get()+"/"+sEncoder)}, jsValue);
     RemoveEncoderEndpoints(sEncoder);
 }
 

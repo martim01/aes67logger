@@ -54,11 +54,12 @@ bool OpusEncoder::EncodeFile(const std::filesystem::path& wavFile)
         return false;
     }
     pmlLog(pml::LOG_DEBUG) << "Opened wav fie " << wavFile;
-    auto path = m_pathEncoded;
+    auto path = GetPathEncoded();
     path /= wavFile.stem();
     path.replace_extension(".opus");
 
-    m_nFileEncoded = 0;
+    ClearSamplesEncoded();
+    
 
     if(m_pEncoder == nullptr)
     {
@@ -85,13 +86,14 @@ bool OpusEncoder::EncodeFile(const std::filesystem::path& wavFile)
 
     auto tpStart = std::chrono::system_clock::now();
 
-    std::vector<float> vBuffer(m_nBufferSize);
+    std::vector<float> vBuffer(GetBufferSize());
     bool bOk = true;
     do
     {
         if((bOk = sf.ReadAudio(vBuffer)))
         {
-            m_nFileEncoded += vBuffer.size();
+            SamplesEncoded(vBuffer.size());
+            
 
             if(ope_encoder_ctl(m_pEncoder, OPUS_SET_LSB_DEPTH(24)) != OPE_OK)
             {
@@ -108,14 +110,15 @@ bool OpusEncoder::EncodeFile(const std::filesystem::path& wavFile)
         auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now()-tpStart);
         if(elapsed.count() > 2)
         {
-            OutputEncodedStats(wavFile, static_cast<double>(m_nFileEncoded)/static_cast<double>(sf.GetFileLength()));
+            OutputEncodedStats(wavFile, static_cast<double>(GetSamplesEncoded())/static_cast<double>(sf.GetFileLength()));
             tpStart = std::chrono::system_clock::now();
         }
 
-    } while (bOk && vBuffer.size() == m_nBufferSize);
+    } while (bOk && vBuffer.size() == GetBufferSize());
     pmlLog() << "Encoded " << path;
 
-    m_nFilesEncoded++;
-    m_lastEncoded = wavFile;
+    
+    FileEncoded(wavFile);
+    
     return true;
 }

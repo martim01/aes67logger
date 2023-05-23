@@ -36,17 +36,17 @@ void PlaybackServer::Init()
 void PlaybackServer::AddCustomEndpoints()
 {
 
-    m_server.AddEndpoint(pml::restgoose::GET, EP_LOGGERS, std::bind(&PlaybackServer::GetLoggers, this, _1,_2,_3,_4));
+    GetServer().AddEndpoint(pml::restgoose::GET, EP_LOGGERS, std::bind(&PlaybackServer::GetLoggers, this, _1,_2,_3,_4));
     AddLoggerEndpoints();
 
-    m_server.AddWebsocketEndpoint(EP_WS_LOGGERS, std::bind(&Server::WebsocketAuthenticate, this, _1,_2, _3, _4), std::bind(&Server::WebsocketMessage, this, _1, _2), std::bind(&Server::WebsocketClosed, this, _1, _2));
+    GetServer().AddWebsocketEndpoint(EP_WS_LOGGERS, std::bind(&Server::WebsocketAuthenticate, this, _1,_2, _3, _4), std::bind(&Server::WebsocketMessage, this, _1, _2), std::bind(&Server::WebsocketClosed, this, _1, _2));
 
 }
 
 
 void PlaybackServer::DeleteCustomEndpoints()
 {
-    m_server.DeleteEndpoint(pml::restgoose::GET, EP_LOGGERS);   
+    GetServer().DeleteEndpoint(pml::restgoose::GET, EP_LOGGERS);   
 }
 
 
@@ -90,24 +90,24 @@ void PlaybackServer::AddLoggerEndpoints()
 
 void PlaybackServer::AddLoggerEndpoints(const std::string& sName, std::shared_ptr<LoggerObserver> pLogger)
 {
-    m_server.AddEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName), std::bind(&PlaybackServer::GetLogger, this, _1,_2,_3,_4));
+    GetServer().AddEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName), std::bind(&PlaybackServer::GetLogger, this, _1,_2,_3,_4));
     
     for(const auto& [type, setFiles] : pLogger->GetEncodedFiles())
     {
-       m_server.AddEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName+"/"+type), std::bind(&PlaybackServer::GetLoggerFiles, this, _1,_2,_3,_4));
-       m_server.AddEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName+"/"+type+"/"+DOWNLOAD), std::bind(&PlaybackServer::DownloadLoggerFile, this, _1,_2,_3,_4));
+       GetServer().AddEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName+"/"+type), std::bind(&PlaybackServer::GetLoggerFiles, this, _1,_2,_3,_4));
+       GetServer().AddEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName+"/"+type+"/"+DOWNLOAD), std::bind(&PlaybackServer::DownloadLoggerFile, this, _1,_2,_3,_4));
     }
 
-    m_server.AddWebsocketEndpoint(endpoint(EP_WS_LOGGERS.Get()+"/"+sName), std::bind(&PlaybackServer::WebsocketAuthenticate, this, _1,_2, _3, _4), std::bind(&PlaybackServer::WebsocketMessage, this, _1, _2), std::bind(&PlaybackServer::WebsocketClosed, this, _1, _2));
+    GetServer().AddWebsocketEndpoint(endpoint(EP_WS_LOGGERS.Get()+"/"+sName), std::bind(&PlaybackServer::WebsocketAuthenticate, this, _1,_2, _3, _4), std::bind(&PlaybackServer::WebsocketMessage, this, _1, _2), std::bind(&PlaybackServer::WebsocketClosed, this, _1, _2));
 }
 
 
 void PlaybackServer::RemoveLoggerEndpoints(const std::string& sName, std::shared_ptr<LoggerObserver> pLogger)
 {
-    m_server.DeleteEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName));
+    GetServer().DeleteEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName));
     for(const auto& [type, setFiles] : pLogger->GetEncodedFiles())
     {
-        m_server.DeleteEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName+"/"+type));
+        GetServer().DeleteEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName+"/"+type));
     }
     //@todo remove websocket endpoints....
 }
@@ -205,7 +205,7 @@ void PlaybackServer::LoggerCreated(const std::string& sLogger, std::shared_ptr<L
     jsValue["action"] = "created";
     jsValue["logger"] = sLogger;
 
-    m_server.SendWebsocketMessage({EP_WS_LOGGERS}, jsValue);
+    GetServer().SendWebsocketMessage({EP_WS_LOGGERS}, jsValue);
 }
 
 void PlaybackServer::LoggerDeleted(const std::string& sLogger, std::shared_ptr<LoggerObserver> pLogger)
@@ -214,7 +214,7 @@ void PlaybackServer::LoggerDeleted(const std::string& sLogger, std::shared_ptr<L
     jsValue["field"] = "logger";
     jsValue["action"] = "deleted";
     jsValue["logger"] = sLogger;
-    m_server.SendWebsocketMessage({endpoint(EP_WS_LOGGERS.Get()+"/"+sLogger)}, jsValue);
+    GetServer().SendWebsocketMessage({endpoint(EP_WS_LOGGERS.Get()+"/"+sLogger)}, jsValue);
     RemoveLoggerEndpoints(sLogger, pLogger);
 }
 
@@ -227,7 +227,7 @@ void PlaybackServer::FileCreated(const std::string& sLogger, const std::filesyst
     jsValue["type"] = path.extension().string();
     jsValue["file"] = path.stem().string();
 
-    m_server.SendWebsocketMessage({endpoint(EP_WS_LOGGERS.Get()+"/"+sLogger+"/"+path.extension().string())}, jsValue);
+    GetServer().SendWebsocketMessage({endpoint(EP_WS_LOGGERS.Get()+"/"+sLogger+"/"+path.extension().string())}, jsValue);
 }
 
 void PlaybackServer::FileDeleted(const std::string& sLogger, const std::filesystem::path& path)
@@ -239,7 +239,7 @@ void PlaybackServer::FileDeleted(const std::string& sLogger, const std::filesyst
     jsValue["type"] = path.extension().string();
     jsValue["file"] = path.stem().string();
 
-    m_server.SendWebsocketMessage({endpoint(EP_WS_LOGGERS.Get()+"/"+sLogger+"/"+path.extension().string())}, jsValue);
+    GetServer().SendWebsocketMessage({endpoint(EP_WS_LOGGERS.Get()+"/"+sLogger+"/"+path.extension().string())}, jsValue);
 }
 
 pml::restgoose::response PlaybackServer::GetStatus(const query&, const postData&, const endpoint&, const userName&) const
