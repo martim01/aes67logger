@@ -828,7 +828,7 @@ function getLogs()
 	var dtStart = new Date(document.getElementById('start_time').value);
 	var dtEnd = new Date(document.getElementById('end_time').value);
 
-	var endpoint = "x-api/logs?encoder="+document.getElementById('select_log').value+"&start_time="+dtStart.getTime()/1000+
+	var endpoint = "x-api/logs?logger="+document.getElementById('select_log').value+"&start_time="+dtStart.getTime()/1000+
 	"&end_time="+dtEnd.getTime()/1000;
 
 	ajaxGet(endpoint, handleGetLogs);
