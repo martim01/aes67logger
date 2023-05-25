@@ -14,7 +14,7 @@ const std::string LoggingServer::SOURCES     = "sources";
 
 const endpoint LoggingServer::EP_LOGGERS     = endpoint("/x-api/"+LOGGERS);
 const endpoint LoggingServer::EP_SOURCES     = endpoint("/x-api/"+SOURCES);
-const endpoint LoggingServer::EP_WS_LOGGERS  = endpoint("/x-api/"+LOGGERS);
+const endpoint LoggingServer::EP_WS_LOGGERS  = endpoint("/x-api/ws/"+LOGGERS);
 
 
 
@@ -46,6 +46,8 @@ void LoggingServer::AddCustomEndpoints()
 
     m_server.AddEndpoint(pml::restgoose::GET, EP_LOGGERS, std::bind(&LoggingServer::GetLoggers, this, _1,_2,_3,_4));
     m_server.AddEndpoint(pml::restgoose::POST, EP_LOGGERS, std::bind(&LoggingServer::PostLogger, this, _1,_2,_3,_4));
+
+    m_server.AddEndpoint(pml::restgoose::GET, EP_SOURCES, std::bind(&LoggingServer::GetSources, this, _1,_2,_3,_4));
 
     m_server.AddWebsocketEndpoint(EP_WS_LOGGERS, std::bind(&Server::WebsocketAuthenticate, this, _1,_2,_3,_4), std::bind(&Server::WebsocketMessage, this, _1,_2), std::bind(&Server::WebsocketClosed, this, _1,_2));
 
