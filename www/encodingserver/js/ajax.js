@@ -76,6 +76,11 @@ function handleLogout(status, jsonObj)
 
 }
 
+function config()
+{
+	getConfig(handleConfig);
+}
+
 function showEncoder(encoder)
 {
     var grid = document.getElementById('encoder_grid');
@@ -1008,4 +1013,93 @@ function showAdminPassword(action)
 }
 
 
+function handleConfig(result, jsonObj)
+{
+	console.log("handleConfig");
+	console.log(jsonObj);
+	if(result == 200)
+	{
+		for(let section in jsonObj)
+		{
+			showConfigSection(section, jsonObj[section]);
+		}
+	}
+}
 
+function showConfigSection(section, jsonObj)
+{
+	console.log("showConfigSection "+section);
+	console.log(jsonObj);
+
+    var grid = document.getElementById('config_grid');
+
+    var divMain = document.createElement('div');
+    divMain.classList.add('uk-width-1-3@s', 'uk-width-1-4@xl');
+    
+	var aSection = document.createElement('a');
+    aSection.classList.add('uk-link-reset', 'uk-display-block', 'uk-width-large@l', 'uk-width-medium@m', 'uk-card', 'uk-card-default', 'uk-card-body',
+                            'uk-card-hover', 'uk-card-small');
+							aSection.id = section;
+    
+
+    var divHeader = document.createElement('div');
+    divHeader.className='uk-card-header';
+    var titleH3 = document.createElement('h3');
+    titleH3.className='uk-card-title';
+    var titleSpan = document.createElement('span');
+    titleSpan.id = "section_"+section;
+    titleSpan.innerHTML = section;
+    titleH3.appendChild(titleSpan);
+    divHeader.appendChild(titleH3);
+    
+       
+    aSection.appendChild(divHeader);
+    
+
+    var divBody = document.createElement('div');
+    divBody.classList.add('uk-card-body', 'uk-card-small');
+    
+	
+   
+	for(let key in jsonObj)
+	{
+		
+		if(typeof jsonObj[key] === 'object')
+		{
+			for(let subkey in jsonObj[key])
+			{
+				createKeyValue(key+"-"+subkey, jsonObj[key][subkey], divBody);	
+			}
+		}
+		else
+		{
+			createKeyValue(key, jsonObj[key], divBody);
+		}
+	}
+
+	//divBody.appendChild(divSectionGrid);
+    
+
+    aSection.appendChild(divBody);
+
+    
+    divMain.appendChild(aSection);
+    
+    grid.appendChild(divMain);
+}
+
+function createKeyValue(key, value, parentElement)
+{
+	var divSectionGrid = document.createElement('div');
+    divSectionGrid.classList.add('uk-child-width-expand', 'uk-grid-small', 'uk-text-left', 'uk-grid');
+
+	var divKey = document.createElement('div');
+	divKey.classList.add('uk-width-1-3', 'uk-text-primary')
+	divKey.innerHTML = key+":";
+	var divValue  = document.createElement('div');
+	divValue.classList.add('uk-width-2-3')
+	divValue.innerHTML = value;
+	divSectionGrid.appendChild(divKey);
+	divSectionGrid.appendChild(divValue);
+	parentElement.appendChild(divSectionGrid);
+}

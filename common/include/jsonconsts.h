@@ -126,4 +126,7 @@ struct jsonConsts
     static const std::string encoded;
     static const std::string files_encoded;
     static const std::string last_encoded;
+
+    static const std::string restricted_users;
+    static const std::string restricted_password;
 };
