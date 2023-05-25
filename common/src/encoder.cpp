@@ -273,3 +273,9 @@ void Encoder::OutputEncodedStats(const std::filesystem::path& wavFile, double dD
     OutputJson(wavFile, jsStatus);
 
 }
+
+void Encoder::FileEncoded(const std::filesystem::path& pathWav)
+{
+    m_lastEncoded = pathWav;
+    m_nFilesEncoded++;
+}

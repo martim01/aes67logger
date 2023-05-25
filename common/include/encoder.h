@@ -40,6 +40,26 @@ class Encoder
 
         std::filesystem::path GetNextFile();
 
+        const std::string& GetType() const { return m_sType; }
+        const std::string& GetName() const { return m_sName; }
+        int GetLogToConsole() const { return m_nLogToConsole; }
+        int GetLogToFile() const { return m_nLogToFile; }
+
+        std::shared_ptr<AsioServer> GetAsioServer() const { return m_pServer;}
+        size_t GetBufferSize() const { return m_nBufferSize; }
+        
+        const std::filesystem::path& GetPathSockets() const { return m_pathSockets; }
+        const std::filesystem::path& GetPathWav() const { return m_pathWav; }
+        const std::filesystem::path& GetPathEncoded() const { return m_pathEncoded; }
+
+
+        void ClearSamplesEncoded() { m_nSamplesEncoded = 0;}
+        void SamplesEncoded(size_t nSamples) { m_nSamplesEncoded += nSamples;};
+        size_t GetSamplesEncoded() const { return m_nSamplesEncoded;}
+
+        void FileEncoded(const std::filesystem::path& pathWav);
+    private:
+
         std::string m_sType;
         std::string m_sName;
         int m_nLogToConsole = -1;
@@ -63,7 +83,7 @@ class Encoder
 
         bool m_bRun = true;
 
-        size_t m_nFileEncoded = 0;
+        size_t m_nSamplesEncoded = 0;
         size_t m_nFilesEncoded = 0;
         std::filesystem::path m_lastEncoded;
 };

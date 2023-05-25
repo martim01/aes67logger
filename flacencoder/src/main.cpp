@@ -39,6 +39,8 @@ static void sig(int signo)
             _exit(0);
         }
         break;
+    default:
+        pmlLog(pml::LOG_DEBUG) << "Signal: " <<signo;
     }
 }
 

@@ -13,8 +13,9 @@ extern pml::restgoose::response ConvertPostDataToJson(const postData& vData);
 class Server
 {
     public:
-        Server(const std::string sApp);
-
+        explicit Server(const std::string sApp);
+        virtual ~Server()=default;
+        
         int Run(const std::string& sConfigFile);
 
 
@@ -48,6 +49,7 @@ class Server
         bool WebsocketMessage(const endpoint& theEndpoint, const Json::Value& jsData);
         void WebsocketClosed(const endpoint& theEndpoint, const ipAddress& peer);
 
+        const iniManager& GetIniManager() const { return m_config;}
 
     protected:
 
@@ -55,9 +57,6 @@ class Server
         virtual void AddCustomEndpoints() = 0;
         virtual void DeleteCustomEndpoints()=0;
         virtual Json::Value GetVersion()const=0;
-        pml::restgoose::Server m_server;
-        SysInfoManager m_info;
-        iniManager m_config;
         
         void InitLogging();
         bool CreateEndpoints();
@@ -75,6 +74,7 @@ class Server
 
         virtual Json::Value GetCustomStatusSummary() const=0;
     
+       
         static const endpoint EP_ROOT;
         static const endpoint EP_API;
         static const endpoint EP_LOGIN;
@@ -100,12 +100,21 @@ class Server
         static const std::string UPDATE;
         static const std::string WS;
 
+        
+        pml::restgoose::Server& GetServer() { return m_server;}
+        std::mutex& GetMutex() { return m_mutex;}
+
+    private:
+
+        pml::restgoose::Server m_server;
+        SysInfoManager m_info;
+        iniManager m_config;
+    
         std::string m_sApp;
         std::mutex m_mutex;
 
         unsigned int m_nTimeSinceLastCall = 0;
         
-
         ssize_t m_nLogToConsole = -1;
         ssize_t m_nLogToFile     = -1;
         bool m_bLoggedThisHour = false;

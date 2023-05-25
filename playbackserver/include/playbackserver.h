@@ -27,7 +27,6 @@ class PlaybackServer : public Server
         void FileCreated(const std::string& sLogger, const std::filesystem::path& path);
         void FileDeleted(const std::string& sLogger, const std::filesystem::path& path);
 
-        const iniManager& GetConfig() const { return m_config;}
 
     private:
 

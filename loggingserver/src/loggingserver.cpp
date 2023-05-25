@@ -29,13 +29,13 @@ LoggingServer::LoggingServer() : Server("loggingserver")
 void LoggingServer::Init()
 {
     //add luauncher callbacks
-    m_launcher.Init(m_config, std::bind(&LoggingServer::StatusCallback, this, _1,_2), std::bind(&LoggingServer::ExitCallback, this, _1,_2,_3));
+    m_launcher.Init(GetIniManager(), std::bind(&LoggingServer::StatusCallback, this, _1,_2), std::bind(&LoggingServer::ExitCallback, this, _1,_2,_3));
     ReadDiscoveryConfig();
 }
 
 void LoggingServer::ReadDiscoveryConfig()
 {
-    if(m_discovery.Read(m_config.Get(jsonConsts::path, "discovery","discovery.ini")) == false)
+    if(m_discovery.Read(GetIniManager().Get(jsonConsts::path, "discovery","discovery.ini")) == false)
     {
         pmlLog(pml::LOG_ERROR) << "Unable to read discovery config file, won't be able to find stream sources";
     }
@@ -44,8 +44,8 @@ void LoggingServer::ReadDiscoveryConfig()
 void LoggingServer::AddCustomEndpoints()
 {
 
-    m_server.AddEndpoint(pml::restgoose::GET, EP_LOGGERS, std::bind(&LoggingServer::GetLoggers, this, _1,_2,_3,_4));
-    m_server.AddEndpoint(pml::restgoose::POST, EP_LOGGERS, std::bind(&LoggingServer::PostLogger, this, _1,_2,_3,_4));
+    GetServer().AddEndpoint(pml::restgoose::GET, EP_LOGGERS, std::bind(&LoggingServer::GetLoggers, this, _1,_2,_3,_4));
+    GetServer().AddEndpoint(pml::restgoose::POST, EP_LOGGERS, std::bind(&LoggingServer::PostLogger, this, _1,_2,_3,_4));
 
     m_server.AddEndpoint(pml::restgoose::GET, EP_SOURCES, std::bind(&LoggingServer::GetSources, this, _1,_2,_3,_4));
 
@@ -61,34 +61,34 @@ void LoggingServer::AddCustomEndpoints()
 
 void LoggingServer::AddLoggerEndpoints(const std::string& sName)
 {
-    m_server.AddEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName), std::bind(&LoggingServer::GetLogger, this, _1,_2,_3,_4));
-    m_server.AddEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName+"/"+STATUS), std::bind(&LoggingServer::GetLoggerStatus, this, _1,_2,_3,_4));
-    m_server.AddEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName+"/"+CONFIG), std::bind(&LoggingServer::GetLoggerConfig, this, _1,_2,_3,_4));
-    m_server.AddEndpoint(pml::restgoose::HTTP_DELETE, endpoint(EP_LOGGERS.Get()+"/"+sName), std::bind(&LoggingServer::DeleteLogger, this, _1,_2,_3,_4));
+    GetServer().AddEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName), std::bind(&LoggingServer::GetLogger, this, _1,_2,_3,_4));
+    GetServer().AddEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName+"/"+STATUS), std::bind(&LoggingServer::GetLoggerStatus, this, _1,_2,_3,_4));
+    GetServer().AddEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName+"/"+CONFIG), std::bind(&LoggingServer::GetLoggerConfig, this, _1,_2,_3,_4));
+    GetServer().AddEndpoint(pml::restgoose::HTTP_DELETE, endpoint(EP_LOGGERS.Get()+"/"+sName), std::bind(&LoggingServer::DeleteLogger, this, _1,_2,_3,_4));
 
-    m_server.AddEndpoint(pml::restgoose::PATCH, endpoint(EP_LOGGERS.Get()+"/"+sName+"/"+CONFIG), std::bind(&LoggingServer::PatchLoggerConfig, this, _1,_2,_3,_4));
+    GetServer().AddEndpoint(pml::restgoose::PATCH, endpoint(EP_LOGGERS.Get()+"/"+sName+"/"+CONFIG), std::bind(&LoggingServer::PatchLoggerConfig, this, _1,_2,_3,_4));
 
-    m_server.AddEndpoint(pml::restgoose::PUT, endpoint(EP_LOGGERS.Get()+"/"+sName), std::bind(&LoggingServer::PutLoggerPower, this, _1,_2,_3,_4));
+    GetServer().AddEndpoint(pml::restgoose::PUT, endpoint(EP_LOGGERS.Get()+"/"+sName), std::bind(&LoggingServer::PutLoggerPower, this, _1,_2,_3,_4));
 
-    m_server.AddWebsocketEndpoint(endpoint(EP_WS_LOGGERS.Get()+"/"+sName), std::bind(&Server::WebsocketAuthenticate, this, _1,_2,_3,_4), std::bind(&Server::WebsocketMessage, this, _1,_2), std::bind(&Server::WebsocketClosed, this, _1,_2));
+    GetServer().AddWebsocketEndpoint(endpoint(EP_WS_LOGGERS.Get()+"/"+sName), std::bind(&Server::WebsocketAuthenticate, this, _1,_2,_3,_4), std::bind(&Server::WebsocketMessage, this, _1,_2), std::bind(&Server::WebsocketClosed, this, _1,_2));
 }
 
 void LoggingServer::DeleteCustomEndpoints()
 {
 
-    m_server.DeleteEndpoint(pml::restgoose::GET, EP_LOGGERS);
-    m_server.DeleteEndpoint(pml::restgoose::POST, EP_LOGGERS);
+    GetServer().DeleteEndpoint(pml::restgoose::GET, EP_LOGGERS);
+    GetServer().DeleteEndpoint(pml::restgoose::POST, EP_LOGGERS);
 
 
     //now Delete all the dynamic methodpoints
     for(const auto& [sName, pLauncher] : m_launcher.GetLaunchers())
     {
-        m_server.DeleteEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName));
-        m_server.DeleteEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName+"/"+STATUS));
-        m_server.DeleteEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName+"/"+CONFIG));
+        GetServer().DeleteEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName));
+        GetServer().DeleteEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName+"/"+STATUS));
+        GetServer().DeleteEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sName+"/"+CONFIG));
 
-        m_server.DeleteEndpoint(pml::restgoose::HTTP_DELETE, endpoint(EP_LOGGERS.Get()+"/"+sName));
-        m_server.DeleteEndpoint(pml::restgoose::PUT, endpoint(EP_LOGGERS.Get()+"/"+sName+"/"+CONFIG));
+        GetServer().DeleteEndpoint(pml::restgoose::HTTP_DELETE, endpoint(EP_LOGGERS.Get()+"/"+sName));
+        GetServer().DeleteEndpoint(pml::restgoose::PUT, endpoint(EP_LOGGERS.Get()+"/"+sName+"/"+CONFIG));
 
     }
 }
@@ -241,7 +241,7 @@ pml::restgoose::response LoggingServer::DeleteLogger(const query&, const postDat
         {
             return pml::restgoose::response(401, "No password sent");
         }
-        if(theResponse.jsonData["password"].asString() != m_config.Get(jsonConsts::api, jsonConsts::password, "2rnfgesgy8w!"))
+        if(theResponse.jsonData["password"].asString() != GetIniManager().Get(jsonConsts::api, jsonConsts::password, "2rnfgesgy8w!"))
         {
             return pml::restgoose::response(403, "Password is incorrect");
         }
@@ -273,9 +273,9 @@ pml::restgoose::response LoggingServer::PutLoggerPower(const query&, const postD
         {
             return pml::restgoose::response(401, "No password sent");
         }
-        if(theResponse.jsonData["password"].asString() != m_config.Get(jsonConsts::api, jsonConsts::password, "2rnfgesgy8w!"))
+        if(theResponse.jsonData["password"].asString() != GetIniManager().Get(jsonConsts::api, jsonConsts::password, "2rnfgesgy8w!"))
         {
-            pmlLog(pml::LOG_DEBUG) << "Sent " << theResponse.jsonData["password"].asString() << " should be " << m_config.Get(jsonConsts::api, jsonConsts::password, "2rnfgesgy8w!");
+            pmlLog(pml::LOG_DEBUG) << "Sent " << theResponse.jsonData["password"].asString() << " should be " << GetIniManager().Get(jsonConsts::api, jsonConsts::password, "2rnfgesgy8w!");
             return pml::restgoose::response(403, "Password is incorrect");
         }
 
@@ -313,14 +313,14 @@ Json::Value LoggingServer::GetVersion() const
 void LoggingServer::StatusCallback(const std::string& sLoggerId, const Json::Value& jsStatus)
 {
     //lock as jsStatus can be called by pipe thread and server thread
-    std::scoped_lock<std::mutex> lg(m_mutex);
-    m_server.SendWebsocketMessage({endpoint(EP_WS_LOGGERS.Get()+"/"+sLoggerId)}, jsStatus);
+    std::scoped_lock<std::mutex> lg(GetMutex());
+    GetServer().SendWebsocketMessage({endpoint(EP_WS_LOGGERS.Get()+"/"+sLoggerId)}, jsStatus);
 }
 
 void LoggingServer::ExitCallback(const std::string& sLoggerId, int nExit, bool bRemove)
 {
     //lock as jsStatus can be called by pipe thread and server thread
-    std::scoped_lock<std::mutex> lg(m_mutex);
+    std::scoped_lock<std::mutex> lg(GetMutex());
 
     auto jsStatus = Json::Value(Json::objectValue);    //reset
 
@@ -354,20 +354,20 @@ void LoggingServer::ExitCallback(const std::string& sLoggerId, int nExit, bool b
         pmlLog() << "Logger resumed Signal:" << WSTOPSIG(nExit);
     }
 
-    m_server.SendWebsocketMessage({endpoint(EP_WS_LOGGERS.Get()+"/"+sLoggerId)}, jsStatus);
+    GetServer().SendWebsocketMessage({endpoint(EP_WS_LOGGERS.Get()+"/"+sLoggerId)}, jsStatus);
 
 
     if(bRemove)
     {
-        m_server.DeleteEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sLoggerId));
-        m_server.DeleteEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sLoggerId+"/"+STATUS));
-        m_server.DeleteEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sLoggerId+"/"+CONFIG));
-        m_server.DeleteEndpoint(pml::restgoose::HTTP_DELETE, endpoint(EP_LOGGERS.Get()+"/"+sLoggerId));
-        m_server.DeleteEndpoint(pml::restgoose::PUT, endpoint(EP_LOGGERS.Get()+"/"+sLoggerId+"/"+CONFIG));
-        m_server.DeleteEndpoint(pml::restgoose::PUT, endpoint(EP_LOGGERS.Get()+"/"+sLoggerId));
+        GetServer().DeleteEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sLoggerId));
+        GetServer().DeleteEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sLoggerId+"/"+STATUS));
+        GetServer().DeleteEndpoint(pml::restgoose::GET, endpoint(EP_LOGGERS.Get()+"/"+sLoggerId+"/"+CONFIG));
+        GetServer().DeleteEndpoint(pml::restgoose::HTTP_DELETE, endpoint(EP_LOGGERS.Get()+"/"+sLoggerId));
+        GetServer().DeleteEndpoint(pml::restgoose::PUT, endpoint(EP_LOGGERS.Get()+"/"+sLoggerId+"/"+CONFIG));
+        GetServer().DeleteEndpoint(pml::restgoose::PUT, endpoint(EP_LOGGERS.Get()+"/"+sLoggerId));
 
         //@todo remove websocket endpoints
-        //m_server.AddWebsocketEndpoint(endpoint(EP_WS_LOGGERS.Get()+"/"+sName), std::bind(&Server::WebsocketAuthenticate, this, _1,_2,_3,_4), std::bind(&Server::WebsocketMessage, this, _1,_2), std::bind(&Server::WebsocketClosed, this, _1,_2));
+        //GetServer().AddWebsocketEndpoint(endpoint(EP_WS_LOGGERS.Get()+"/"+sName), std::bind(&Server::WebsocketAuthenticate, this, _1,_2,_3,_4), std::bind(&Server::WebsocketMessage, this, _1,_2), std::bind(&Server::WebsocketClosed, this, _1,_2));
     }
 }
 

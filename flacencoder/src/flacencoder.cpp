@@ -12,12 +12,7 @@ FlacEncoder::FlacEncoder() : Encoder(jsonConsts::flac)
 {
 
 }
-FlacEncoder::~FlacEncoder()
-{
-
-}
-
-
+FlacEncoder::~FlacEncoder()=default;
 
 
 
@@ -34,7 +29,7 @@ bool FlacEncoder::EncodeFile(const std::filesystem::path& wavFile)
         return false;
     }
     pmlLog(pml::LOG_DEBUG) << "Opened wav fie " << wavFile;
-    auto path = m_pathEncoded;
+    auto path = GetPathEncoded();
     path /= wavFile.stem();
     path.replace_extension(".flac");
 
@@ -46,7 +41,7 @@ bool FlacEncoder::EncodeFile(const std::filesystem::path& wavFile)
         return false;
     }
 
-    std::vector<float> vBuffer(m_nBufferSize);
+    std::vector<float> vBuffer(GetBufferSize());
     bool bOk = true;
     do
     {
@@ -55,10 +50,9 @@ bool FlacEncoder::EncodeFile(const std::filesystem::path& wavFile)
             sfFlac.WriteAudio(vBuffer);
         }
 
-    } while (bOk && vBuffer.size() == m_nBufferSize);
+    } while (bOk && vBuffer.size() == GetBufferSize());
     pmlLog() << "Encoded " << path;
 
-    m_nFilesEncoded++;
-    m_lastEncoded = wavFile;
+    FileEncoded(wavFile);
     return true;
 }
