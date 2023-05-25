@@ -30,9 +30,10 @@ function getCookies()
 			var key = el.substring(0,pos);
 			var value = el.substring(pos+1);
 			g_cookie_array[key] = value;
-			if(key.trim() == 'access_token_loggingserver')
+			if(key.trim() == 'access_token')
 			{
 				g_access_token_loggingserver = value;
+				console.log("Got cookie"+g_access_token_loggingserver);
 			}
 		}
 	});
@@ -64,8 +65,9 @@ function handleLogin(status, jsonObj)
     {
 		console.log(jsonObj);
 		g_access_token_loggingserver = jsonObj.token;
+		
 
-        document.cookie = "access_token_loggingserver="+g_access_token_loggingserver+"; path=/";
+	        document.cookie = "access_token="+g_access_token_loggingserver+"; path=/";
 		window.location.pathname = "/dashboard";
 		console.log(window.location);
     }
