@@ -30,7 +30,7 @@ function getCookies()
 			var key = el.substring(0,pos);
 			var value = el.substring(pos+1);
 			g_cookie_array[key] = value;
-			if(key.trim() == 'access_token_encodingserver')
+			if(key.trim() == 'access_token')
 			{
 				g_access_token_encodingserver = value;
 			}
@@ -65,7 +65,7 @@ function handleLogin(status, jsonObj)
 		console.log(jsonObj);
 		g_access_token_encodingserver = jsonObj.token;
 
-        document.cookie = "access_token_encodingserver="+g_access_token_encodingserver+"; path=/";
+        document.cookie = "access_token="+g_access_token_encodingserver+"; path=/";
 		window.location.pathname = "/dashboard";
 		console.log(window.location);
     }
