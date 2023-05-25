@@ -4,7 +4,7 @@ var g_ws = null;
 g_ajax.timeout = 300;
 var g_cookie_array = [];
 var g_logger = null;
-var g_access_token = null;
+var g_access_token_loggingserver = null;
 var g_action = '';
 
 const zeroPad = (num,places)=>String(num).padStart(places,'0');
@@ -30,9 +30,9 @@ function getCookies()
 			var key = el.substring(0,pos);
 			var value = el.substring(pos+1);
 			g_cookie_array[key] = value;
-			if(key.trim() == 'access_token')
+			if(key.trim() == 'access_token_loggingserver')
 			{
-				g_access_token = value;
+				g_access_token_loggingserver = value;
 			}
 		}
 	});
@@ -63,9 +63,9 @@ function handleLogin(status, jsonObj)
     else 
     {
 		console.log(jsonObj);
-		g_access_token = jsonObj.token;
+		g_access_token_loggingserver = jsonObj.token;
 
-        document.cookie = "access_token="+g_access_token+"; path=/";
+        document.cookie = "access_token_loggingserver="+g_access_token_loggingserver+"; path=/";
 		window.location.pathname = "/dashboard";
 		console.log(window.location);
     }
@@ -322,7 +322,7 @@ function ws_connect(endpoint, callbackMessage)
 		ws_protocol = "wss:";
 	}
 
-	g_ws = new WebSocket(ws_protocol+"//"+location.host+"/x-api/ws/"+endpoint+"?access_token="+g_access_token);
+	g_ws = new WebSocket(ws_protocol+"//"+location.host+"/x-api/ws/"+endpoint+"?access_token="+g_access_token_loggingserver);
     g_ws.timeout = true;
 	g_ws.onopen = function(ev)  { this.tm = setTimeout(serverOffline, 4000) };
 	g_ws.onerror = function(ev) { serverOffline(); };
