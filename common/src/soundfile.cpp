@@ -159,9 +159,9 @@ int SoundFile::GetBitDepth() const
                 return 24;
             case SF_FORMAT_PCM_32:
                 return 32;
-
+            default:
+                return 0;
         }
-        return 0;
     }
     return -1;
 }

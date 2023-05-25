@@ -47,9 +47,9 @@ void LoggingServer::AddCustomEndpoints()
     GetServer().AddEndpoint(pml::restgoose::GET, EP_LOGGERS, std::bind(&LoggingServer::GetLoggers, this, _1,_2,_3,_4));
     GetServer().AddEndpoint(pml::restgoose::POST, EP_LOGGERS, std::bind(&LoggingServer::PostLogger, this, _1,_2,_3,_4));
 
-    m_server.AddEndpoint(pml::restgoose::GET, EP_SOURCES, std::bind(&LoggingServer::GetSources, this, _1,_2,_3,_4));
+    GetServer().AddEndpoint(pml::restgoose::GET, EP_SOURCES, std::bind(&LoggingServer::GetSources, this, _1,_2,_3,_4));
 
-    m_server.AddWebsocketEndpoint(EP_WS_LOGGERS, std::bind(&Server::WebsocketAuthenticate, this, _1,_2,_3,_4), std::bind(&Server::WebsocketMessage, this, _1,_2), std::bind(&Server::WebsocketClosed, this, _1,_2));
+    GetServer().AddWebsocketEndpoint(EP_WS_LOGGERS, std::bind(&Server::WebsocketAuthenticate, this, _1,_2,_3,_4), std::bind(&Server::WebsocketMessage, this, _1,_2), std::bind(&Server::WebsocketClosed, this, _1,_2));
 
     //now add all the dynamic methodpoints
     for(const auto& [sName, pLauncher] : m_launcher.GetLaunchers())

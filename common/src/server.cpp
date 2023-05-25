@@ -86,7 +86,7 @@ pml::restgoose::response ConvertPostDataToJson(const postData& vData)
 }
 
 
-Server::Server(const std::string sApp) : m_sApp(sApp)
+Server::Server(const std::string& sApp) : m_sApp(sApp)
 {
 
 }
@@ -143,10 +143,10 @@ int Server::Run(const std::string& sConfigFile)
     
     m_info.SetDiskPath(m_config.Get(jsonConsts::path, jsonConsts::audio, "/var/loggers"));
 
-    auto addr = ipAddress(GetIpAddress(m_config.Get(jsonConsts::api, jsonConsts::interface, "eth0")));
+    
 
-    if(m_server.Init(fileLocation(m_config.Get(jsonConsts::api, "sslCert", "")), 
-    fileLocation(m_config.Get(jsonConsts::api, "sslKey", "")), addr, m_config.Get(jsonConsts::api, "port", 8080l), EP_API, true,true))
+    if(auto addr = ipAddress(GetIpAddress(m_config.Get(jsonConsts::api, jsonConsts::interface, "eth0"))); 
+       m_server.Init(fileLocation(m_config.Get(jsonConsts::api, "sslCert", "")), fileLocation(m_config.Get(jsonConsts::api, "sslKey", "")), addr, m_config.Get(jsonConsts::api, "port", 8080L), EP_API, true,true))
     {
 
         m_server.SetAuthorizationTypeBearer(std::bind(&Server::AuthenticateToken, this, _1), std::bind(&Server::RedirectToLogin, this), true);
@@ -416,12 +416,9 @@ void Server::PatchServerConfig(const Json::Value& jsData) const
 {
     for(auto const& sKey : jsData.getMemberNames())
     {
-        if(sKey == "hostname" && jsData[sKey].isString())
+        if(sKey == "hostname" && jsData[sKey].isString() && sethostname(jsData[sKey].asString().c_str(), jsData[sKey].asString().length()) != 0)
         {
-            if(sethostname(jsData[sKey].asString().c_str(), jsData[sKey].asString().length()) != 0)
-            {
-                pmlLog(pml::LOG_WARN) << "Failed to set hostname";
-            }
+            pmlLog(pml::LOG_WARN) << "Failed to set hostname";
         }
     }
 }
@@ -497,7 +494,7 @@ pml::restgoose::response Server::GetLog(const std::string& sLogger, const std::s
         std::stringstream ssLog;
 
         //get an array of the logs we need to open
-        for(time_t nTime = (time_t)nTimeFrom; (nTime/3600) <= ((time_t)nTimeTo/3600); nTime+=3600)
+        for(auto nTime = (time_t)nTimeFrom; (nTime/3600) <= ((time_t)nTimeTo/3600); nTime+=3600)
         {
             std::stringstream ssDate;
             ssDate << std::put_time(localtime(&nTime), "%Y-%m-%dT%H.log");
@@ -584,7 +581,7 @@ void Server::LoopCallback(std::chrono::milliseconds durationSince)
 
 
 
-pml::restgoose::response Server::Reboot(int nCommand)
+pml::restgoose::response Server::Reboot(int nCommand) const
 {
     pml::restgoose::response theResponse;
     sync(); //make sure filesystem is synced
@@ -644,28 +641,26 @@ bool Server::DoAuthenticateToken(const std::string& sToken, const ipAddress& pee
     return false;
 }
 
-pml::restgoose::response Server::PostLogin(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
+pml::restgoose::response Server::PostLogin(const query& , const postData& vData, const endpoint& , const userName& )
 {
-    if(auto theResponse = ConvertPostDataToJson(vData); theResponse.nHttpCode == 200)
+    if(auto theResponse = ConvertPostDataToJson(vData); theResponse.nHttpCode == 200 && 
+       theResponse.jsonData.isMember(jsonConsts::username) && 
+       theResponse.jsonData.isMember(jsonConsts::password) && 
+       theResponse.jsonData[jsonConsts::password].asString().empty() == false && 
+       m_config.Get("users", theResponse.jsonData[jsonConsts::username].asString(), "") == theResponse.jsonData[jsonConsts::password].asString())
     {
-        if(theResponse.jsonData.isMember(jsonConsts::username) && theResponse.jsonData.isMember(jsonConsts::password) && theResponse.jsonData[jsonConsts::password].asString().empty() == false)
+        auto pCookie = std::make_shared<SessionCookie>(userName(theResponse.jsonData[jsonConsts::username].asString()), m_server.GetCurrentPeer(false));
+
+        auto [itToken, ins] = m_mTokens.try_emplace(m_server.GetCurrentPeer(false), pCookie);
+        if(ins == false)
         {
-            if(m_config.Get("users", theResponse.jsonData[jsonConsts::username].asString(), "") == theResponse.jsonData[jsonConsts::password].asString())
-            {
-                auto pCookie = std::make_shared<SessionCookie>(userName(theResponse.jsonData[jsonConsts::username].asString()), m_server.GetCurrentPeer(false));
-
-                auto [itToken, ins] = m_mTokens.try_emplace(m_server.GetCurrentPeer(false), pCookie);
-                if(ins == false)
-                {
-                    itToken->second = pCookie;
-                }
-
-                pml::restgoose::response resp(200);
-                resp.jsonData["token"] = pCookie->GetId();
-                pmlLog() << "Login complete: ";
-                return resp;
-            }
+            itToken->second = pCookie;
         }
+
+        pml::restgoose::response resp(200);
+        resp.jsonData["token"] = pCookie->GetId();
+        pmlLog() << "Login complete: ";
+        return resp;
     }
     return pml::restgoose::response(401, "Username or password incorrect");
 }

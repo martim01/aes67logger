@@ -7,7 +7,7 @@ class OpusEncoder : public Encoder
 {
     public:
         OpusEncoder();
-        virtual ~OpusEncoder();
+        ~OpusEncoder() final;
 
 
     private:

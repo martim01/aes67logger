@@ -4,7 +4,7 @@ class FlacEncoder : public Encoder
 {
     public:
         FlacEncoder();
-        virtual ~FlacEncoder();
+        ~FlacEncoder() final;
     private:
 
         

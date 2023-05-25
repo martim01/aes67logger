@@ -13,7 +13,7 @@ extern pml::restgoose::response ConvertPostDataToJson(const postData& vData);
 class Server
 {
     public:
-        explicit Server(const std::string sApp);
+        explicit Server(const std::string& sApp);
         virtual ~Server()=default;
         
         int Run(const std::string& sConfigFile);
@@ -62,7 +62,7 @@ class Server
         bool CreateEndpoints();
 
         void DeleteEndpoints();
-        pml::restgoose::response Reboot(int nCommand);
+        pml::restgoose::response Reboot(int nCommand) const;
 
         void PatchServerConfig(const Json::Value& jsData) const;
         bool AuthenticateToken(const std::string& sToken);
