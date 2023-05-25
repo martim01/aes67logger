@@ -514,13 +514,16 @@ pml::restgoose::response Server::GetLog(const std::string& sLogger, const std::s
             }
             else
             {
-                pmlLog(pml::LOG_DEBUG) << logFile << " opened";
+                if(sLogger != m_sApp)
+                {
+                    pmlLog(pml::LOG_DEBUG) << logFile << " opened";
+                }
+
                 inFile.clear();
                 std::string sLine;
                 while(!inFile.eof())
                 {
                     getline(inFile,sLine,'\n');
-                    pmlLog(pml::LOG_DEBUG) << "Log\t" << sLine;
                     if(sLine.empty() == false)
                     {
                         auto vSplit = SplitString(sLine, '\t', 3);
