@@ -1227,11 +1227,11 @@ function showConfigSection(section, jsonObj)
     var grid = document.getElementById('config_grid');
 
     var divMain = document.createElement('div');
-    divMain.classList.add('uk-width-1-3@s', 'uk-width-1-4@xl');
+    divMain.classList.add('uk-width-1-3@s', 'uk-width-1-5@xl');
     
 	var aSection = document.createElement('a');
-    aSection.classList.add('uk-link-reset', 'uk-display-block', 'uk-width-large@l', 'uk-width-medium@m', 'uk-card', 'uk-card-default', 'uk-card-body',
-                            'uk-card-hover', 'uk-card-small');
+    aSection.classList.add('uk-link-reset', 'uk-display-block', 'uk-card', 'uk-card-default', 'uk-card-body',
+                            'uk-card-hover');
 							aSection.id = section;
     
 
