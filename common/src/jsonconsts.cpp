@@ -119,3 +119,6 @@ const std::string jsonConsts::queue              = "queue";
 const std::string jsonConsts::encoded            = "encoded";
 const std::string jsonConsts::files_encoded      = "files_encoded";
 const std::string jsonConsts::last_encoded       = "last_encoded";
+
+const std::string jsonConsts::restricted_users   = "_users";
+const std::string jsonConsts::restricted_password= "_password"

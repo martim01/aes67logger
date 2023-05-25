@@ -241,7 +241,7 @@ pml::restgoose::response LoggingServer::DeleteLogger(const query&, const postDat
         {
             return pml::restgoose::response(401, "No password sent");
         }
-        if(theResponse.jsonData["password"].asString() != GetIniManager().Get(jsonConsts::api, jsonConsts::password, "2rnfgesgy8w!"))
+        if(theResponse.jsonData["password"].asString() != GetIniManager().Get(jsonConsts::api, jsonConsts::restricted_password, "2rnfgesgy8w!"))
         {
             return pml::restgoose::response(403, "Password is incorrect");
         }
@@ -273,9 +273,8 @@ pml::restgoose::response LoggingServer::PutLoggerPower(const query&, const postD
         {
             return pml::restgoose::response(401, "No password sent");
         }
-        if(theResponse.jsonData["password"].asString() != GetIniManager().Get(jsonConsts::api, jsonConsts::password, "2rnfgesgy8w!"))
+        if(theResponse.jsonData["password"].asString() != GetIniManager().Get(jsonConsts::api, jsonConsts::restricted_password, "2rnfgesgy8w!"))
         {
-            pmlLog(pml::LOG_DEBUG) << "Sent " << theResponse.jsonData["password"].asString() << " should be " << GetIniManager().Get(jsonConsts::api, jsonConsts::password, "2rnfgesgy8w!");
             return pml::restgoose::response(403, "Password is incorrect");
         }
 

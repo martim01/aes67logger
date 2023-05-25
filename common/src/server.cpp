@@ -266,12 +266,15 @@ pml::restgoose::response Server::GetConfig(const query&, const postData&, const 
 
     for(const auto& [sName, pSection] : m_config.GetSections())
     {
-        if(sName != "restricted")
+        if(sName[0] != '_') //_ = restricted
         {
             theResponse.jsonData[sName] = Json::Value(Json::objectValue);
             for(const auto& [sKey, sValue] : pSection->GetData())
             {
-                theResponse.jsonData[sName][sKey] = sValue;
+                if(sKey[0] != '_')
+                {
+                    theResponse.jsonData[sName][sKey] = sValue;
+                }
             }
         }
     }
@@ -647,7 +650,7 @@ pml::restgoose::response Server::PostLogin(const query& , const postData& vData,
        theResponse.jsonData.isMember(jsonConsts::username) && 
        theResponse.jsonData.isMember(jsonConsts::password) && 
        theResponse.jsonData[jsonConsts::password].asString().empty() == false && 
-       m_config.Get("users", theResponse.jsonData[jsonConsts::username].asString(), "") == theResponse.jsonData[jsonConsts::password].asString())
+       m_config.Get(jsonConsts::restricted_users, theResponse.jsonData[jsonConsts::username].asString(), "") == theResponse.jsonData[jsonConsts::password].asString())
     {
         auto pCookie = std::make_shared<SessionCookie>(userName(theResponse.jsonData[jsonConsts::username].asString()), m_server.GetCurrentPeer(false));
 
