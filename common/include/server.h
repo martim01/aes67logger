@@ -65,7 +65,7 @@ class Server
         pml::restgoose::response Reboot(int nCommand) const;
 
         void PatchServerConfig(const Json::Value& jsData) const;
-        bool AuthenticateToken(const std::string& sToken);
+        bool AuthenticateToken(const methodpoint&, const std::string& sToken);
         bool DoAuthenticateToken(const std::string& sToken, const ipAddress& peer);
 
         time_t GetDateTime(time_t date, const std::vector<std::string>& vLine) const;

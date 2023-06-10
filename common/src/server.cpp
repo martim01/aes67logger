@@ -70,14 +70,14 @@ pml::restgoose::response ConvertPostDataToJson(const postData& vData)
             pmlLog() << "ConvertPostDataToJson: data " << i <<"=" << vData[i].data.Get();
             if(vData[i].name.Get().empty() == false)
             {
-                if(vData[i].filepath.Get().empty() == true)
+                if(vData[i].filepath.empty() == true)
                 {
                     resp.jsonData[vData[i].name.Get()] = vData[i].data.Get();
                 }
                 else
                 {
                     resp.jsonData[vData[i].name.Get()][jsonConsts::name] = vData[i].data.Get();
-                    resp.jsonData[vData[i].name.Get()][jsonConsts::location] = vData[i].filepath.Get();
+                    resp.jsonData[vData[i].name.Get()][jsonConsts::location] = vData[i].filepath.string();
                 }
             }
         }
@@ -146,10 +146,10 @@ int Server::Run(const std::string& sConfigFile)
     
 
     if(auto addr = ipAddress(GetIpAddress(m_config.Get(jsonConsts::api, jsonConsts::interface, "eth0"))); 
-       m_server.Init(fileLocation(m_config.Get(jsonConsts::api, "sslCert", "")), fileLocation(m_config.Get(jsonConsts::api, "sslKey", "")), addr, m_config.Get(jsonConsts::api, "port", 8080L), EP_API, true,true))
+       m_server.Init(std::filesystem::path(m_config.Get(jsonConsts::api, "sslCa", "")), std::filesystem::path(m_config.Get(jsonConsts::api, "sslCert", "")), std::filesystem::path(m_config.Get(jsonConsts::api, "sslKey", "")), addr, m_config.Get(jsonConsts::api, "port", 8080L), EP_API, true,true))
     {
 
-        m_server.SetAuthorizationTypeBearer(std::bind(&Server::AuthenticateToken, this, _1), std::bind(&Server::RedirectToLogin, this), true);
+        m_server.SetAuthorizationTypeBearer(std::bind(&Server::AuthenticateToken, this, _1,_2), std::bind(&Server::RedirectToLogin, this), true);
         m_server.SetUnprotectedEndpoints({methodpoint(pml::restgoose::GET, endpoint("")),
                                           methodpoint(pml::restgoose::GET, endpoint("/index.html")),
                                           methodpoint(pml::restgoose::POST, EP_LOGIN),
@@ -628,7 +628,7 @@ void Server::WebsocketClosed(const endpoint&, const ipAddress& peer)
     pmlLog() << "Websocket closed from " << peer;
 }
 
-bool Server::AuthenticateToken(const std::string& sToken)
+bool Server::AuthenticateToken(const methodpoint&, const std::string& sToken)
 {
     return DoAuthenticateToken(sToken, m_server.GetCurrentPeer(false));
 }
