@@ -40,7 +40,11 @@ m_sName(sName)
                     }
                 }
             }
-            catch(const std::exception& e)
+            catch(const std::invalid_argument& e)
+            {
+                pmlLog(pml::LOG_DEBUG) << m_sName << " - Could not decode keep value " << key << "=" << value;
+            }
+            catch(const std::out_of_range& e)
             {
                 pmlLog(pml::LOG_DEBUG) << m_sName << " - Could not decode keep value " << key << "=" << value;
             }
@@ -69,7 +73,7 @@ std::set<std::filesystem::path> LoggerObserver::EnumFiles(const std::filesystem:
             }
         }
     }
-    catch(const std::exception& e)
+    catch(const std::filesystem::filesystem_error& e)
     {
         pmlLog(pml::LOG_ERROR) << m_sName << " - Failed to enum " << path << ": " << e.what();
         std::cerr << e.what() << '\n';
@@ -152,35 +156,83 @@ pml::restgoose::response LoggerObserver::CreateDownloadFile(const std::string& s
         {       
             auto [baseStart, diffStart] = GetBaseFileName(std::min(std::stoul(itStart->second.Get()), std::stoul(itEnd->second.Get())));
             auto [baseEnd, diffEnd] = GetBaseFileName(std::max(std::stoul(itStart->second.Get()), std::stoul(itEnd->second.Get())));
-           
+        
+        
             //check we have all the necessary files
-            std::vector<std::filesystem::path> vFiles;
-
-            auto audioPath = (*itFiles->second.begin()).parent_path();
-
-            for(auto tp  = baseStart; tp <= baseEnd; tp+=std::chrono::minutes(m_nFileLength))
+            std::filesystem::path pathIn("/tmp/in_"+GetCurrentTimeAsString(true));
+            std::ofstream ofs;
+            ofs.open(pathIn.string());
+            if(ofs.is_open())
             {
-                auto path = audioPath;
-                path /= std::to_string(tp.count());
-                path.replace_extension(sType);
+                auto audioPath = (*itFiles->second.begin()).parent_path();
 
-                if(itFiles->second.find(path) == itFiles->second.end())
+                for(auto tp  = baseStart; tp <= baseEnd; tp+=std::chrono::minutes(m_nFileLength))
                 {
-                    return pml::restgoose::response(500, "File "+path.stem().string()+" is missing");
-                }
-                vFiles.push_back(path);
-            }
+                    auto path = audioPath;
+                    path /= std::to_string(tp.count());
+                    path.replace_extension(sType);
 
-            //now use ffmpeg to create a single file from these files....
-            return pml::restgoose::response(500, "Files found but not implemented yet!");
+                    if(itFiles->second.find(path) == itFiles->second.end())
+                    {
+                        return pml::restgoose::response(500, "File "+path.stem().string()+" is missing");
+                    }
+                    ofs << "file " << path << "\n";
+                }
+
+                ofs.close();
+                return ConcatFiles(sType, pathIn);
+            }
+            else
+            {
+                return pml::restgoose::response(500, "Could not create file for ffmpeg!");
+            }       
         }
-        catch(const std::exception& e)
+        catch(const std::invalid_argument& e)
         {
             return pml::restgoose::response(404, "Invalid start or end time");
         }
+        catch(const std::out_of_range& e)
+        {
+            return pml::restgoose::response(404, "Invalid start or end time");
+        }
+
     }
     else
     {
         return pml::restgoose::response(404, "Logger has no files of that type "+sType);
     }
+}
+
+pml::restgoose::response LoggerObserver::ConcatFiles(const std::string& sType, const std::filesystem::path& pathIn) const
+{
+    std::filesystem::path pathOut("/tmp/out_"+GetCurrentTimeAsString(true)+"."+sType);
+    
+    //now use ffmpeg to create a single file from these files....
+    std::string sCommand("ffmpeg -f concat -safe 0 -i "+pathIn.string()+ "-c copy "+pathOut.string());
+    if(auto nResult = system(sCommand.c_str()); nResult != 0)
+    {
+        return pml::restgoose::response(500, "Could not launch FFMPEG");
+    }
+
+    pml::restgoose::response resp;
+    resp.bFile = true;
+    resp.data = textData(pathOut.string());
+    if(sType == jsonConsts::opus)
+    {
+        resp.contentType = headerValue("audio/ogg");
+    }
+    else if(sType == jsonConsts::flac)
+    {
+        resp.contentType = headerValue("audio/x-flac");
+    }
+    else if(sType == jsonConsts::wav)
+    {
+        resp.contentType = headerValue("audio/wav");
+    }
+    else
+    {
+        resp.contentType = headerValue("application/octet-stream");
+    }
+                
+    return resp;
 }

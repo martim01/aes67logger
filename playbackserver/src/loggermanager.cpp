@@ -32,8 +32,7 @@ void LoggerManager::EnumLoggers()
 
 void LoggerManager::WatchLoggerPath()
 {
-    auto nWatch = m_observer.AddWatch(m_server.GetIniManager().Get(jsonConsts::path, jsonConsts::loggers,"."), pml::filewatch::Observer::CREATED | pml::filewatch::Observer::DELETED, false);
-    if(nWatch != -1)
+    if(auto nWatch = m_observer.AddWatch(m_server.GetIniManager().Get(jsonConsts::path, jsonConsts::loggers,"."), pml::filewatch::Observer::CREATED | pml::filewatch::Observer::DELETED, false); nWatch != -1)
     {
         m_observer.AddWatchHandler(nWatch, std::bind(&LoggerManager::OnLoggerCreated, this, _1, _2, _3, _4), pml::filewatch::Observer::enumWatch::CREATED);
         m_observer.AddWatchHandler(nWatch, std::bind(&LoggerManager::OnLoggerDeleted, this, _1, _2, _3, _4), pml::filewatch::Observer::enumWatch::DELETED);

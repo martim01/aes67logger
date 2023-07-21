@@ -29,6 +29,7 @@ class LoggerObserver
         void OnFileCreated(int nWd, const std::filesystem::path& path, uint32_t mask, bool bDirectory);
         void OnFileDeleted(int nWd, const std::filesystem::path& path, uint32_t mask, bool bDirectory);
 
+        pml::restgoose::response ConcatFiles(const std::string& sType, const std::filesystem::path& pathIn) const;
         std::pair<std::chrono::minutes, std::chrono::seconds> GetBaseFileName(unsigned long nTime) const;
 
         PlaybackServer& m_server;

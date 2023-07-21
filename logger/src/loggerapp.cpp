@@ -186,7 +186,7 @@ void LoggerApp::StartRecording()
 void LoggerApp::QoSCallback(std::shared_ptr<pml::aoip::AoIPSource>, std::shared_ptr<pml::aoip::qosData> pData)
 {
     //@todo make sure we are getting audio packages and no data loss
-    pmlLog() << "QoS"
+    pmlLog(pml::LOG_DEBUG) << "QoS"
              << "\tbitrate=" << pData->dkbits_per_second_Now << "kbit/s"
              << "\tloss=" << pData->dPacket_loss_fraction_av*100.0 << "%"
              << "\tgap=" << pData->dInter_packet_gap_ms_av << "ms"
