@@ -1,10 +1,13 @@
-var g_loggerArray = new Array();
+var g_playbackArray = new Array();
+var g_ajax = new XMLHttpRequest();
 var g_ws = null;
-var g_logger = null;
+g_ajax.timeout = 300;
+var g_cookie_array = [];
+var g_playback = null;
+var g_access_token_playbackserver = null;
 var g_action = '';
 
-var g_logger_host = location.host;
-
+const zeroPad = (num,places)=>String(num).padStart(places,'0');
 
 const CLR_PLAYING = "#92d14f";
 const CLR_IDLE = "#8db4e2";
@@ -17,41 +20,99 @@ const CLR_CONNECTING = "#ffff00";
 const CLR_SYNC = "#008000";
 
 
-
-function showLogger(logger)
+function getCookies()
 {
-    var grid = document.getElementById('logger_grid');
+	let decodedCookie = decodeURIComponent(document.cookie);
+	decodedCookie.split(';').forEach(function(el){
+		let pos = el.indexOf('=');
+		if(pos != -1)
+		{
+			var key = el.substring(0,pos);
+			var value = el.substring(pos+1);
+			g_cookie_array[key] = value;
+			if(key.trim() == 'access_token')
+			{
+				g_access_token_playbackserver = value;
+			}
+		}
+	});
+
+	console.log(g_cookie_array);
+}
+
+
+function login()
+{
+	var play = { "username" : document.getElementById('username').value,
+                 "password" : document.getElementById('password').value};
+
+    ajaxPostPutPatch("POST", "x-api/login", JSON.stringify(play), handleLogin);
+}
+function logout()
+{
+	ajaxDelete("x-api/login", handleLogout);
+	window.location.href  = "/";
+}
+
+function handleLogin(status, jsonObj)
+{
+    if(status !== 200 || ('token' in jsonObj) == false)
+    {
+        UIkit.notification({message: jsonObj["reason"], status: 'danger', timeout: 3000})
+    }
+    else 
+    {
+		console.log(jsonObj);
+		g_access_token_playbackserver = jsonObj.token;
+
+        document.cookie = "access_token="+g_access_token_playbackserver+"; path=/";
+		window.location.pathname = "/dashboard";
+		console.log(window.location);
+    }
+}
+
+function handleLogout(status, jsonObj)
+{
+
+}
+
+function config()
+{
+	getConfig(handleConfig);
+}
+
+function showPlayback(playback)
+{
+    var grid = document.getElementById('playback_grid');
 
     var divMain = document.createElement('div');
     divMain.classList.add('uk-width-1-3@s', 'uk-width-1-6@xl');
     
-    var aLogger = document.createElement('a');
-    aLogger.classList.add('uk-link-reset', 'uk-display-block', 'uk-width-large@l', 'uk-width-medium@m', 'uk-card', 'uk-card-default', 'uk-card-body',
+    var aplayback = document.createElement('a');
+    aplayback.classList.add('uk-link-reset', 'uk-display-block', 'uk-width-large@l', 'uk-width-medium@m', 'uk-card', 'uk-card-default', 'uk-card-body',
                             'uk-card-hover', 'uk-card-small');
-    aLogger.id = logger;
-    aLogger.href = '../loggers/index.html?logger='+logger;
+    aplayback.id = playback;
+    aplayback.href = '../playbacks/index.html?playback='+playback;
     
     
-
-
     var divHeader = document.createElement('div');
     divHeader.className='uk-card-header';
     var titleH3 = document.createElement('h3');
     titleH3.className='uk-card-title';
     var titleSpan = document.createElement('span');
-    titleSpan.id = "host_"+logger;
-    titleSpan.innerHTML = logger;
+    titleSpan.id = "host_"+playback;
+    titleSpan.innerHTML = playback;
     titleH3.appendChild(titleSpan);
     divHeader.appendChild(titleH3);
     
     var divBadge = document.createElement('div');
     divBadge.classList.add('uk-card-badge', 'uk-label', 'uk-label-warning');
     divBadge.innerHTML = "Unknown";
-    divBadge.id = 'running_'+logger; 
+    divBadge.id = 'running_'+playback; 
     divHeader.appendChild(divBadge);
     
     
-    aLogger.appendChild(divHeader);
+    aplayback.appendChild(divHeader);
     
 
     var divBody = document.createElement('div');
@@ -64,7 +125,7 @@ function showLogger(logger)
     divUpTimeTitle.innerHTML = 'Up Time:'
     var divUpTime  = document.createElement('div');
     //divUpTime.classList.add('uk-label');
-    divUpTime.id = 'up_time_'+logger; 
+    divUpTime.id = 'up_time_'+playback; 
     divUpTimeGrid.appendChild(divUpTimeTitle);
     divUpTimeGrid.appendChild(divUpTime);
     divBody.appendChild(divUpTimeGrid);
@@ -74,10 +135,9 @@ function showLogger(logger)
     divSessionGrid.classList.add('uk-child-width-expand', 'uk-grid-small', 'uk-text-left', 'uk-grid');
     var divSessionTitle = document.createElement('div');
     divSessionTitle.classList.add('uk-width-1-2', 'uk-text-primary')
-    divSessionTitle.innerHTML = 'Session:'
-    var divSession  = document.createElement('div');
-    //divSession.classList.add('uk-label');
-    divSession.id = 'session_'+logger; 
+    divSessionTitle.innerHTML = 'Queue:'
+	var divSession  = document.createElement('div');
+    divSession.id = 'queue_'+playback; 
     divSessionGrid.appendChild(divSessionTitle);
     divSessionGrid.appendChild(divSession);
     divBody.appendChild(divSessionGrid);
@@ -85,35 +145,62 @@ function showLogger(logger)
     var divFileGrid = document.createElement('div');
     divFileGrid.classList.add('uk-child-width-expand', 'uk-grid-small', 'uk-text-left', 'uk-grid');
     var divFileTitle = document.createElement('div');
-    divFileTitle.classList.add('uk-width-1-2', 'uk-text-primary')
+    divFileTitle.classList.add('uk-width-1-3', 'uk-text-primary')
     divFileTitle.innerHTML = 'File:'
     var divFile  = document.createElement('div');
-    divFile.id = 'file_'+logger; 
+    divFile.id = 'file_'+playback; 
+	var divPercent  = document.createElement('div');
+    divPercent.id = 'percent_'+playback; 
     divFileGrid.appendChild(divFileTitle);
     divFileGrid.appendChild(divFile);
-    divBody.appendChild(divFileGrid)
-    aLogger.appendChild(divBody);
+	divFileGrid.appendChild(divPercent);
+    divBody.appendChild(divFileGrid);
 
-    var divFooter = document.createElement('div');
+
+	var divLastFileGrid = document.createElement('div');
+    divLastFileGrid.classList.add('uk-child-width-expand', 'uk-grid-small', 'uk-text-left', 'uk-grid');
+    var divLastFileTitle = document.createElement('div');
+    divLastFileTitle.classList.add('uk-width-1-2', 'uk-text-primary')
+    divLastFileTitle.innerHTML = 'Last File:'
+    var divLastFile  = document.createElement('div');
+    divLastFile.id = 'last_file_'+playback; 
+    divLastFileGrid.appendChild(divLastFileTitle);
+    divLastFileGrid.appendChild(divLastFile);
+    divBody.appendChild(divLastFileGrid);
+
+
+	var divEncodedGrid = document.createElement('div');
+    divEncodedGrid.classList.add('uk-child-width-expand', 'uk-grid-small', 'uk-text-left', 'uk-grid');
+    var divEncodedTitle = document.createElement('div');
+    divEncodedTitle.classList.add('uk-width-1-2', 'uk-text-primary')
+    divEncodedTitle.innerHTML = 'Files Encoded:'
+    var divEncoded  = document.createElement('div');
+    divEncoded.id = 'files_encoded_'+playback; 
+    divEncodedGrid.appendChild(divEncodedTitle);
+    divEncodedGrid.appendChild(divEncoded);
+    divBody.appendChild(divEncodedGrid);
+
+
+	aplayback.appendChild(divBody);
+
+
+
+
+	var divFooter = document.createElement('div');
     divFooter.className = 'uk-card-footer';
     var spanTimestamp  = document.createElement('span');
-    spanTimestamp.id = 'timestamp_'+logger; 
+    spanTimestamp.id = 'timestamp_'+playback; 
     divFooter.appendChild(spanTimestamp);
-    aLogger.appendChild(divFooter);
+    aplayback.appendChild(divFooter);
 
-    divMain.appendChild(aLogger);
+    divMain.appendChild(aplayback);
     
-    grid.insertBefore(divMain, document.getElementById('logger_add'));
+    grid.appendChild(divMain);
 }
 
 function dashboard()
 {
-	getLoggers(handleLoggers);
-}
-
-function config()
-{
-	getConfig(handleConfig);
+	getPlaybacks(handlePlaybacks);
 }
 
 function logs()
@@ -123,18 +210,18 @@ function logs()
 	document.getElementById('end_time').value = now.toISOString().slice(0, 16);
 	now.setMinutes(now.getMinutes() - 60);
 	document.getElementById('start_time').value = now.toISOString().slice(0, 16);
-	getLoggers(populateSelectLoggers);
+	getPlaybacks(populateSelectPlaybacks);
 }
 
-function populateSelectLoggers(status, jsData)
+function populateSelectPlaybacks(status, jsData)
 {
     if(status == 200)
     {
-        g_loggerArray = jsData;
-        if(g_loggerArray !== null)
+        g_playbackArray = jsData;
+        if(g_playbackArray !== null)
         {
 			var select = document.getElementById('select_log');
-            g_loggerArray.forEach(function(el){
+            g_playbackArray.forEach(function(el){
 				var opt = document.createElement('option');
 				opt.id = el;
 				opt.value = el;
@@ -145,17 +232,17 @@ function populateSelectLoggers(status, jsData)
 	}
 }
 
-function handleLoggers(status, jsData)
+function handlePlaybacks(status, jsData)
 {
     if(status == 200)
     {
-        g_loggerArray = jsData;
-        if(g_loggerArray !== null)
+        g_playbackArray = jsData;
+        if(g_playbackArray !== null)
         {
-            g_loggerArray.forEach(showLogger);
+            g_playbackArray.forEach(showPlayback);
         }
 
-		ajaxGet(g_logger_host, g_logger_host, 'x-api/status', handleLoggersStatus);
+		ajaxGet('x-api/status', handlePlaybacksStatus);
     }
     else
     {
@@ -163,7 +250,7 @@ function handleLoggers(status, jsData)
     }
 }
 
-function handleLoggersStatus(status, jsonObj)
+function handlePlaybacksStatus(status, jsonObj)
 {
 	if(status == 200)
 	{
@@ -174,79 +261,91 @@ function handleLoggersStatus(status, jsonObj)
 
 function statusUpdate(jsonObj)
 {
-    jsonObj.forEach(statusUpdateLogger)
-}
-function statusUpdateLogger(jsonObj)
-{
-	if(jsonObj === null)
-		return;
-
-    if('name' in jsonObj)
+    if(Array.isArray(jsonObj))
     {
-		var card = document.getElementById(jsonObj['name']);
-		if(card === null)
-		{	//card not created yet
-			return;
-		}
+        jsonObj.forEach(statusUpdatePlayback);
+    }
+    else
+    {
+      statusUpdatePlayback(jsonObj);
+    }
+}
+function statusUpdatePlayback(jsonObj)
+{
+	
+    if(jsonObj === null)
+        return;
+    console.log(jsonObj);
+    if('id' in jsonObj)
+    {
+        var card = document.getElementById(jsonObj['id']);
+	if(card === null)
+	{	//card not created yet
+	    return;
+	}
 
-        if('running' in jsonObj)
+        if('heartbeat' in jsonObj)
         {
-            var span = document.getElementById('running_'+jsonObj['name']);
+            var span = document.getElementById('running_'+jsonObj['id']);
             span.className = 'uk-label';
             span.classList.add('uk-card-badge');
-            if(jsonObj['running'] === true)
-            {
-                span.classList.add('uk-label-success');
-                span.innerHTML = 'running';
-            }
-            else
-            {
-                span.classList.add('uk-label-error');
-                span.innerHTML = 'not running';
-            }
-            
-        }
-        if('session' in jsonObj)
-        {
-            var span = document.getElementById('session_'+jsonObj['name']);
-            span.innerHTML = jsonObj['session'];
-        }
-        else
-        {
-            var span = document.getElementById('session_'+jsonObj['name']);
-            span.innerHTML = "----";
-        }
+            span.classList.add('uk-label-success');
+            span.innerHTML = 'running';
 
-        if('timestamp' in jsonObj)
-        {
-            var span = document.getElementById('timestamp_'+jsonObj['name']);
-            var dt = new Date(jsonObj['timestamp']*1000);
-            span.innerHTML = dt.toISOString();
-        }
-        if('up_time' in jsonObj)
-        {
-            var up_time = jsonObj['up_time'];
-            var span = document.getElementById('up_time_'+jsonObj['name']);
-            
-            var days = Math.floor(up_time / 86400);
-            up_time = up_time % 86400;
-            var hours = Math.floor(up_time / 3600);
-            up_time = up_time % 3600;
-            var minutes = Math.floor(up_time / 60);
-            up_time = up_time % 60;
+   	    if('timestamp' in jsonObj['heartbeat'])
+            {
+                var span = document.getElementById('timestamp_'+jsonObj['id']);
+                var dt = new Date(jsonObj['heartbeat']['timestamp']*1000);
+                span.innerHTML = dt.toISOString();
+            }
+            if('up_time' in jsonObj.heartbeat)
+            {
+                var up_time = jsonObj.heartbeat['up_time'];
+                var span = document.getElementById('up_time_'+jsonObj['id']);
+                var days = Math.floor(up_time / 86400);
+                up_time = up_time % 86400;
+                var hours = Math.floor(up_time / 3600);
+                up_time = up_time % 3600;
+                var minutes = Math.floor(up_time / 60);
+                up_time = up_time % 60;
+                span.innerHTML = zeroPad(days,4)+" "+zeroPad(hours,2)+":"+zeroPad(minutes,2)+":"+zeroPad(up_time,2);
+           }
+     	   
+           if('queue' in jsonObj)
+	   {
+               var span = document.getElementById('queue_'+jsonObj['id']);
+               span.innerHTML = jsonObj['queue'];
+	   }
+	   if('last_encoded' in jsonObj)
+	   {
+               var span = document.getElementById('last_file_'+jsonObj['id']);
+               span.innerHTML = jsonObj['last_encoded'];
+	   }
+           if('files_encoded' in jsonObj)
+           {
+               var span = document.getElementById('files_encoded_'+jsonObj['id']);
+               span.innerHTML = jsonObj['files_encoded'];
+           }
 
-            span.innerHTML = zeroPad(days,4)+" "+zeroPad(hours,2)+":"+zeroPad(minutes,2)+":"+zeroPad(up_time,2);
-            
-        }
-        if('filename' in jsonObj)
-        {
-            var span = document.getElementById('file_'+jsonObj['name']);
-            span.innerHTML = jsonObj['filename'];
-        }
-        else
-        {
-            var span = document.getElementById('file_'+jsonObj['name']);
-            span.innerHTML = "Not Recording";
+	   if('encoded' in jsonObj)
+	   {
+               var span = document.getElementById('percent_'+jsonObj['id']);
+	       if(span !== null)
+               {
+	           span.innerHTML = Math.round(jsonObj['encoded']*100.0)+"%";
+	       }
+	   }
+
+           if('filename' in jsonObj)
+           {
+               var span = document.getElementById('file_'+jsonObj['id']);
+               span.innerHTML = jsonObj['filename'];
+           }
+           else
+           {
+               var span = document.getElementById('file_'+jsonObj['id']);
+               span.innerHTML = "Not Encoding";
+           }
         }
     }
 }
@@ -269,7 +368,7 @@ function ws_connect(endpoint, callbackMessage)
 		ws_protocol = "wss:";
 	}
 
-	g_ws = new WebSocket(ws_protocol+"//"+location.host+"/x-api/ws/"+endpoint+"?access_token="+g_access_token_loggingserver);
+	g_ws = new WebSocket(ws_protocol+"//"+location.host+"/x-api/ws/"+endpoint+"?access_token="+g_access_token_playbackserver);
     g_ws.timeout = true;
 	g_ws.onopen = function(ev)  { this.tm = setTimeout(serverOffline, 4000) };
 	g_ws.onerror = function(ev) { serverOffline(); };
@@ -297,43 +396,165 @@ function ws_connect(endpoint, callbackMessage)
 
 
 
-function getLoggers(callback)
+function getPlaybacks(callback)
 {
-	ajaxGet(g_logger_host, "x-api/loggers",callback);
+	ajaxGet("x-api/playbacks",callback);
 }
 
 
 function getStatus(callback)
 {
-	ajaxGet(g_logger_host, "x-api/status",callback);
+	ajaxGet("x-api/status",callback);
 }
 
 function getPower(callback)
 {
-	ajaxGet(g_logger_host, "x-api/power",callback);
+	ajaxGet("x-api/power",callback);
 }
 
 function getConfig(callback)
 {
-	ajaxGet(g_logger_host, "x-api/config", callback);
+	ajaxGet("x-api/config", callback);
 }
 
 function getInfo(callback)
 {
-	ajaxGet(g_logger_host, "x-api/info", callback);
+	ajaxGet("x-api/info", callback);
 }
 
 
 function getUpdate(callback)
 {
-	ajaxGet(g_logger_host, "x-api/update",callback);
+	ajaxGet("x-api/update",callback);
+}
+
+function ajaxGet(endpoint, callback, bJson=true)
+{
+	console.log("ajaxGet "+endpoint);
+	var ajax = new XMLHttpRequest();
+	ajax.timeout = 2000;
+	
+	ajax.onload = function() 
+	{
+		if(this.readyState == 4)
+		{
+			console.log(this.responseText);
+			if(bJson)
+            {
+				callback(this.status, JSON.parse(this.responseText));
+			}
+			else
+			{
+				callback(this.status, this.responseText);
+			}
+		}
+	}
+	ajax.onerror = function(e)
+	{
+		callback(this.status, null);
+	}
+	ajax.ontimeout = function(e)
+	{
+		callback(this.status, null);
+	}
+	ajax.open("GET", location.protocol+"//"+location.host+"/"+endpoint, true);
+	ajax.send();
+}
+
+function ajaxPostPutPatch(method, endpoint, jsonData, callback)
+{
+	var ajax = new XMLHttpRequest();
+	ajax.onreadystatechange = function()
+	{
+		
+		if(this.readyState == 4)
+		{
+			var jsonObj = JSON.parse(this.responseText);
+			callback(this.status, jsonObj);
+		}
+	}
+	
+	ajax.open(method, location.protocol+"//"+location.host+"/"+endpoint, true);
+	ajax.setRequestHeader("Content-type", "application/json");
+	ajax.send(jsonData);
+}
+
+function ajaxDelete(endpoint, callback)
+{
+	var ajax = new XMLHttpRequest();
+	ajax.onreadystatechange = function()
+	{
+		
+		if(this.readyState == 4)
+		{
+			var jsonObj = null;
+			if(this.responseText != "")
+			{
+				jsonObj = JSON.parse(this.responseText);
+			}
+			callback(this.status, jsonObj);
+		}
+	}
+	
+	ajax.open("DELETE", location.protocol+"//"+location.host+"/"+endpoint, true);
+	ajax.send(null);
 }
 
 
+function millisecondsToTime(milliseconds)
+{
+	var seconds = Math.floor(milliseconds/1000)%60;
+	var minutes = Math.floor(milliseconds/(1000*60))%60;
+	var hours = Math.floor(milliseconds/(1000*3600));
+	
+	return toString(hours)+":"+toString(minutes)+":"+toString(seconds);
+}
 
+function toString(value)
+{
+	if(value == 0)
+	{
+		return '00';
+	}
+	else if(value < 10)
+	{
+		return '0'+value;
+	}
+	return value;
+}
 
-
-
+/*
+function createBodyGrid(name, id)
+{
+	var body_grid = document.createElement('div');
+	body_grid.classList.add('uk-child-width-expand');
+	body_grid.classList.add('uk-grid-small');
+	body_grid.classList.add('uk-text-left');
+	body_grid.classList.add('uk-link-reset');
+	body_grid.classList.add('uk-display-block');
+	body_grid.setAttribute('uk-grid',true);
+	
+	
+	
+	var div_title = document.createElement('div');
+	div_title.className = 'uk-width-1-4';
+	
+	var span = document.createElement('span');
+	span.className = 'uk-text-bold';
+	span.innerHTML = name+':';
+	
+	div_title.appendChild(span);
+	body_grid.appendChild(div_title);
+	
+	var div_value = document.createElement('div');
+	div_value.id = id+'_'+g_loopi_array.length;
+	div_value.innerHTML = '?';
+	
+	body_grid.appendChild(div_value);
+	
+	return body_grid;
+}
+*/	
 
 function system()
 {
@@ -348,22 +569,11 @@ function handleGetUpdate(status, jsonObj)
         {
             if('version' in jsonObj.server)
             {
-                document.getElementById('loggermanager-version').innerHTML = jsonObj.server.version;
+                document.getElementById('playbackserver-version').innerHTML = jsonObj.server.version;
             }
             if('date' in jsonObj.server)
             {
-                document.getElementById('loggermanager-date').innerHTML = jsonObj.server.date;
-            }
-        }
-        if('logger' in jsonObj)
-        {
-            if('version' in jsonObj.server)
-            {
-                document.getElementById('logger-version').innerHTML = jsonObj.server.version;
-            }
-            if('date' in jsonObj.server)
-            {
-                document.getElementById('logger-date').innerHTML = jsonObj.server.date;
+                document.getElementById('playbackserver-date').innerHTML = jsonObj.server.date;
             }
         }
     }
@@ -384,6 +594,7 @@ function handleSystemGetUpdate(status, jsonObj)
 
 function handleGetSystemInfo(status, jsonObj)
 {
+	console.log('handleGetSystemInfo '+status)
 	if(status == 200)
 	{
 		updateInfo_System(jsonObj);
@@ -528,7 +739,7 @@ function restart(command)
 	UIkit.modal.confirm('Are you sure?').then(function() 
 	{
 		var play = { "command" : command};
-		ajaxPostPutPatch(g_logger_host, "PUT", "x-api/power", JSON.stringify(play), handleRestartPut);
+		ajaxPostPutPatch("PUT", "x-api/power", JSON.stringify(play), handleRestartPut);
 	}, function () {});	
 }
 
@@ -615,7 +826,7 @@ function getLogs()
 	var endpoint = "x-api/logs?logger="+document.getElementById('select_log').value+"&start_time="+dtStart.getTime()/1000+
 	"&end_time="+dtEnd.getTime()/1000;
 
-	ajaxGet(g_logger_host, endpoint, handleGetLogs);
+	ajaxGet(endpoint, handleGetLogs);
 }
 
 function handleGetLogs(status, log)
@@ -630,21 +841,21 @@ function handleGetLogs(status, log)
 	}
 }
 
-function loggers()
+function playbacks()
 {
 	const params = new Proxy(new URLSearchParams(window.location.search), { get: (searchParams, prop) => searchParams.get(prop)});
 	
-	g_logger = params.logger;
+	g_playback = params.playback;
 
-	ajaxGet(g_logger_host, "x-api/loggers/"+g_logger+"/status", connectToLogger)
+	ajaxGet("x-api/playbacks/"+g_playback+"/status", connectToPlayback)
 }
 
-function connectToLogger(status, jsonObj)
+function connectToPlayback(status, jsonObj)
 {
 	if(status == 200)
 	{
-		handleLoggerInfo(jsonObj);
-		ws_connect("loggers/"+g_logger, handleLoggerInfo);
+		handlePlaybackInfo(jsonObj);
+		ws_connect("playbacks/"+g_playback, handlePlaybackInfo);
 	}
 	else
 	{
@@ -653,64 +864,14 @@ function connectToLogger(status, jsonObj)
 }
 
 
-function handleLoggerInfo(jsonObj)
+function handlePlaybackInfo(jsonObj)
 {
+	console.log(jsonObj);
 	if("id" in jsonObj)
 	{
-		document.getElementById('logger').innerHTML = jsonObj.id;
+		document.getElementById('playback').innerHTML = jsonObj.id;
 	}
-	if("qos" in jsonObj)
-	{
-		document.getElementById('qos-bitrate').innerHTML = jsonObj.qos.bitrate.toFixed(2) + " kbps";
-		document.getElementById('qos-received').innerHTML = jsonObj.qos.packets.received;
-		document.getElementById('qos-lost').innerHTML = jsonObj.qos.packets.lost;
-		document.getElementById('qos-errors').innerHTML = jsonObj.qos.timestamp_errors;
-		document.getElementById('qos-interpacket').innerHTML = (jsonObj.qos.packet_gap).toFixed(4)+" ms";
-		document.getElementById('qos-jitter').innerHTML = (jsonObj.qos.jitter.toFixed(4))+" ms";
-		document.getElementById('qos-tsdf').innerHTML = (jsonObj.qos['ts-df'].toFixed(4))+" ms";
-		document.getElementById('qos-duration').innerHTML = jsonObj.qos['duration']+" &mu;s";
-	}
-
-	if("session" in jsonObj)
-	{
-		document.getElementById('session-sdp').innerHTML = jsonObj.session.sdp;
-		document.getElementById('session-name').innerHTML = jsonObj.session.name;
-		document.getElementById('session-type').innerHTML = jsonObj.session.type;
-		document.getElementById('session-description').innerHTML = jsonObj.session.description;
-		document.getElementById('session-groups').innerHTML = jsonObj.session.groups;
-		ShowClock(jsonObj.session);
-
-		var elm = document.getElementById('session-audio');
-		elm.className = 'uk-card-badge';
-		elm.classList.add('uk-label');
-
-		if(jsonObj.session.audio)
-		{
-			elm.classList.add('uk-label-success');
-			elm.innerHTML = "Audio Incoming";	
-		}
-		else
-		{
-			elm.classList.add('uk-label-danger');
-			elm.innerHTML = "No Audio";	
-		}
-
-		if('subsessions' in jsonObj.session && jsonObj.session.subsessions.length > 0)
-		{
-			document.getElementById('subsession-id').innerHTML = jsonObj.session.subsessions[0].id;
-			document.getElementById('subsession-source_address').innerHTML = jsonObj.session.subsessions[0].source_address;
-			document.getElementById('subsession-medium').innerHTML = jsonObj.session.subsessions[0].medium;
-			document.getElementById('subsession-codec').innerHTML = jsonObj.session.subsessions[0].codec;
-			document.getElementById('subsession-protocol').innerHTML = jsonObj.session.subsessions[0].protocol;
-			document.getElementById('subsession-port').innerHTML = jsonObj.session.subsessions[0].port;
-			document.getElementById('subsession-sample_rate').innerHTML = jsonObj.session.subsessions[0].sample_rate;
-			document.getElementById('subsession-channels').innerHTML = jsonObj.session.subsessions[0].channels;
-			document.getElementById('subsession-sync_timestamp').innerHTML = jsonObj.session.subsessions[0].sync_timestamp;
-
-			ShowClock(jsonObj.session.subsessions[0]);
-		}
-	}
-
+	
 	if('heartbeat' in jsonObj)
 	{
 		var dtT = new Date(jsonObj.heartbeat.timestamp*1000);
@@ -730,50 +891,19 @@ function handleLoggerInfo(jsonObj)
 		document.getElementById('application-up_time').innerHTML =  zeroPad(days,4)+" "+zeroPad(hours,2)+":"+zeroPad(minutes,2)+":"+zeroPad(up_time,2);
             
 	}
-	if('file' in jsonObj)
+	if('filename' in jsonObj)
 	{
-		var elm = document.getElementById('file-filename');
-		elm.innerHTML = jsonObj.file.filename;
-		if(jsonObj.file.open === true)
-		{
-			elm.className = 'uk-text-success';
-		}
-		else
-		{
-			elm.className = 'uk-text-danger';
-		}
+var elm = document.getElementById('file-filename');
+                elm.innerHTML = jsonObj.filename;
+                elm.className = 'uk-text-success';
 	}
-	if('streaming' in jsonObj)
+	if('queue' in jsonObj)
 	{
-		document.getElementById('source-name').innerHTML = jsonObj.streaming.name;
-		document.getElementById('source-type').innerHTML = jsonObj.streaming.type;
-		if(jsonObj.streaming.type == 'RTSP')
-		{
-			document.getElementById('div_source-sdp').style.display = 'none';
-			document.getElementById('div_source-rtsp').style.display= 'block';
-			document.getElementById('source-rtsp').innerHTML = jsonObj.streaming.source;
-		}
-		else
-		{
-			document.getElementById('div_source-rtsp').style.display = 'none';
-			document.getElementById('div_source-sdp').style.display = 'block';
-			document.getElementById('source-sdp').innerHTML = jsonObj.streaming.source;
-		}
-		var elm = document.getElementById('source-connection');
-		elm.className = 'uk-card-badge';
-		elm.classList.add('uk-label');
+		var elm = document.getElementById('queue');
+                elm.innerHTML = jsonObj.queue;
+                elm.className = 'uk-text-success';
+	}
 
-		if(jsonObj.streaming.streaming)
-		{
-			elm.classList.add('uk-label-success');
-			elm.innerHTML = "Streaming";	
-		}
-		else
-		{
-			elm.classList.add('uk-label-danger');
-			elm.innerHTML = "No Connection";	
-		}
-	}
 }
 
 function ShowClock(jsonObj)
@@ -787,22 +917,22 @@ function ShowClock(jsonObj)
 	}
 }
 
-function loggerAdmin()
+function playbackAdmin()
 {
 	if(g_action == 'restart')
 	{
 		var play = { "command" : "restart", "password" : document.getElementById('admin_password').value};
-		ajaxPostPutPatch(g_logger_host, "PUT", "x-api/loggers/"+g_logger, JSON.stringify(play), handleRestartLogger);
+		ajaxPostPutPatch("PUT", "x-api/playbacks/"+g_playback, JSON.stringify(play), handleRestartPlayback);
 	}
 	else if(g_action == 'remove')
 	{
 		var play = {"password" : document.getElementById('admin_password').value};
-		ajaxPostPutPatch(g_logger_host, "DELETE", "x-api/loggers/"+g_logger, JSON.stringify(play), handleDeleteLogger);
+		ajaxPostPutPatch("DELETE", "x-api/playbacks/"+g_playback, JSON.stringify(play), handleDeletePlayback);
 	}
 }
 
 
-function handleRestartLogger(status, jsonObj)
+function handleRestartPlayback(status, jsonObj)
 {
 	if(status != 200)
 	{
@@ -811,7 +941,7 @@ function handleRestartLogger(status, jsonObj)
 	UIkit.modal(document.getElementById('password_modal')).hide();
 }
 
-function handleDeleteLogger(status, jsonObj)
+function handleDeletePlayback(status, jsonObj)
 {
 	UIkit.modal(document.getElementById('password_modal')).hide();
 	
@@ -830,7 +960,7 @@ function handleDeleteLogger(status, jsonObj)
 
 function changeSession()
 {
-	ajaxGet(g_logger_host, "x-api/sources", handleSources)
+	ajaxGet("x-api/sources", handleSources)
 }
 
 function addSources(which, jsonObj)
@@ -867,161 +997,10 @@ function showAdminPassword(action)
 	g_action = action;
 	if(action == 'restart')
 	{
-		document.getElementById('logger_admin').innerHTML = "Restart Logger";
-	}
-	else if(action == 'remove')
-	{
-		document.getElementById('logger_admin').innerHTML = "Remove Logger";
+		document.getElementById('playback_admin').innerHTML = "Restart Playback";
 	}
 	UIkit.modal(document.getElementById('password_modal')).show();	
 }
-
-
-
-var g_method = 'rtsp';
-function showrtsp()
-{
-	g_method = 'rtsp';
-	document.getElementById('div_rtsp').style.display = 'block';
-	document.getElementById('div_sdp').style.display = 'none';
-}
-
-function showsdp()
-{
-	g_method = 'sdp';
-	document.getElementById('div_rtsp').style.display = 'none';
-	document.getElementById('div_sdp').style.display = 'block';
-}
-
-function updateLoggerSession()
-{
-	var name = document.getElementById('config_name').value;
-	if(name == '')
-	{
-		UIkit.notification({message: 'Source name may not be empty', status: 'warning', timeout: 2000});
-		return;
-	}
-	var rtsp = '';
-	var sdp = '';
-	console.log(g_method);
-	if(g_method == 'rtsp')
-	{
-		rtsp = document.getElementById('select_rtsp').value;
-		if(rtsp == '')
-		{
-			UIkit.notification({message: 'RTSP may not be empty', status: 'warning', timeout: 2000});
-			return;
-		}
-	}
-	else
-	{
-		sdp = document.getElementById('select_sdp').value;
-		if(sdp == '')
-		{
-			UIkit.notification({message: 'SDP may not be empty', status: 'warning', timeout: 2000});
-			return;
-		}
-	}
-	var jsonObj = [ { "section" : "source", "key" : "name", "value" : name},
-					{ "section" : "source", "key" : "rtsp", "value" : rtsp},
-					{ "section" : "source", "key" : "sdp",  "value" : sdp} ];				
-	
-					ajaxPostPutPatch(g_logger_host, "PATCH", "x-api/loggers/"+g_logger+"/config", JSON.stringify(jsonObj), handleUpdateSession);
-
-}
-
-function handleUpdateSession(status, jsonObj)
-{
-	if(status != 200)
-	{
-		UIkit.notification({message: jsonObj["reason"], status: 'danger', timeout: 3000})
-	}	
-	UIkit.modal(document.getElementById('update_session_modal')).hide();	
-}
-
-function showAddLogger()
-{
-	ajaxGet(g_logger_host, "x-api/sources", handleSourcesAddLogger)
-}
-
-function handleSourcesAddLogger(status, jsonObj)
-{
-	if(status == 200)
-	{
-		addSources('rtsp', jsonObj);
-		addSources('sdp', jsonObj);
-		UIkit.modal(document.getElementById('add_logger_modal')).show();	
-	}
-}
-
-
-function addLogger()
-{
-	var name = document.getElementById('logger_name').value;
-	if(name == "")
-	{
-		UIkit.notification({message: "Logger name cannot be empty", status: 'danger', timeout: 3000});
-		return;
-	}
-	if(name.search(' ') != -1)
-	{
-		UIkit.notification({message: "Logger name cannot contain spaces", status: 'danger', timeout: 3000});
-		return;
-	}
-	if(g_loggerArray.find(element => element==name))
-	{
-		UIkit.notification({message: "Logger already exits", status: 'danger', timeout: 3000});
-		return;
-	}
-	
-	var rtsp = '';
-	var sdp = '';
-	if(g_method == 'rtsp')
-	{
-		rtsp = document.getElementById('select_rtsp').value;
-		if(rtsp == '')
-		{
-			UIkit.notification({message: 'RTSP may not be empty', status: 'warning', timeout: 2000});
-			return;
-		}
-	}
-	else
-	{
-		sdp = document.getElementById('select_sdp').value;
-		if(sdp == '')
-		{
-			UIkit.notification({message: 'RTSP may not be empty', status: 'warning', timeout: 2000});
-			return;
-		}
-	}
-		
-	var jsonObj = {	'name' : name,
-					'source' : document.getElementById('config_name').value,
-					'rtsp' : rtsp, 
-					'sdp' : sdp,
-					'wav' : document.getElementById('keep_wav').value,
-					'opus' : document.getElementById('keep_opus').value,
-					'flac' : document.getElementById('keep_flac').value};
-		
-					ajaxPostPutPatch(g_logger_host, 'POST', 'x-api/loggers', JSON.stringify(jsonObj), handleAddLogger);
-
-}
-
-function handleAddLogger(status, jsonObj)
-{
-	UIkit.modal(document.getElementById('add_logger_modal')).hide();
-
-	if(status != 200 || !('logger' in jsonObj))
-	{
-		UIkit.notification({message: jsonObj.reason, status: 'danger', timeout: 3000});	
-	}
-	else
-	{
-		g_loggerArray.push(jsonObj.logger);
-		showLogger(jsonObj.logger);
-	}
-}
-
 
 
 function handleConfig(result, jsonObj)
@@ -1048,6 +1027,7 @@ function showConfigSection(section, jsonObj)
     divMain.classList.add('uk-width-1-3@s', 'uk-width-1-5@xl');
     
 	var aSection = document.createElement('a');
+    var aSection = document.createElement('a');
     aSection.classList.add('uk-link-reset', 'uk-display-block', 'uk-card', 'uk-card-default', 'uk-card-body');
 	aSection.id = section;
     

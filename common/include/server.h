@@ -45,9 +45,9 @@ class Server
 
         void LoopCallback(std::chrono::milliseconds durationSince);
 
-        bool WebsocketAuthenticate(const endpoint& theEndpoint, const query& theQuery, const userName& theUser, const ipAddress& peer);
-        bool WebsocketMessage(const endpoint& theEndpoint, const Json::Value& jsData);
-        void WebsocketClosed(const endpoint& theEndpoint, const ipAddress& peer);
+        bool WebsocketAuthenticate(const endpoint& theEndpoint, const query& theQuery, const userName& theUser, const ipAddress& peer) const;
+        bool WebsocketMessage(const endpoint& theEndpoint, const Json::Value& jsData) const;
+        void WebsocketClosed(const endpoint& theEndpoint, const ipAddress& peer) const;
 
         const iniManager& GetIniManager() const { return m_config;}
 
@@ -65,8 +65,8 @@ class Server
         pml::restgoose::response Reboot(int nCommand) const;
 
         void PatchServerConfig(const Json::Value& jsData) const;
-        bool AuthenticateToken(const methodpoint&, const std::string& sToken);
-        bool DoAuthenticateToken(const std::string& sToken, const ipAddress& peer);
+        bool AuthenticateToken(const methodpoint& thePoint, const std::string& sToken) const;
+        bool DoAuthenticateToken(const std::string& sToken, const ipAddress& peer) const;
 
         time_t GetDateTime(time_t date, const std::vector<std::string>& vLine) const;
 
@@ -77,7 +77,6 @@ class Server
        
         static const endpoint EP_ROOT;
         static const endpoint EP_API;
-        static const endpoint EP_LOGIN;
         static const endpoint EP_LOGS;
         static const endpoint EP_STATUS;
         static const endpoint EP_POWER;
@@ -91,8 +90,6 @@ class Server
         static const std::string ROOT;
         static const std::string API;
         static const std::string LOGS;
-        static const std::string LOGIN;
-        static const std::string LOGOUT;
         static const std::string POWER;
         static const std::string CONFIG;
         static const std::string STATUS;
@@ -119,5 +116,6 @@ class Server
         ssize_t m_nLogToFile     = -1;
         bool m_bLoggedThisHour = false;
 
+        
         std::map<ipAddress, std::shared_ptr<SessionCookie>> m_mTokens;
 };

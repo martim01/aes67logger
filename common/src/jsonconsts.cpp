@@ -122,3 +122,13 @@ const std::string jsonConsts::last_encoded       = "last_encoded";
 
 const std::string jsonConsts::restricted_users   = "_users";
 const std::string jsonConsts::restricted_password= "_password";
+
+const std::string jsonConsts::restricted_authentication = "_authentication";
+const std::string jsonConsts::secret                    = "secret";
+const std::string jsonConsts::leeway                    = "leeway";
+
+const std::string jsonConsts::logger_server             = "loggerserver";
+const std::string jsonConsts::encoder_server            = "encoderserver";
+const std::string jsonConsts::playback_server           = "playbackserver";
+const std::string jsonConsts::webserver                 = "webserver";
+const std::string jsonConsts::admin                     = "admin";

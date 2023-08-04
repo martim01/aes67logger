@@ -11,7 +11,9 @@
                 "/home/matt/asio/asio/include",
                 "/usr/local/include/opus",
                 "/usr/include/opus",
-                "${workspaceFolder}/opusencoder/include"
+                "${workspaceFolder}/opusencoder/include",
+                "${workspaceFolder}/webserver/include",
+                "/home/matt/log/include"
             ],
             "defines": [],
             "compilerPath": "/bin/gcc",

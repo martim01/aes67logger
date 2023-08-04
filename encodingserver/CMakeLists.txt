@@ -14,6 +14,7 @@ include_directories(${DIR_OBSERVER}/include)
 include_directories(${DIR_RESTGOOSE}/include)
 include_directories(${DIR_ASIO}/asio/include)
 include_directories(${DIR_ASIO}/include)
+include_directories(${DIR_JWT}/include)
 
 link_directories("../lib")
 
@@ -30,7 +31,7 @@ target_compile_options(encodingserver PRIVATE ${flags})
 
 list(APPEND definitions "NO_OPENSSL" "__GNU__")
 target_compile_definitions(encodingserver PUBLIC ${definitions})
-target_link_libraries(encodingserver pml_log restgoose pml_observer pthread)
+target_link_libraries(encodingserver pml_log restgoose pml_observer pthread crypto ssl)
 #target_link_libraries(encodingserver optimized pml_log restgoose debug pml_logd restgoosed)
 
 set_target_properties(encodingserver PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")

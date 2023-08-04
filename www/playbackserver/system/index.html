@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>aes67Logger System Info</title>
+        <title>aes67Playback System Info</title>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="stylesheet" href="../../uikit/css/uikit.min.css" />
@@ -16,8 +16,8 @@
         <nav class="uk-navbar-container" uk-navbar style="background: #ffffff; border-bottom: 1px solid #a8a8d8;">
 		<div class="uk-navbar-left">
 			<ul class="uk-navbar-nav">
-				<li class="uk-parent"><a href="../../dashboard/" class="uk-logo"><img src="../../images/loopi.gif"></a></li>
-				<li class="uk-parent"><a href=""><span class="uk-h1" id="hostname">aes67Logger System Info</span></a></li>
+				<li class="uk-parent"><a href="../dashboard/" class="uk-logo"><img src="../../images/loopi.gif"></a></li>
+				<li class="uk-parent"><a href=""><span class="uk-h1" id="hostname">aes67Playback System Info</span></a></li>
 			</ul>
 		</div>
 		<div class="uk-navbar-center">
@@ -27,7 +27,7 @@
 		</div>
 		<div class="uk-navbar-right">
             <ul class="uk-navbar-nav">
-			<li class="uk-parent"><a href=".." class="uk-logo">Dashboard</a></li>
+			<li class="uk-parent"><a href="../dashboard" class="uk-logo">Dashboard</a></li>
             <li class="uk-active"><a href="" class="uk-logo">System</a></li>
             <li class="uk-parent"><a href="../config" class="uk-logo">Config</a></li>
             <li class="uk-parent"><a href="../logs" class="uk-logo">Logs</a></li>
@@ -40,7 +40,7 @@
 			<div class="uk-grid-small uk-child-width-1-3 uk-text-center uk-grid-match" uk-grid>
 				<div>
 					<div class="uk-card uk-card-default">
-						<div class="uk-card-header"> <h3 class="uk-card-title">LoggerManager</h3></div>
+						<div class="uk-card-header"> <h3 class="uk-card-title">PlaybackServer</h3></div>
 						<div class="uk-card-body">
 							<div class="uk-grid-small uk-text-left" uk-grid>
 								<div><span class='uk-text-bold'>Start Time:</span></div>
@@ -180,24 +180,16 @@
 					<div class="uk-card uk-card-default">
 						<div class="uk-card-header"> <h3 class="uk-card-title">Versions</h3></div>
 						<div class="uk-card-body uk-text-left">
-							<span class="loopi_subheading uk-text-muted">LOGGERMANAGER</span>
+							<span class="loopi_subheading uk-text-muted">PLAYBACKSERVER</span>
 							<div class="uk-grid-small uk-text-left" uk-grid>
 								<div class="uk-width-1-6"><span class='uk-text-bold'>Version:</span></div>
-								<div class="uk-width-1-6"><span id="loggermanager-version"></span></div>
+								<div class="uk-width-1-6"><span id="playbackserver-version"></span></div>
 								<div class="uk-width-1-6"><span class='uk-text-bold'>Created:</span></div>
-								<div class="uk-width-expand"><span id="loggermanager-date"></span></div>
-							</div>
-							<span class="loopi_subheading uk-text-muted">LOGGER</span>
-							<div class="uk-grid-small uk-text-left" uk-grid>
-								<div class="uk-width-1-6"><span class='uk-text-bold'>Version:</span></div>
-								<div class="uk-width-1-6"><span id="logger-version"></span></div>
-								<div class="uk-width-1-6"><span class='uk-text-bold'>Created:</span></div>
-								<div class="uk-width-expand"><span id="logger-date"></span></div>
+								<div class="uk-width-expand"><span id="playbackserver-date"></span></div>
 							</div>
 						</div>
 						<div class="uk-card-footer">
-							<button class="uk-button uk-button-small loopi_button_update" onclick="showUpdate('loggermanager')">Update loggermanager</button>
-							<button class="uk-button uk-button-small loopi_button_update" onclick="showUpdate('logger')">Update logger</button>
+							<button class="uk-button uk-button-small loopi_button_update" onclick="showUpdate('playbackserver')">Update playbackserver</button>
 						</div>
 					</div>
 				</div>

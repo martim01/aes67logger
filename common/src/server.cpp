@@ -16,13 +16,13 @@
 #include "aes67utils.h"
 #include "jsonconsts.h"
 #include <iomanip>
+#include "jwt-cpp/jwt.h"
 
 using namespace std::placeholders;
 using namespace pml;
 
 const std::string Server::ROOT        = "/";             //GET
 const std::string Server::API         = "x-api";          //GET
-const std::string Server::LOGIN       = "login";
 const std::string Server::POWER       = "power";
 const std::string Server::CONFIG      = "config";
 const std::string Server::STATUS      = "status";
@@ -33,7 +33,6 @@ const std::string Server::WS          = "ws";        //GET PUT
 
 const endpoint Server::EP_ROOT        = endpoint("");
 const endpoint Server::EP_API         = endpoint(ROOT+API);
-const endpoint Server::EP_LOGIN       = endpoint(EP_API.Get()+"/"+LOGIN);
 const endpoint Server::EP_POWER       = endpoint(EP_API.Get()+"/"+POWER);
 const endpoint Server::EP_CONFIG      = endpoint(EP_API.Get()+"/"+CONFIG);
 const endpoint Server::EP_UPDATE      = endpoint(EP_API.Get()+"/"+UPDATE);
@@ -127,6 +126,8 @@ void Server::InitLogging()
 
 }
 
+
+
 int Server::Run(const std::string& sConfigFile)
 {
     if(m_config.Read(sConfigFile) == false)
@@ -146,19 +147,15 @@ int Server::Run(const std::string& sConfigFile)
     
 
     if(auto addr = ipAddress(GetIpAddress(m_config.Get(jsonConsts::api, jsonConsts::interface, "eth0"))); 
-       m_server.Init(std::filesystem::path(m_config.Get(jsonConsts::api, "sslCa", "")), std::filesystem::path(m_config.Get(jsonConsts::api, "sslCert", "")), std::filesystem::path(m_config.Get(jsonConsts::api, "sslKey", "")), addr, m_config.Get(jsonConsts::api, "port", 8080L), EP_API, true,true))
+       m_server.Init(std::filesystem::path(m_config.Get(jsonConsts::api, "sslCa", "")), 
+                     std::filesystem::path(m_config.Get(jsonConsts::api, "sslCert", "")), 
+                     std::filesystem::path(m_config.Get(jsonConsts::api, "sslKey", "")), 
+                     addr, 
+                     static_cast<unsigned short>(m_config.Get(jsonConsts::api, "port", 8080L)),
+                     EP_API, true,true))
     {
 
-        m_server.SetAuthorizationTypeBearer(std::bind(&Server::AuthenticateToken, this, _1,_2), std::bind(&Server::RedirectToLogin, this), true);
-        m_server.SetUnprotectedEndpoints({methodpoint(pml::restgoose::GET, endpoint("")),
-                                          methodpoint(pml::restgoose::GET, endpoint("/index.html")),
-                                          methodpoint(pml::restgoose::POST, EP_LOGIN),
-                                          methodpoint(pml::restgoose::GET, endpoint("/js/*")),
-                                          methodpoint(pml::restgoose::GET, endpoint("/uikit/*")),
-                                          methodpoint(pml::restgoose::GET, endpoint("/images/*"))});
-
-        m_server.SetStaticDirectory(m_config.Get(jsonConsts::api,jsonConsts::static_pages, "/var/www"));
-
+        m_server.SetAuthorizationTypeBearer(std::bind(&Server::AuthenticateToken, this, _1,_2), [](){return pml::restgoose::response(401, "Bearer token incorrect");}, true);
 
         //Derived class init
         Init();
@@ -183,8 +180,6 @@ bool Server::CreateEndpoints()
 
     pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "CreateEndpoints" ;
 
-    m_server.AddEndpoint(pml::restgoose::POST, EP_LOGIN, std::bind(&Server::PostLogin, this, _1,_2,_3,_4));
-    m_server.AddEndpoint(pml::restgoose::HTTP_DELETE, EP_LOGIN, std::bind(&Server::DeleteLogin, this, _1,_2,_3,_4));
     m_server.AddEndpoint(pml::restgoose::GET, EP_API, std::bind(&Server::GetApi, this, _1,_2,_3,_4));
 
     m_server.AddEndpoint(pml::restgoose::GET, EP_STATUS, std::bind(&Server::GetStatus, this, _1,_2,_3,_4));
@@ -592,8 +587,8 @@ pml::restgoose::response Server::Reboot(int nCommand) const
     pml::restgoose::response theResponse;
     sync(); //make sure filesystem is synced
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    int nError = reboot(nCommand);
-    if(nError == -1)
+    
+    if(int nError = reboot(nCommand); nError == -1)
     {
         theResponse.nHttpCode = 500;
         theResponse.jsonData[jsonConsts::success] = false;
@@ -606,9 +601,10 @@ pml::restgoose::response Server::Reboot(int nCommand) const
     return theResponse;
 }
 
-bool Server::WebsocketAuthenticate(const endpoint&, const query&, const userName& theUser, const ipAddress& peer)
+bool Server::WebsocketAuthenticate(const endpoint& anEndpoint, const query&, const userName& theUser, const ipAddress& peer) const
 {
     ipAddress theSocket = peer;
+    //strip off the port number if it's been included
     if(auto nPos = theSocket.Get().find(':'); nPos != std::string::npos)
     {
         theSocket = ipAddress(theSocket.Get().substr(0, nPos));
@@ -617,69 +613,68 @@ bool Server::WebsocketAuthenticate(const endpoint&, const query&, const userName
     return DoAuthenticateToken(theUser.Get(), theSocket);
 }
 
-bool Server::WebsocketMessage(const endpoint&, const Json::Value& jsData)
+bool Server::WebsocketMessage(const endpoint&, const Json::Value& jsData) const
 {
     pmlLog() << "Websocket message '" << jsData << "'";
     return true;
 }
 
-void Server::WebsocketClosed(const endpoint&, const ipAddress& peer)
+void Server::WebsocketClosed(const endpoint&, const ipAddress& peer) const
 {
     pmlLog() << "Websocket closed from " << peer;
 }
 
-bool Server::AuthenticateToken(const methodpoint&, const std::string& sToken)
+bool Server::AuthenticateToken(const methodpoint& , const std::string& sToken) const
 {
-    return DoAuthenticateToken(sToken, m_server.GetCurrentPeer(false));
+    return DoAuthenticateToken( sToken, m_server.GetCurrentPeer(false));
 }
 
-bool Server::DoAuthenticateToken(const std::string& sToken, const ipAddress& peer)
+bool Server::DoAuthenticateToken(const std::string& sToken, const ipAddress& peer) const
 {
     pmlLog() << "AuthenticateToken " << peer << "=" << sToken;
     
-    if(auto itToken = m_mTokens.find(peer); itToken != m_mTokens.end() && itToken->second->GetId() == sToken)
+    //If we haven't got a secret then just say ok - only for debugging!!
+    if(m_config.Get(jsonConsts::restricted_authentication, jsonConsts::secret, "").empty())
     {
-        itToken->second->Accessed();
-        pmlLog() << "AuthenticateToken succes";
         return true;
     }
+
+    auto bAllowed = false;
+    try
+    {  
+        auto decoded_token = jwt::decode(sToken);
+        auto verifier = jwt::verify()
+                        .allow_algorithm(jwt::algorithm::hs256(m_config.Get(jsonConsts::restricted_authentication, jsonConsts::secret, "")))
+                        .expires_at_leeway(m_config.Get(jsonConsts::restricted_authentication, jsonConsts::leeway, 60L))
+                        .issued_at_leeway(m_config.Get(jsonConsts::restricted_authentication, jsonConsts::leeway, 60L))
+                        .with_claim(m_sApp, jwt::claim(picojson::value(true)));
+        verifier.verify(decoded_token);
+        
+        //if from BNCS driver then extra check as should be new token for each message
+        pmlLog(pml::LOG_DEBUG) << "Token verified";
+        bAllowed = true;
+    }
+    catch(const jwt::error::token_verification_exception& e)
+    {
+        pmlLog(pml::LOG_WARN) << "Could not verify token " << e.what();
+    }
+    catch(const std::invalid_argument& e)
+    {
+        pmlLog(pml::LOG_WARN) << "Could not decode token - invalid format " << e.what();
+    }
+    catch(const std::bad_cast& e)
+    {
+        pmlLog(pml::LOG_WARN) << "Could not decode token - invalid format " << e.what();
+    }
+    catch(const std::runtime_error& e)
+    {
+        pmlLog(pml::LOG_WARN) << "Could not decode token - invalid base64 or json " << e.what();
+    }
+
+    return bAllowed;
+    
     pmlLog(pml::LOG_WARN) << "AuthenticateToken failed";
     return false;
 }
 
-pml::restgoose::response Server::PostLogin(const query& , const postData& vData, const endpoint& , const userName& )
-{
-    if(auto theResponse = ConvertPostDataToJson(vData); theResponse.nHttpCode == 200 && 
-       theResponse.jsonData.isMember(jsonConsts::username) && 
-       theResponse.jsonData.isMember(jsonConsts::password) && 
-       theResponse.jsonData[jsonConsts::password].asString().empty() == false && 
-       m_config.Get(jsonConsts::restricted_users, theResponse.jsonData[jsonConsts::username].asString(), "") == theResponse.jsonData[jsonConsts::password].asString())
-    {
-        auto pCookie = std::make_shared<SessionCookie>(userName(theResponse.jsonData[jsonConsts::username].asString()), m_server.GetCurrentPeer(false));
 
-        auto [itToken, ins] = m_mTokens.try_emplace(m_server.GetCurrentPeer(false), pCookie);
-        if(ins == false)
-        {
-            itToken->second = pCookie;
-        }
-
-        pml::restgoose::response resp(200);
-        resp.jsonData["token"] = pCookie->GetId();
-        pmlLog() << "Login complete: ";
-        return resp;
-    }
-    return pml::restgoose::response(401, "Username or password incorrect");
-}
-
-pml::restgoose::response Server::DeleteLogin(const query& , const postData& , const endpoint& , const userName& )
-{
-    m_mTokens.erase(m_server.GetCurrentPeer(false));
-    return RedirectToLogin();
-}
-
-pml::restgoose::response Server::RedirectToLogin() const
-{
-    pml::restgoose::response theResponse(302);
-    theResponse.mHeaders = {{headerName("Location"), headerValue("/")}};
-    return theResponse;
-}

@@ -129,4 +129,15 @@ struct jsonConsts
 
     static const std::string restricted_users;
     static const std::string restricted_password;
+
+    static const std::string restricted_authentication;
+    static const std::string secret;
+    static const std::string leeway;
+
+    static const std::string logger_server;
+    static const std::string encoder_server;
+    static const std::string playback_server;
+    static const std::string webserver;
+    static const std::string admin;
+
 };

@@ -11,6 +11,7 @@ SET(DIR_JSON ${DIR_BASE}/jsoncpp CACHE STRING "location of jsoncpp")
 SET(DIR_RESTGOOSE ${DIR_BASE}/Restgoose CACHE STRING "location of Restgoose")
 SET(DIR_ASIO ${DIR_BASE}/asio CACHE STRING "location of Asio")
 SET(RESTGOOSE_BRANCH "v3_7.10" CACHE STRING "Restgoose branch to use")
+SET(DIR_JWT ${DIR_BASE}/jwt-cpp CACHE STRING "location of jwt-cpp")
 SET(BUILD_LOG OFF)
 
 execute_process(COMMAND ${CMAKE_COMMAND} -DNAMESPACE=${PROJECT_NAME} -DMAJOR=${PROJECT_VERSION_MAJOR} -DMINOR=${PROJECT_VERSION_MINOR} -DPATCH=${PROJECT_VERSION_PATCH} -P ${CMAKE_SOURCE_DIR}/version.cmake)
@@ -87,6 +88,7 @@ find_path(EPI_TEMP_DIR NAMES "CMakeLists.txt" PATHS ${DIR_RESTGOOSE})
 if((NOT EPI_TEMP_DIR) OR (NOT EXISTS ${EPI_TEMP_DIR}))
 	message(STATUS "Restgoose not found - clone from GitHub")
 	execute_process(COMMAND git clone https://github.com/martim01/Restgoose ${DIR_RESTGOOSE})
+    execute_process(COMMAND git -C ${DIR_RESTGOOSE} checkout ${RESTGOOSE_BRANCH})
     
     find_path(EPI_TEMP_DIR2 NAMES "CMakeLists.txt" PATHS ${DIR_RESTGOOSE})
     if((NOT EPI_TEMP_DIR2) OR (NOT EXISTS ${EPI_TEMP_DIR2}))
@@ -137,6 +139,21 @@ unset(OBSERVER_TEMP_DIR2)
 message(STATUS "Configure pml::observer")
 add_subdirectory(${DIR_OBSERVER} ${CMAKE_SOURCE_DIR}/build/observer)
 
+#Get jwt-cpp
+message(STATUS "Find jwt-cpp")
+find_path(TEMP_JWT NAMES "CMakeLists.txt" PATHS ${DIR_JWT})
+if((NOT TEMP_JWT) OR (NOT EXISTS ${TEMP_JWT}))
+	message(STATUS "jwt-cpp not found - clone from GitHub")
+	execute_process(COMMAND git clone https://github.com/Thalhammer/jwt-cpp ${DIR_JWT})
+
+    find_path(TEMP_JWT2 NAMES "CMakeLists.txt" PATHS ${DIR_JWT})
+    if((NOT TEMP_JWT2) OR (NOT EXISTS ${TEMP_JWT}))
+        message(FATAL_ERROR "Failed to clone jwt-cpp")
+    endif()
+else()
+    message(STATUS "jwt-cpp found - update to latest version")
+    execute_process(COMMAND git -C ${DIR_JWT} pull)
+endif()
 
 message(STATUS "Configure pml::log")
 add_subdirectory(${DIR_LOG} ${CMAKE_SOURCE_DIR}/build/log)
@@ -153,4 +170,6 @@ add_subdirectory(opusencoder)
 add_subdirectory(flacencoder)
 
 add_subdirectory(playbackserver)
+
+add_subdirectory(webserver)
 

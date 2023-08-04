@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>aes67 Legal Logger</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="../uikit/css/uikit.min.css" />
+        <script src="../uikit/js/uikit.min.js"></script>
+        <script src="../uikit/js/uikit-icons.min.js"></script>
+        <script src="../js/common.js"></script>
+        <script src="js/admin.js"></script>
+    </head>
+    <body onload="getUsers()">
+        <nav class="uk-navbar-container" uk-navbar style="background: #ffffff; border-bottom: 1px solid #a8a8d8;">
+		<div class="uk-navbar-left">
+			<ul class="uk-navbar-nav">
+				<li class="uk-parent"><a href="" class="uk-logo"><img src="../images/loopi.png"></a></li>
+				<li class="uk-active"><a href=""><span class="uk-h1" id="hostname"></span></a></li>
+			</ul>
+		</div>
+		</nav>
+        <div class="uk-section uk-section-xsmall uk-section-muted">
+            <div class="uk-grid-column-small uk-grid-row-small uk-grid-match uk-text-center" uk-grid>
+                <div>
+                    <div class=" uk-card uk-card-default uk-card-body">
+                        <div class='uk-card-header'>
+                                <h3 class="uk-card-title">Users</h3>
+                        </div>
+                        <div class='uk-card-body'>
+                            <table class="uk-table uk-table-middle uk-table-hover uk-table-divider">
+                                <col>
+                                <colgroup span="5"></colgroup>
+                                <thead>
+                                    <tr>
+                                        <th rowspan="2">Username</th>
+                                        <th scope="colgroup">Permissions</th>
+                                    </tr>
+                                    <tr>
+                                        <th scope="col">Webserver</th>
+                                        <th scope="col">Admin</th>
+                                        <th scope="col">Logging Server</th>
+                                        <th scope="col">Encoding Server</th>
+                                        <th scope="col">Playback Server</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="users">
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class='uk-card-footer'>
+                            <button class="uk-button uk-button-primary" type="button" onclick="showUserModal(event)" >Add User</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="user_modal" uk-modal>
+            <div class="uk-modal-dialog">
+                <button class="uk-modal-close-default" type="button" uk-close></button>
+                <div class="uk-modal-header">
+                    <h3 class="uk-modal-title" id="user_modal_title">Add User</h3>
+                </div>
+                <div class="uk-modal-body">
+                    <div class="uk-form-controls">
+                        <div class="uk-margin-small">
+                            <input class="uk-input" type="text" placeholder="User Name" id="user_name">
+                        </div>
+                        <div class="uk-margin-small">
+                            <input class="uk-input" type="password" placeholder="Password" id="password">
+                        </div>
+                        <div class="uk-margin uk-grid-small uk-child-width-auto uk-grid">
+                            <label><input class="uk-checkbox" type="checkbox" id="perm_logging"> Logging Server</label>
+                            <label><input class="uk-checkbox" type="checkbox" id="perm_encoding"> Encoding Server</label>
+                            <label><input class="uk-checkbox" type="checkbox" id="perm_playback"> Playback Server</label>
+                            <label><input class="uk-checkbox" type="checkbox" id="perm_admin"> Admin</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="uk-modal-footer uk-text-right">
+                    <button class="uk-button uk-button-default uk-modal-close" type="button">Cancel</button>
+                    <button class="uk-button uk-button-primary" type="button" onclick="updateUser()" id="add_user_button">Add User</button>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

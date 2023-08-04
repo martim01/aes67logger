@@ -1,13 +1,9 @@
 var g_encoderArray = new Array();
-var g_ajax = new XMLHttpRequest();
 var g_ws = null;
-g_ajax.timeout = 300;
-var g_cookie_array = [];
 var g_encoder = null;
-var g_access_token_encodingserver = null;
 var g_action = '';
+var g_encoder_host = location.host;
 
-const zeroPad = (num,places)=>String(num).padStart(places,'0');
 
 const CLR_PLAYING = "#92d14f";
 const CLR_IDLE = "#8db4e2";
@@ -19,62 +15,6 @@ const CLR_WARNING = "#ffa000"
 const CLR_CONNECTING = "#ffff00";
 const CLR_SYNC = "#008000";
 
-
-function getCookies()
-{
-	let decodedCookie = decodeURIComponent(document.cookie);
-	decodedCookie.split(';').forEach(function(el){
-		let pos = el.indexOf('=');
-		if(pos != -1)
-		{
-			var key = el.substring(0,pos);
-			var value = el.substring(pos+1);
-			g_cookie_array[key] = value;
-			if(key.trim() == 'access_token')
-			{
-				g_access_token_encodingserver = value;
-			}
-		}
-	});
-
-	console.log(g_cookie_array);
-}
-
-
-function login()
-{
-	var play = { "username" : document.getElementById('username').value,
-                 "password" : document.getElementById('password').value};
-
-    ajaxPostPutPatch("POST", "x-api/login", JSON.stringify(play), handleLogin);
-}
-function logout()
-{
-	ajaxDelete("x-api/login", handleLogout);
-	window.location.href  = "/";
-}
-
-function handleLogin(status, jsonObj)
-{
-    if(status !== 200 || ('token' in jsonObj) == false)
-    {
-        UIkit.notification({message: jsonObj["reason"], status: 'danger', timeout: 3000})
-    }
-    else 
-    {
-		console.log(jsonObj);
-		g_access_token_encodingserver = jsonObj.token;
-
-        document.cookie = "access_token="+g_access_token_encodingserver+"; path=/";
-		window.location.pathname = "/dashboard";
-		console.log(window.location);
-    }
-}
-
-function handleLogout(status, jsonObj)
-{
-
-}
 
 function config()
 {
@@ -242,7 +182,7 @@ function handleEncoders(status, jsData)
             g_encoderArray.forEach(showEncoder);
         }
 
-		ajaxGet('x-api/status', handleEncodersStatus);
+		ajaxGet(g_encoder_host, 'x-api/status', handleEncodersStatus);
     }
     else
     {
@@ -398,163 +338,36 @@ function ws_connect(endpoint, callbackMessage)
 
 function getEncoders(callback)
 {
-	ajaxGet("x-api/encoders",callback);
+	ajaxGet(g_encoder_host, "x-api/encoders",callback);
 }
 
 
 function getStatus(callback)
 {
-	ajaxGet("x-api/status",callback);
+	ajaxGet(g_encoder_host, "x-api/status",callback);
 }
 
 function getPower(callback)
 {
-	ajaxGet("x-api/power",callback);
+	ajaxGet(g_encoder_host, "x-api/power",callback);
 }
 
 function getConfig(callback)
 {
-	ajaxGet("x-api/config", callback);
+	ajaxGet(g_encoder_host, "x-api/config", callback);
 }
 
 function getInfo(callback)
 {
-	ajaxGet("x-api/info", callback);
+	ajaxGet(g_encoder_host, "x-api/info", callback);
 }
 
 
 function getUpdate(callback)
 {
-	ajaxGet("x-api/update",callback);
+	ajaxGet(g_encoder_host, "x-api/update",callback);
 }
 
-function ajaxGet(endpoint, callback, bJson=true)
-{
-	console.log("ajaxGet "+endpoint);
-	var ajax = new XMLHttpRequest();
-	ajax.timeout = 2000;
-	
-	ajax.onload = function() 
-	{
-		if(this.readyState == 4)
-		{
-			console.log(this.responseText);
-			if(bJson)
-            {
-				callback(this.status, JSON.parse(this.responseText));
-			}
-			else
-			{
-				callback(this.status, this.responseText);
-			}
-		}
-	}
-	ajax.onerror = function(e)
-	{
-		callback(this.status, null);
-	}
-	ajax.ontimeout = function(e)
-	{
-		callback(this.status, null);
-	}
-	ajax.open("GET", location.protocol+"//"+location.host+"/"+endpoint, true);
-	ajax.send();
-}
-
-function ajaxPostPutPatch(method, endpoint, jsonData, callback)
-{
-	var ajax = new XMLHttpRequest();
-	ajax.onreadystatechange = function()
-	{
-		
-		if(this.readyState == 4)
-		{
-			var jsonObj = JSON.parse(this.responseText);
-			callback(this.status, jsonObj);
-		}
-	}
-	
-	ajax.open(method, location.protocol+"//"+location.host+"/"+endpoint, true);
-	ajax.setRequestHeader("Content-type", "application/json");
-	ajax.send(jsonData);
-}
-
-function ajaxDelete(endpoint, callback)
-{
-	var ajax = new XMLHttpRequest();
-	ajax.onreadystatechange = function()
-	{
-		
-		if(this.readyState == 4)
-		{
-			var jsonObj = null;
-			if(this.responseText != "")
-			{
-				jsonObj = JSON.parse(this.responseText);
-			}
-			callback(this.status, jsonObj);
-		}
-	}
-	
-	ajax.open("DELETE", location.protocol+"//"+location.host+"/"+endpoint, true);
-	ajax.send(null);
-}
-
-
-function millisecondsToTime(milliseconds)
-{
-	var seconds = Math.floor(milliseconds/1000)%60;
-	var minutes = Math.floor(milliseconds/(1000*60))%60;
-	var hours = Math.floor(milliseconds/(1000*3600));
-	
-	return toString(hours)+":"+toString(minutes)+":"+toString(seconds);
-}
-
-function toString(value)
-{
-	if(value == 0)
-	{
-		return '00';
-	}
-	else if(value < 10)
-	{
-		return '0'+value;
-	}
-	return value;
-}
-
-/*
-function createBodyGrid(name, id)
-{
-	var body_grid = document.createElement('div');
-	body_grid.classList.add('uk-child-width-expand');
-	body_grid.classList.add('uk-grid-small');
-	body_grid.classList.add('uk-text-left');
-	body_grid.classList.add('uk-link-reset');
-	body_grid.classList.add('uk-display-block');
-	body_grid.setAttribute('uk-grid',true);
-	
-	
-	
-	var div_title = document.createElement('div');
-	div_title.className = 'uk-width-1-4';
-	
-	var span = document.createElement('span');
-	span.className = 'uk-text-bold';
-	span.innerHTML = name+':';
-	
-	div_title.appendChild(span);
-	body_grid.appendChild(div_title);
-	
-	var div_value = document.createElement('div');
-	div_value.id = id+'_'+g_loopi_array.length;
-	div_value.innerHTML = '?';
-	
-	body_grid.appendChild(div_value);
-	
-	return body_grid;
-}
-*/	
 
 function system()
 {
@@ -749,7 +562,7 @@ function restart(command)
 	UIkit.modal.confirm('Are you sure?').then(function() 
 	{
 		var play = { "command" : command};
-		ajaxPostPutPatch("PUT", "x-api/power", JSON.stringify(play), handleRestartPut);
+		ajaxPostPutPatch(g_encoder_host, "PUT", "x-api/power", JSON.stringify(play), handleRestartPut);
 	}, function () {});	
 }
 
@@ -836,7 +649,7 @@ function getLogs()
 	var endpoint = "x-api/logs?logger="+document.getElementById('select_log').value+"&start_time="+dtStart.getTime()/1000+
 	"&end_time="+dtEnd.getTime()/1000;
 
-	ajaxGet(endpoint, handleGetLogs);
+	ajaxGet(g_encoder_host, endpoint, handleGetLogs);
 }
 
 function handleGetLogs(status, log)
@@ -857,7 +670,7 @@ function encoders()
 	
 	g_encoder = params.encoder;
 
-	ajaxGet("x-api/encoders/"+g_encoder+"/status", connectToEncoder)
+	ajaxGetg_encoder_host, ("x-api/encoders/"+g_encoder+"/status", connectToEncoder)
 }
 
 function connectToEncoder(status, jsonObj)
@@ -932,12 +745,12 @@ function encoderAdmin()
 	if(g_action == 'restart')
 	{
 		var play = { "command" : "restart", "password" : document.getElementById('admin_password').value};
-		ajaxPostPutPatch("PUT", "x-api/encoders/"+g_encoder, JSON.stringify(play), handleRestartEncoder);
+		ajaxPostPutPatch(g_encoder_host, "PUT", "x-api/encoders/"+g_encoder, JSON.stringify(play), handleRestartEncoder);
 	}
 	else if(g_action == 'remove')
 	{
 		var play = {"password" : document.getElementById('admin_password').value};
-		ajaxPostPutPatch("DELETE", "x-api/encoders/"+g_encoder, JSON.stringify(play), handleDeleteEncoder);
+		ajaxPostPutPatch(g_encoder_host, "DELETE", "x-api/encoders/"+g_encoder, JSON.stringify(play), handleDeleteEncoder);
 	}
 }
 
@@ -970,7 +783,7 @@ function handleDeleteEncoder(status, jsonObj)
 
 function changeSession()
 {
-	ajaxGet("x-api/sources", handleSources)
+	ajaxGetg_encoder_host, ("x-api/sources", handleSources)
 }
 
 function addSources(which, jsonObj)
