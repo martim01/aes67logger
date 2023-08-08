@@ -14,8 +14,8 @@
         <nav class="uk-navbar-container" uk-navbar style="background: #ffffff; border-bottom: 1px solid #a8a8d8;">
 		<div class="uk-navbar-left">
 			<ul class="uk-navbar-nav">
-				<li class="uk-parent"><a href="" class="uk-logo"><img src="../images/loopi.png"></a></li>
-				<li class="uk-active"><a href=""><span class="uk-h1" id="hostname"></span></a></li>
+				<li class="uk-parent"><a href="../dashboard" class="uk-logo"><img src="../images/loopi.png"></a></li>
+				<li class="uk-active"><a href=""><span class="uk-h1" id="hostname">aes67Logger Admin</span></a></li>
 			</ul>
 		</div>
 		</nav>
@@ -27,7 +27,7 @@
                                 <h3 class="uk-card-title">Users</h3>
                         </div>
                         <div class='uk-card-body'>
-                            <table class="uk-table uk-table-middle uk-table-hover uk-table-divider">
+                            <table class="uk-table uk-table-middle uk-table-hover">
                                 <col>
                                 <colgroup span="5"></colgroup>
                                 <thead>
@@ -36,11 +36,10 @@
                                         <th scope="colgroup">Permissions</th>
                                     </tr>
                                     <tr>
-                                        <th scope="col">Webserver</th>
-                                        <th scope="col">Admin</th>
                                         <th scope="col">Logging Server</th>
                                         <th scope="col">Encoding Server</th>
                                         <th scope="col">Playback Server</th>
+                                        <th scope="col">Admin</th>
                                     </tr>
                                 </thead>
                                 <tbody id="users">
@@ -66,8 +65,13 @@
                         <div class="uk-margin-small">
                             <input class="uk-input" type="text" placeholder="User Name" id="user_name">
                         </div>
-                        <div class="uk-margin-small">
-                            <input class="uk-input" type="password" placeholder="Password" id="password">
+                        <div class="uk-grid-column-small uk-grid-row-small" uk-grid>
+                            <div>
+                                <input class="uk-input" type="password" placeholder="Password" id="password">
+                            </div>
+                            <div>
+                                <button class="uk-button uk-button-primary" type="button" onclick="updatePassword()" id="update_password_button">Update</button>
+                            </div>
                         </div>
                         <div class="uk-margin uk-grid-small uk-child-width-auto uk-grid">
                             <label><input class="uk-checkbox" type="checkbox" id="perm_logging"> Logging Server</label>

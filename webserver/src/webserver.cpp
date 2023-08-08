@@ -39,6 +39,7 @@ std::optional<Json::Value> ConvertPostDataToJson(const postData& vData)
 {
     if(vData.size() == 1)
     {
+        pmlLog(pml::LOG_DEBUG) << "ConvertPostDataToJson " << vData[0].data.Get();
         return ConvertToJson(vData[0].data.Get());
     }
     else if(vData.size() > 1)
@@ -270,28 +271,34 @@ pml::restgoose::response WebServer::PostUser(const query&, const postData& theDa
 {
     pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "PostUser" ;
        
-    if(auto user = ConvertPostDataToJson(theData); user && user->isMember(jsonConsts::username) && user->isMember(jsonConsts::password))
+    if(auto user = ConvertPostDataToJson(theData); user)
     {
-        //check that user does not already exist
-        auto sSection = "{"+(*user)[jsonConsts::username].asString()+"}";
-    
-        if(m_config.GetSection(sSection))
+        if(user->isMember(jsonConsts::username) && user->isMember(jsonConsts::password))
         {
-            return pml::restgoose::response(409, "User already exists");
+            //check that user does not already exist
+            auto sSection = "{"+(*user)[jsonConsts::username].asString()+"}";
+        
+            if(m_config.GetSection(sSection))
+            {
+                return pml::restgoose::response(409, "User already exists");
+            }
+
+            m_config.Set(sSection, jsonConsts::password, Hash(HASH_KEY, (*user)[jsonConsts::password].asString()));
+
+            SaveUserPermission(sSection, jsonConsts::logger_server, *user, false);
+            SaveUserPermission(sSection, jsonConsts::encoder_server, *user, false);
+            SaveUserPermission(sSection, jsonConsts::playback_server, *user, false);
+            SaveUserPermission(sSection, jsonConsts::admin, *user, false);
+            SaveUserPermission(sSection, jsonConsts::webserver, *user, true);
+            SaveUserPermission(sSection, jsonConsts::logger_server, *user, false);
+
+            return pml::restgoose::response(201, "User added");
         }
-
-        m_config.Set(sSection, jsonConsts::password, Hash(HASH_KEY, (*user)[jsonConsts::password].asString()));
-
-        SaveUserPermission(sSection, jsonConsts::logger_server, *user, false);
-        SaveUserPermission(sSection, jsonConsts::encoder_server, *user, false);
-        SaveUserPermission(sSection, jsonConsts::playback_server, *user, false);
-        SaveUserPermission(sSection, jsonConsts::admin, *user, false);
-        SaveUserPermission(sSection, jsonConsts::webserver, *user, true);
-        SaveUserPermission(sSection, jsonConsts::logger_server, *user, false);
-
-        return pml::restgoose::response(201, "User added");
+        else
+        {
+            return pml::restgoose::response(400, "Username or password missing");        
+        }
     }
-
     return pml::restgoose::response(400, "Invalid json");
 }
 
