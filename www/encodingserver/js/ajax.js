@@ -2,7 +2,7 @@ var g_encoderArray = new Array();
 var g_ws = null;
 var g_encoder = null;
 var g_action = '';
-var g_encoder_host = location.host;
+var g_encoder_host = location.host+":4430";
 
 
 const CLR_PLAYING = "#92d14f";
@@ -32,7 +32,7 @@ function showEncoder(encoder)
     aEncoder.classList.add('uk-link-reset', 'uk-display-block', 'uk-width-large@l', 'uk-width-medium@m', 'uk-card', 'uk-card-default', 'uk-card-body',
                             'uk-card-hover', 'uk-card-small');
     aEncoder.id = encoder;
-    aEncoder.href = '../encoders/index.html?encoder='+encoder;
+    aEncoder.href = '';
     
     
     var divHeader = document.createElement('div');
@@ -308,7 +308,7 @@ function ws_connect(endpoint, callbackMessage)
 		ws_protocol = "wss:";
 	}
 
-	g_ws = new WebSocket(ws_protocol+"//"+location.host+"/x-api/ws/"+endpoint+"?access_token="+g_access_token_encodingserver);
+	g_ws = new WebSocket(ws_protocol+"//"+g_encoder_host+"/x-api/ws/"+endpoint+"?access_token="+g_access_token);
     g_ws.timeout = true;
 	g_ws.onopen = function(ev)  { this.tm = setTimeout(serverOffline, 4000) };
 	g_ws.onerror = function(ev) { serverOffline(); };
