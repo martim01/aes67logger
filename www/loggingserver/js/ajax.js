@@ -3,7 +3,7 @@ var g_ws = null;
 var g_logger = null;
 var g_action = '';
 
-var g_logger_host = location.host;
+var g_logger_host = location.host+":4431";
 
 
 const CLR_PLAYING = "#92d14f";
@@ -29,7 +29,7 @@ function showLogger(logger)
     aLogger.classList.add('uk-link-reset', 'uk-display-block', 'uk-width-large@l', 'uk-width-medium@m', 'uk-card', 'uk-card-default', 'uk-card-body',
                             'uk-card-hover', 'uk-card-small');
     aLogger.id = logger;
-    aLogger.href = '../loggers/index.html?logger='+logger;
+    aLogger.href = 'loggers/index.html?logger='+logger;
     
     
 
@@ -155,7 +155,7 @@ function handleLoggers(status, jsData)
             g_loggerArray.forEach(showLogger);
         }
 
-		ajaxGet(g_logger_host, g_logger_host, 'x-api/status', handleLoggersStatus);
+		ajaxGet(g_logger_host,  'x-api/status', handleLoggersStatus);
     }
     else
     {
@@ -269,9 +269,11 @@ function ws_connect(endpoint, callbackMessage)
 		ws_protocol = "wss:";
 	}
 
-	g_ws = new WebSocket(ws_protocol+"//"+location.host+"/x-api/ws/"+endpoint+"?access_token="+g_access_token_loggingserver);
+	 
+	console.log(ws_protocol+"//"+g_logger_host+"/x-api/ws/"+endpoint);
+	g_ws = new WebSocket(ws_protocol+"//"+g_logger_host+"/x-api/ws/"+endpoint+"?access_token="+g_access_token);
     g_ws.timeout = true;
-	g_ws.onopen = function(ev)  { this.tm = setTimeout(serverOffline, 4000) };
+	g_ws.onopen = function(ev)  { console.log("Ws_open"); this.tm = setTimeout(serverOffline, 4000) };
 	g_ws.onerror = function(ev) { serverOffline(); };
 	g_ws.onclose = function(ev) { serverOffline(); };
 	

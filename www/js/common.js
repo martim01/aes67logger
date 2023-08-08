@@ -9,18 +9,19 @@ function getCookies()
 {
 	let decodedCookie = decodeURIComponent(document.cookie);
 	decodedCookie.split(';').forEach(function(el){
-		let pos = el.indexOf('=');
-		if(pos != -1)
+	let pos = el.indexOf('=');
+	if(pos != -1)
+	{
+		var key = el.substring(0,pos);
+		var value = el.substring(pos+1);
+		g_cookie_array[key] = value;
+		console.log("Cookie: "+key+"="+value);
+		if(key.trim() == 'access_token')
 		{
-			var key = el.substring(0,pos);
-			var value = el.substring(pos+1);
-			g_cookie_array[key] = value;
-			if(key.trim() == 'access_token')
-			{
-				g_access_token = value;
-				console.log("Got cookie"+g_access_token);
-			}
+			g_access_token = value;
+			console.log("Got cookie"+g_access_token);
 		}
+	}
 	});
 
 	console.log(g_cookie_array);
@@ -49,7 +50,7 @@ function handleLogin(status, jsonObj)
     else 
     {
 		console.log(jsonObj);
-		g_access_token_loggingserver = jsonObj.access_token;
+		g_access_token = jsonObj.access_token;
 		
 
 		document.cookie = "access_token="+g_access_token+"; path=/";
@@ -68,7 +69,7 @@ function handleLogout(status, jsonObj)
 
 function ajaxGet(host, endpoint, callback, bJson=true)
 {
-	console.log("ajaxGet "+endpoint);
+	console.log("ajaxGet "+host+" "+endpoint);
 	var ajax = new XMLHttpRequest();
 	ajax.timeout = 2000;
 	
