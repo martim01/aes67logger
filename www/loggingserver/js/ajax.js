@@ -1001,9 +1001,10 @@ function addLogger()
 					'source' : document.getElementById('config_name').value,
 					'rtsp' : rtsp, 
 					'sdp' : sdp,
-					'wav' : document.getElementById('keep_wav').value,
-					'opus' : document.getElementById('keep_opus').value,
-					'flac' : document.getElementById('keep_flac').value};
+					'wav' : parseInt(document.getElementById('keep_wav').value),
+					'opus' : parseInt(document.getElementById('keep_opus').value),
+					'flac' : parseInt(document.getElementById('keep_flac').value),
+					'filelength' : parseInt(document.getElementById('filelength').value)};
 		
 					ajaxPostPutPatch(g_logger_host, 'POST', 'x-api/loggers', JSON.stringify(jsonObj), handleAddLogger);
 

@@ -113,7 +113,7 @@ void LaunchManager::LaunchLogger(std::shared_ptr<Launcher> pLauncher) const
 pml::restgoose::response LaunchManager::AddLogger(const pml::restgoose::response& theData)
 {
     //check for the data
-
+	pmlLog() << theData.jsonData;
     if(CheckJsonMembers(theData.jsonData, {{jsonConsts::name, enumJsonType::STRING},
                                            {jsonConsts::source, enumJsonType::STRING},
                                            {jsonConsts::rtsp, enumJsonType::STRING},

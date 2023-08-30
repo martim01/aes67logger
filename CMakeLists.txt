@@ -10,7 +10,7 @@ SET(DIR_LOG ${DIR_BASE}/log CACHE STRING "location of pml log")
 SET(DIR_JSON ${DIR_BASE}/jsoncpp CACHE STRING "location of jsoncpp")
 SET(DIR_RESTGOOSE ${DIR_BASE}/Restgoose CACHE STRING "location of Restgoose")
 SET(DIR_ASIO ${DIR_BASE}/asio CACHE STRING "location of Asio")
-SET(RESTGOOSE_BRANCH "v3_7.10" CACHE STRING "Restgoose branch to use")
+SET(RESTGOOSE_BRANCH "main" CACHE STRING "Restgoose branch to use")
 SET(DIR_JWT ${DIR_BASE}/jwt-cpp CACHE STRING "location of jwt-cpp")
 SET(BUILD_LOG OFF)
 
