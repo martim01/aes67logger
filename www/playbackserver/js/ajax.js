@@ -6,6 +6,7 @@ var g_cookie_array = [];
 var g_playback = null;
 var g_access_token_playbackserver = null;
 var g_action = '';
+var g_playback_host = location.host+":8081";
 
 const zeroPad = (num,places)=>String(num).padStart(places,'0');
 
@@ -242,7 +243,7 @@ function handlePlaybacks(status, jsData)
             g_playbackArray.forEach(showPlayback);
         }
 
-		ajaxGet('x-api/status', handlePlaybacksStatus);
+		ajaxGet(g_playback_host, 'x-api/status', handlePlaybacksStatus);
     }
     else
     {
@@ -368,7 +369,7 @@ function ws_connect(endpoint, callbackMessage)
 		ws_protocol = "wss:";
 	}
 
-	g_ws = new WebSocket(ws_protocol+"//"+location.host+"/x-api/ws/"+endpoint+"?access_token="+g_access_token_playbackserver);
+	g_ws = new WebSocket(ws_protocol+"//"+g_playback_host+"/x-api/ws/"+endpoint+"?access_token="+g_access_token_playbackserver);
     g_ws.timeout = true;
 	g_ws.onopen = function(ev)  { this.tm = setTimeout(serverOffline, 4000) };
 	g_ws.onerror = function(ev) { serverOffline(); };
@@ -398,130 +399,36 @@ function ws_connect(endpoint, callbackMessage)
 
 function getPlaybacks(callback)
 {
-	ajaxGet("x-api/playbacks",callback);
+	ajaxGet(g_playback_host, "x-api/playbacks",callback);
 }
 
 
 function getStatus(callback)
 {
-	ajaxGet("x-api/status",callback);
+	ajaxGet(g_playback_host, "x-api/status",callback);
 }
 
 function getPower(callback)
 {
-	ajaxGet("x-api/power",callback);
+	ajaxGet(g_playback_host, "x-api/power",callback);
 }
 
 function getConfig(callback)
 {
-	ajaxGet("x-api/config", callback);
+	ajaxGet(g_playback_host, "x-api/config", callback);
 }
 
 function getInfo(callback)
 {
-	ajaxGet("x-api/info", callback);
+	ajaxGet(g_playback_host, "x-api/info", callback);
 }
 
 
 function getUpdate(callback)
 {
-	ajaxGet("x-api/update",callback);
+	ajaxGet(g_playback_host, "x-api/update",callback);
 }
 
-function ajaxGet(endpoint, callback, bJson=true)
-{
-	console.log("ajaxGet "+endpoint);
-	var ajax = new XMLHttpRequest();
-	ajax.timeout = 2000;
-	
-	ajax.onload = function() 
-	{
-		if(this.readyState == 4)
-		{
-			console.log(this.responseText);
-			if(bJson)
-            {
-				callback(this.status, JSON.parse(this.responseText));
-			}
-			else
-			{
-				callback(this.status, this.responseText);
-			}
-		}
-	}
-	ajax.onerror = function(e)
-	{
-		callback(this.status, null);
-	}
-	ajax.ontimeout = function(e)
-	{
-		callback(this.status, null);
-	}
-	ajax.open("GET", location.protocol+"//"+location.host+"/"+endpoint, true);
-	ajax.send();
-}
-
-function ajaxPostPutPatch(method, endpoint, jsonData, callback)
-{
-	var ajax = new XMLHttpRequest();
-	ajax.onreadystatechange = function()
-	{
-		
-		if(this.readyState == 4)
-		{
-			var jsonObj = JSON.parse(this.responseText);
-			callback(this.status, jsonObj);
-		}
-	}
-	
-	ajax.open(method, location.protocol+"//"+location.host+"/"+endpoint, true);
-	ajax.setRequestHeader("Content-type", "application/json");
-	ajax.send(jsonData);
-}
-
-function ajaxDelete(endpoint, callback)
-{
-	var ajax = new XMLHttpRequest();
-	ajax.onreadystatechange = function()
-	{
-		
-		if(this.readyState == 4)
-		{
-			var jsonObj = null;
-			if(this.responseText != "")
-			{
-				jsonObj = JSON.parse(this.responseText);
-			}
-			callback(this.status, jsonObj);
-		}
-	}
-	
-	ajax.open("DELETE", location.protocol+"//"+location.host+"/"+endpoint, true);
-	ajax.send(null);
-}
-
-
-function millisecondsToTime(milliseconds)
-{
-	var seconds = Math.floor(milliseconds/1000)%60;
-	var minutes = Math.floor(milliseconds/(1000*60))%60;
-	var hours = Math.floor(milliseconds/(1000*3600));
-	
-	return toString(hours)+":"+toString(minutes)+":"+toString(seconds);
-}
-
-function toString(value)
-{
-	if(value == 0)
-	{
-		return '00';
-	}
-	else if(value < 10)
-	{
-		return '0'+value;
-	}
-	return value;
-}
 
 /*
 function createBodyGrid(name, id)
@@ -826,7 +733,7 @@ function getLogs()
 	var endpoint = "x-api/logs?logger="+document.getElementById('select_log').value+"&start_time="+dtStart.getTime()/1000+
 	"&end_time="+dtEnd.getTime()/1000;
 
-	ajaxGet(endpoint, handleGetLogs);
+	ajaxGet(g_playback_host, endpoint, handleGetLogs);
 }
 
 function handleGetLogs(status, log)
@@ -847,7 +754,7 @@ function playbacks()
 	
 	g_playback = params.playback;
 
-	ajaxGet("x-api/playbacks/"+g_playback+"/status", connectToPlayback)
+	ajaxGet(g_playback_host, "x-api/playbacks/"+g_playback+"/status", connectToPlayback)
 }
 
 function connectToPlayback(status, jsonObj)
@@ -960,7 +867,7 @@ function handleDeletePlayback(status, jsonObj)
 
 function changeSession()
 {
-	ajaxGet("x-api/sources", handleSources)
+	ajaxGet(g_playback_host, "x-api/sources", handleSources)
 }
 
 function addSources(which, jsonObj)
