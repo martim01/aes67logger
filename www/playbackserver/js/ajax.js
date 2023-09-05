@@ -288,7 +288,7 @@ function timechange()
 	var dtStart = new Date(document.getElementById('start_time').value);
 	var dtEnd = new Date(document.getElementById('end_time').value);
 
-	var endpoint = g_playback_host+"/x-api/loggers/"+channel+"/"+type+"/download?"+"start_time="+dtStart.getTime()/1000+"&end_time="+dtEnd.getTime()/1000;
+	var endpoint = location.protocol+"//"+g_playback_host+"/x-api/loggers/"+channel+"/"+type+"/download?"+"start_time="+dtStart.getTime()/1000+"&end_time="+dtEnd.getTime()/1000;
 
 	document.getElementById('download').setAttribute("href", endpoint);
 }

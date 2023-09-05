@@ -154,9 +154,13 @@ pml::restgoose::response LoggerObserver::CreateDownloadFile(const std::string& s
 
         try
         {       
+            pmlLog() << "CreateDownloadFile from: " << std::min(std::stoul(itStart->second.Get()), std::stoul(itEnd->second.Get())) << " to " << std::max(std::stoul(itStart->second.Get()), std::stoul(itEnd->second.Get()));
+
             auto [baseStart, diffStart] = GetBaseFileName(std::min(std::stoul(itStart->second.Get()), std::stoul(itEnd->second.Get())));
             auto [baseEnd, diffEnd] = GetBaseFileName(std::max(std::stoul(itStart->second.Get()), std::stoul(itEnd->second.Get())));
         
+            pmlLog() << "CreateDownloadFile baseStart=" << baseStart << "\tbaseEnd=" << baseEnd;
+
         
             //check we have all the necessary files
             std::filesystem::path pathIn("/tmp/in_"+GetCurrentTimeAsString(true));
