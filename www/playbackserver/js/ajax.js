@@ -79,6 +79,7 @@ function handlePlaybacks(status, jsData)
 				opt.innerHTML = g_playbackArray[i];
 				select.append(opt);
 			}
+		getTypes();
         }
 
 		ajaxGet(g_playback_host, 'x-api/status', handlePlaybacksStatus);
@@ -200,6 +201,7 @@ function serverOffline()
 
 function getTypes()
 {
+	console.log('getTypes');
 	var channel = document.getElementById('select_channel').value;
 	ajaxGet(g_playback_host, "x-api/loggers/"+channel, handleFileTypes);
 }
@@ -222,6 +224,7 @@ function handleFileTypes(status, jsonObj)
 		}
 
 		document.getElementById('div_type').style.visibility = '';
+		getTimes();
 	}
 	else if(jsonObj)
 	{
@@ -249,13 +252,13 @@ function handleTimes(status, jsonObj)
 	{
 		console.log(jsonObj);
 
-		document.getElementById('div_times').style.visibility = '';
+		document.getElementById('div_time').style.visibility = '';
 		document.getElementById('download').style.visibility = '';
 
 	}
 	else if(jsonObj)
 	{
-		document.getElementById('div_times').style.visibility = 'hidden';
+		document.getElementById('div_time').style.visibility = 'hidden';
 		document.getElementById('download').style.visibility = 'hidden';
 		UIkit.notification({message: jsonObj["reason"], status: 'danger', timeout: 3000})
 	}
