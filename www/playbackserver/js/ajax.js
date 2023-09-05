@@ -263,6 +263,8 @@ function handleTimes(status, jsonObj)
 		
 			document.getElementById('div_time').style.visibility = '';
 			document.getElementById('download').style.visibility = '';
+
+			timechange();
 		}
 	}
 	else if(jsonObj)
@@ -278,6 +280,48 @@ function handleTimes(status, jsonObj)
 
 }
 
+function timechange()
+{
+	var channel = document.getElementById('select_channel').value;
+	var type = document.getElementById('select_type').value;
+	
+	var dtStart = new Date(document.getElementById('start_time').value);
+	var dtEnd = new Date(document.getElementById('end_time').value);
+
+	var endpoint = g_playback_host+"/x-api/loggers/"+channel+"/"+type+"/download?"+"start_time="+dtStart.getTime()/1000+"&end_time="+dtEnd.getTime()/1000;
+
+	document.getElementById('download').setAttribute("href", endpoint);
+}
+
+function handleRecording(status, jsonObj)
+{
+	if(status == 200)
+	{
+		if(jsonObj.length > 0)
+		{
+			jsonObj.sort();
+			var start = parseInt(jsonObj[0]);
+			var end = parseInt(jsonObj.slice(-1));
+			var startDate = new Date(start*60*1000);
+			var endDate = new Date(end*60*1000);
+
+			document.getElementById('start_time').value = startDate.toISOString().slice(0, 16);
+			document.getElementById('end_time').value = endDate.toISOString().slice(0, 16)
+		
+			document.getElementById('div_time').style.visibility = '';
+			document.getElementById('download').style.visibility = '';
+		}
+	}
+	else if(jsonObj)
+	{
+		UIkit.notification({message: jsonObj["reason"], status: 'danger', timeout: 3000})
+	}
+	else
+	{
+		console.log(status);
+	}
+
+}
 
 function getPlaybacks(callback)
 {
