@@ -19,61 +19,6 @@ const CLR_CONNECTING = "#ffff00";
 const CLR_SYNC = "#008000";
 
 
-function getCookies()
-{
-	let decodedCookie = decodeURIComponent(document.cookie);
-	decodedCookie.split(';').forEach(function(el){
-		let pos = el.indexOf('=');
-		if(pos != -1)
-		{
-			var key = el.substring(0,pos);
-			var value = el.substring(pos+1);
-			g_cookie_array[key] = value;
-			if(key.trim() == 'access_token')
-			{
-				g_access_token_playbackserver = value;
-			}
-		}
-	});
-
-	console.log(g_cookie_array);
-}
-
-
-function login()
-{
-	var play = { "username" : document.getElementById('username').value,
-                 "password" : document.getElementById('password').value};
-
-    ajaxPostPutPatch("POST", "x-api/login", JSON.stringify(play), handleLogin);
-}
-function logout()
-{
-	ajaxDelete("x-api/login", handleLogout);
-	window.location.href  = "/";
-}
-
-function handleLogin(status, jsonObj)
-{
-    if(status !== 200 || ('token' in jsonObj) == false)
-    {
-        UIkit.notification({message: jsonObj["reason"], status: 'danger', timeout: 3000})
-    }
-    else 
-    {
-		console.log(jsonObj);
-		g_access_token_playbackserver = jsonObj.token;
-
-        document.cookie = "access_token="+g_access_token_playbackserver+"; path=/";
-		window.location.pathname = "/dashboard";
-		console.log(window.location);
-    }
-}
-
-function handleLogout(status, jsonObj)
-{
-
-}
 
 function config()
 {
@@ -252,42 +197,75 @@ function serverOffline()
     elm.classList.add('uk-text-danger');
 }
 
-function ws_connect(endpoint, callbackMessage)
-{
-	getCookies();
-	
-	ws_protocol = "ws:";
-	if(location.protocol == 'https:')
-	{
-		ws_protocol = "wss:";
-	}
 
-	g_ws = new WebSocket(ws_protocol+"//"+g_playback_host+"/x-api/ws/"+endpoint+"?access_token="+g_access_token_playbackserver);
-    g_ws.timeout = true;
-	g_ws.onopen = function(ev)  { this.tm = setTimeout(serverOffline, 4000) };
-	g_ws.onerror = function(ev) { serverOffline(); };
-	g_ws.onclose = function(ev) { serverOffline(); };
-	
-	
-	g_ws.onmessage = function(ev) 
-	{
-		clearTimeout(this.tm);
-		if(this.timeout)
-		{
-			this.tm = setTimeout(serverOffline, 4000);
-		}
-        var dt = new Date();
-        var elm = document.getElementById('current_time');
-        elm.innerHTML = dt.toISOString();
-        elm.className = 'uk-h3';
-        elm.classList.add('uk-text-success');
-        
-		
-		var jsonObj = JSON.parse(ev.data);
-        callbackMessage(jsonObj);
-	}	
+function getTypes()
+{
+	var channel = document.getElementById('select_channel').value;
+	ajaxGet(g_playback_host, "x-api/loggers/"+channel, handleFileTypes);
 }
 
+function handleFileTypes(status, jsonObj)
+{
+	if(status == 200)
+	{
+		var select = document.getElementById('select_type');
+		while(select.firstChild)
+		{
+			select.removeChild(select.lastChild);
+		}
+		for(var i = 0; i < jsonObj.length; i++)
+		{
+			var opt = document.createElement('option');
+			opt.value = jsonObj[i];
+			opt.innerHTML = jsonObj[i];
+			select.appendChild(opt);
+		}
+
+		document.getElementById('div_type').style.visibility = '';
+	}
+	else if(jsonObj)
+	{
+		document.getElementById('div_type').style.visibility = 'hidden';
+		document.getElementById('div_times').style.visibility = 'hidden';
+		document.getElementById('download').style.visibility = 'hidden';
+		UIkit.notification({message: jsonObj["reason"], status: 'danger', timeout: 3000})
+	}
+	else
+	{
+		console.log(status);
+	}
+}
+
+function getTimes()
+{
+	var channel = document.getElementById('select_channel').value;
+	var type = document.getElementById('select_type').value;
+	ajaxGet(g_playback_host, "x-api/loggers/"+channel+"/"+type, handleTimes);
+}
+
+function handleTimes(status, jsonObj)
+{
+	if(status == 200)
+	{
+		console.log(jsonObj);
+
+		document.getElementById('div_times').style.visibility = '';
+		document.getElementById('download').style.visibility = '';
+
+	}
+	else if(jsonObj)
+	{
+		document.getElementById('div_times').style.visibility = 'hidden';
+		document.getElementById('download').style.visibility = 'hidden';
+		UIkit.notification({message: jsonObj["reason"], status: 'danger', timeout: 3000})
+	}
+	else
+	{
+		console.log(status);
+	}
+{
+
+}
 
 
 function getPlaybacks(callback)

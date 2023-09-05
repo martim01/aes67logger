@@ -41,11 +41,18 @@
                             <div>
                                 <label class="uk-form-label" for="start_time">Channel</label>
                                 <div class="uk-form-controls">
-                                    <select class="uk-select" name="select_channel" id="select_channel">
+                                    <select class="uk-select" name="select_channel" id="select_channel" onselect="getTypes()">
                                     </select>
                                 </div>
                             </div>
-                            <div class="uk-grid-small" uk-grid style="visibility: hidden">
+                            <div style="visibility: hidden" id="div_type">
+                                <label class="uk-form-label" for="start_time">File Type</label>
+                                <div class="uk-form-controls">
+                                    <select class="uk-select" name="select_type" id="select_type" onselect="getTimes()">
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="uk-grid-small" uk-grid style="visibility: hidden" id="div_time">
                                 <div class="uk-width-1-2">
                                     <label class="uk-form-label" for="start_time">Start</label>
                                     <div class="uk-form-controls">
@@ -61,7 +68,7 @@
                             </div>
                         </div>
                         <div class="uk-card-footer">
-                            <button class="uk-button-primary" style="visibility: hidden" id="viewlog" onclick="getRecording()">Download</button>
+                            <button class="uk-button-primary" style="visibility: hidden" id="download" onclick="getRecording()">Download</button>
                         </div>
                     </div>
                 </div>
