@@ -231,6 +231,8 @@ function handleFileTypes(status, jsonObj)
 		document.getElementById('div_type').style.visibility = 'hidden';
 		document.getElementById('div_times').style.visibility = 'hidden';
 		document.getElementById('download').style.visibility = 'hidden';
+		document.getElementById('playback').style.visibility = 'hidden';
+		document.getElementById('last_file').style.visibility = 'hidden';
 		UIkit.notification({message: jsonObj["reason"], status: 'danger', timeout: 3000})
 	}
 	else
@@ -263,14 +265,19 @@ function handleTimes(status, jsonObj)
 		
 			document.getElementById('div_time').style.visibility = '';
 			document.getElementById('download').style.visibility = '';
+//			document.getElementById('playback').style.visibility = '';
+			document.getElementById('last_file').style.visibility = '';
 
 			timechange();
+			lastFile(endDate);
 		}
 	}
 	else if(jsonObj)
 	{
 		document.getElementById('div_time').style.visibility = 'hidden';
 		document.getElementById('download').style.visibility = 'hidden';
+		document.getElementById('playback').style.visibility = 'hidden';
+		document.getElementById('last_file').style.visibility = 'hidden';
 		UIkit.notification({message: jsonObj["reason"], status: 'danger', timeout: 3000})
 	}
 	else
@@ -291,7 +298,20 @@ function timechange()
 	var endpoint = location.protocol+"//"+g_playback_host+"/x-api/loggers/"+channel+"/"+type+"/download?"+"start_time="+dtStart.getTime()/1000+"&end_time="+dtEnd.getTime()/1000;
 
 	document.getElementById('download').setAttribute("href", endpoint);
+	document.getElementById('playback').setAttribute("src", endpoint);
 }
+
+function lastFile(dtEnd)
+{
+	var channel = document.getElementById('select_channel').value;
+        var type = document.getElementById('select_type').value;
+
+	var endpoint = location.protocol+"//"+g_playback_host+"/x-api/loggers/"+channel+"/"+type+"/download?"+"start_time="+dtEnd.getTime()/1000+"&end_time="+dtEnd.getTime()/1000;
+
+        document.getElementById('last_file').setAttribute("src", endpoint);
+
+}
+
 
 function handleRecording(status, jsonObj)
 {

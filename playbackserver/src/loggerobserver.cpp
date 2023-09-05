@@ -159,11 +159,11 @@ pml::restgoose::response LoggerObserver::CreateDownloadFile(const std::string& s
             auto [baseStart, diffStart] = GetBaseFileName(std::min(std::stoul(itStart->second.Get()), std::stoul(itEnd->second.Get())));
             auto [baseEnd, diffEnd] = GetBaseFileName(std::max(std::stoul(itStart->second.Get()), std::stoul(itEnd->second.Get())));
         
-            pmlLog() << "CreateDownloadFile baseStart=" << baseStart << "\tbaseEnd=" << baseEnd;
+//            pmlLog() << "CreateDownloadFile baseStart=" << baseStart << "\tbaseEnd=" << baseEnd;
 
         
             //check we have all the necessary files
-            std::filesystem::path pathIn("/tmp/in_"+GetCurrentTimeAsString(true));
+            std::filesystem::path pathIn("/tmp/in_"+m_sName+"_"+GetCurrentTimeAsString(false));
             std::ofstream ofs;
             ofs.open(pathIn.string());
             if(ofs.is_open())
@@ -180,7 +180,7 @@ pml::restgoose::response LoggerObserver::CreateDownloadFile(const std::string& s
                     {
                         return pml::restgoose::response(500, "File "+path.stem().string()+" is missing");
                     }
-                    ofs << "file " << path << "\n";
+                    ofs << "file '" << path.string() << "'\n";
                 }
 
                 ofs.close();
@@ -209,13 +209,13 @@ pml::restgoose::response LoggerObserver::CreateDownloadFile(const std::string& s
 
 pml::restgoose::response LoggerObserver::ConcatFiles(const std::string& sType, const std::filesystem::path& pathIn) const
 {
-    std::filesystem::path pathOut("/tmp/out_"+GetCurrentTimeAsString(true)+"."+sType);
+    std::filesystem::path pathOut("/tmp/out_"+m_sName+"_"+GetCurrentTimeAsString(false)+"."+sType);
     
     //now use ffmpeg to create a single file from these files....
-    std::string sCommand("ffmpeg -f concat -safe 0 -i "+pathIn.string()+ "-c copy "+pathOut.string());
+    std::string sCommand("ffmpeg -f concat -safe 0 -i "+pathIn.string()+ " -c copy "+pathOut.string());
     if(auto nResult = system(sCommand.c_str()); nResult != 0)
     {
-        return pml::restgoose::response(500, "Could not launch FFMPEG");
+        return pml::restgoose::response(500, "Could not launch FFMPEG: "+sCommand);
     }
 
     pml::restgoose::response resp;
