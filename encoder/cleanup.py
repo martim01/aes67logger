@@ -12,11 +12,24 @@ def enumerateDir(dir_path, ext, log):
             fullPath = os.path.join(dir_path, path)
             if os.path.isfile(fullPath):
                 split = os.path.splitext(path)
-                if split[1] == '.'+ext:
+                if ext == '*' or split[1] == '.'+ext:
                     res.append((fullPath, os.path.getmtime(fullPath)))
     except Exception as e:
         log.error(str(e))
     return res
+
+def removeFiles(age, path, ext, log):
+        removeTp = time.time()-age
+        files = enumerateDir(path, ext, log)
+        count = 0
+        for fileTp in files:
+            if fileTp[1] < removeTp and os.path.exists(fileTp[0]):
+                try:
+                    os.remove(fileTp[0])
+                    count += 1
+                except OSError as e:
+                    log.warning('Could not remove file %s %s', fileTp[0], e.strerror)
+        log.info('Removed %d files from %s', count, path)
 
 
 class Logger():
@@ -43,23 +56,11 @@ class Logger():
         self.log.info('%s flacPath=%s',self.name, self.flacPath)
 
     def removeAllFiles(self):
-        self.removeFiles(self.wavAge, self.wavPath, 'wav')
-        self.removeFiles(self.opusAge, self.opusPath, 'opus')
-        self.removeFiles(self.flacAge, self.flacPath, 'flac')
+        removeFiles(self.wavAge, self.wavPath, 'wav', self.log)
+        removeFiles(self.opusAge, self.opusPath, 'opus', self.log)
+        removeFiles(self.flacAge, self.flacPath, 'flac', self.log)
 
-    def removeFiles(self, age, path, ext):
-        removeTp = time.time()-age
-        files = enumerateDir(path, ext, self.log)
-        count = 0
-        for fileTp in files:
-            if fileTp[1] < removeTp and os.path.exists(fileTp[0]):
-                try:
-                    os.remove(fileTp[0])
-                    count += 1
-                except OSError as e:
-                    self.log.warning('Could not remove file %s %s', fileTp[0], e.strerror)
-        self.log.info('Removed %d files from %s', count, path)
-
+    
 
 
 
@@ -89,11 +90,14 @@ def run():
     logHandler.setFormatter(formatter)
     log.addHandler(logHandler)
 
-    # find all the possible loggers, create the loggers and work out what files need encoding    
+    # find all the possible loggers, create the loggers and work out what files need deleting
     for loggerTuple in enumerateDir(config['path'].get('loggers', fallback='.'), 'ini',log):
         loggerObj = Logger(loggerTuple[0], config['path'].get('loggers', fallback='.'), log)
         loggerObj.removeAllFiles()
 
+    # remove all files from /tmp
+    removeFiles(3600, '/tmp', '*', log)
+    
     log.info('Finished')
 
 
