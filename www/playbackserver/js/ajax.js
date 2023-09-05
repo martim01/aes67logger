@@ -6,9 +6,7 @@ var g_cookie_array = [];
 var g_playback = null;
 var g_access_token_playbackserver = null;
 var g_action = '';
-var g_playback_host = location.host+":8081";
-
-const zeroPad = (num,places)=>String(num).padStart(places,'0');
+var g_playback_host = location.host+":8082";
 
 const CLR_PLAYING = "#92d14f";
 const CLR_IDLE = "#8db4e2";
@@ -93,7 +91,7 @@ function showPlayback(playback)
     aplayback.classList.add('uk-link-reset', 'uk-display-block', 'uk-width-large@l', 'uk-width-medium@m', 'uk-card', 'uk-card-default', 'uk-card-body',
                             'uk-card-hover', 'uk-card-small');
     aplayback.id = playback;
-    aplayback.href = '../playbacks/index.html?playback='+playback;
+    aplayback.href = '../loggers/index.html?playback='+playback;
     
     
     var divHeader = document.createElement('div');
@@ -399,7 +397,7 @@ function ws_connect(endpoint, callbackMessage)
 
 function getPlaybacks(callback)
 {
-	ajaxGet(g_playback_host, "x-api/playbacks",callback);
+	ajaxGet(g_playback_host, "x-api/loggers",callback);
 }
 
 
