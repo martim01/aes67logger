@@ -19,17 +19,18 @@ def enumerateDir(dir_path, ext, log):
     return res
 
 def removeFiles(age, path, ext, log):
-        removeTp = time.time()-age
-        files = enumerateDir(path, ext, log)
-        count = 0
-        for fileTp in files:
-            if fileTp[1] < removeTp and os.path.exists(fileTp[0]):
-                try:
-                    os.remove(fileTp[0])
-                    count += 1
-                except OSError as e:
-                    log.warning('Could not remove file %s %s', fileTp[0], e.strerror)
-        log.info('Removed %d files from %s', count, path)
+        if age > 0:
+            removeTp = time.time()-age
+            files = enumerateDir(path, ext, log)
+            count = 0
+            for fileTp in files:
+                if fileTp[1] < removeTp and os.path.exists(fileTp[0]):
+                    try:
+                        os.remove(fileTp[0])
+                        count += 1
+                    except OSError as e:
+                        log.warning('Could not remove file %s %s', fileTp[0], e.strerror)
+            log.info('Removed %d files from %s', count, path)
 
 
 class Logger():
@@ -97,7 +98,7 @@ def run():
 
     # remove all files from /tmp
     removeFiles(3600, '/tmp', '*', log)
-    
+
     log.info('Finished')
 
 
