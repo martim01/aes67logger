@@ -80,122 +80,6 @@ function config()
 	getConfig(handleConfig);
 }
 
-function showPlayback(playback)
-{
-    var grid = document.getElementById('playback_grid');
-
-    var divMain = document.createElement('div');
-    divMain.classList.add('uk-width-1-3@s', 'uk-width-1-6@xl');
-    
-    var aplayback = document.createElement('a');
-    aplayback.classList.add('uk-link-reset', 'uk-display-block', 'uk-width-large@l', 'uk-width-medium@m', 'uk-card', 'uk-card-default', 'uk-card-body',
-                            'uk-card-hover', 'uk-card-small');
-    aplayback.id = playback;
-    aplayback.href = '../loggers/index.html?playback='+playback;
-    
-    
-    var divHeader = document.createElement('div');
-    divHeader.className='uk-card-header';
-    var titleH3 = document.createElement('h3');
-    titleH3.className='uk-card-title';
-    var titleSpan = document.createElement('span');
-    titleSpan.id = "host_"+playback;
-    titleSpan.innerHTML = playback;
-    titleH3.appendChild(titleSpan);
-    divHeader.appendChild(titleH3);
-    
-    var divBadge = document.createElement('div');
-    divBadge.classList.add('uk-card-badge', 'uk-label', 'uk-label-warning');
-    divBadge.innerHTML = "Unknown";
-    divBadge.id = 'running_'+playback; 
-    divHeader.appendChild(divBadge);
-    
-    
-    aplayback.appendChild(divHeader);
-    
-
-    var divBody = document.createElement('div');
-    divBody.classList.add('uk-card-body', 'uk-card-small');
-    
-    var divUpTimeGrid = document.createElement('div');
-    divUpTimeGrid.classList.add('uk-child-width-expand', 'uk-grid-small', 'uk-text-left', 'uk-grid');
-    var divUpTimeTitle = document.createElement('div');
-    divUpTimeTitle.classList.add('uk-width-1-2', 'uk-text-primary')
-    divUpTimeTitle.innerHTML = 'Up Time:'
-    var divUpTime  = document.createElement('div');
-    //divUpTime.classList.add('uk-label');
-    divUpTime.id = 'up_time_'+playback; 
-    divUpTimeGrid.appendChild(divUpTimeTitle);
-    divUpTimeGrid.appendChild(divUpTime);
-    divBody.appendChild(divUpTimeGrid);
-
-    
-    var divSessionGrid = document.createElement('div');
-    divSessionGrid.classList.add('uk-child-width-expand', 'uk-grid-small', 'uk-text-left', 'uk-grid');
-    var divSessionTitle = document.createElement('div');
-    divSessionTitle.classList.add('uk-width-1-2', 'uk-text-primary')
-    divSessionTitle.innerHTML = 'Queue:'
-	var divSession  = document.createElement('div');
-    divSession.id = 'queue_'+playback; 
-    divSessionGrid.appendChild(divSessionTitle);
-    divSessionGrid.appendChild(divSession);
-    divBody.appendChild(divSessionGrid);
-
-    var divFileGrid = document.createElement('div');
-    divFileGrid.classList.add('uk-child-width-expand', 'uk-grid-small', 'uk-text-left', 'uk-grid');
-    var divFileTitle = document.createElement('div');
-    divFileTitle.classList.add('uk-width-1-3', 'uk-text-primary')
-    divFileTitle.innerHTML = 'File:'
-    var divFile  = document.createElement('div');
-    divFile.id = 'file_'+playback; 
-	var divPercent  = document.createElement('div');
-    divPercent.id = 'percent_'+playback; 
-    divFileGrid.appendChild(divFileTitle);
-    divFileGrid.appendChild(divFile);
-	divFileGrid.appendChild(divPercent);
-    divBody.appendChild(divFileGrid);
-
-
-	var divLastFileGrid = document.createElement('div');
-    divLastFileGrid.classList.add('uk-child-width-expand', 'uk-grid-small', 'uk-text-left', 'uk-grid');
-    var divLastFileTitle = document.createElement('div');
-    divLastFileTitle.classList.add('uk-width-1-2', 'uk-text-primary')
-    divLastFileTitle.innerHTML = 'Last File:'
-    var divLastFile  = document.createElement('div');
-    divLastFile.id = 'last_file_'+playback; 
-    divLastFileGrid.appendChild(divLastFileTitle);
-    divLastFileGrid.appendChild(divLastFile);
-    divBody.appendChild(divLastFileGrid);
-
-
-	var divEncodedGrid = document.createElement('div');
-    divEncodedGrid.classList.add('uk-child-width-expand', 'uk-grid-small', 'uk-text-left', 'uk-grid');
-    var divEncodedTitle = document.createElement('div');
-    divEncodedTitle.classList.add('uk-width-1-2', 'uk-text-primary')
-    divEncodedTitle.innerHTML = 'Files Encoded:'
-    var divEncoded  = document.createElement('div');
-    divEncoded.id = 'files_encoded_'+playback; 
-    divEncodedGrid.appendChild(divEncodedTitle);
-    divEncodedGrid.appendChild(divEncoded);
-    divBody.appendChild(divEncodedGrid);
-
-
-	aplayback.appendChild(divBody);
-
-
-
-
-	var divFooter = document.createElement('div');
-    divFooter.className = 'uk-card-footer';
-    var spanTimestamp  = document.createElement('span');
-    spanTimestamp.id = 'timestamp_'+playback; 
-    divFooter.appendChild(spanTimestamp);
-    aplayback.appendChild(divFooter);
-
-    divMain.appendChild(aplayback);
-    
-    grid.appendChild(divMain);
-}
 
 function dashboard()
 {
@@ -238,7 +122,18 @@ function handlePlaybacks(status, jsData)
         g_playbackArray = jsData;
         if(g_playbackArray !== null)
         {
-            g_playbackArray.forEach(showPlayback);
+			var select = document.getElementById('select_channel');
+			while(select.firstChild())
+			{
+				select.removeChild(select.lastChild);
+			}
+            for(var i = 0; i < g_playbackArray.length; i++)
+			{
+				var opt = document.createElement('option');
+				opt.value=g_playbackArray[i];
+				opt.innerHTML = g_playbackArray[i];
+				select.append(opt);
+			}
         }
 
 		ajaxGet(g_playback_host, 'x-api/status', handlePlaybacksStatus);

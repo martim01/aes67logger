@@ -33,8 +33,39 @@
 		</div>
         </nav>
         <div class="uk-section uk-section-xsmall uk-section-muted">
-            <div class="uk-grid-column-small uk-grid-row-small uk-grid-match uk-text-center" uk-grid id="playback_grid">
-          </div>
+            <div class="uk-container uk-container-expand" >
+                <div class="uk-grid-small uk-child-width-1-2 uk-align-center uk-text-center uk-grid-match" uk-grid>
+                    <div class="uk-card uk-card-default uk-align-center uk-card-small">
+                        <div class="uk-card-header"> <h3 class="uk-card-title">Recordings</h3></div>
+                        <div class="uk-card-body">
+                            <div>
+                                <label class="uk-form-label" for="start_time">Channel</label>
+                                <div class="uk-form-controls">
+                                    <select class="uk-select" name="select_channel" id="select_channel">
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="uk-grid-small" uk-grid>
+                                <div class="uk-width-1-2">
+                                    <label class="uk-form-label" for="start_time">Start</label>
+                                    <div class="uk-form-controls">
+                                        <input type="datetime-local" class="uk-input" name="start_time" id="start_time">
+                                    </div>
+                                </div>
+                                <div class="uk-width-1-2">
+                                    <label class="uk-form-label" for="start_time">End</label>
+                                    <div class="uk-form-controls">
+                                        <input type="datetime-local" class="uk-input" name="end_time" id="end_time">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="uk-card-footer">
+                            <button class="uk-button-primary" id="viewlog" onclick="getRecording()">Download</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </body>
 </html>
