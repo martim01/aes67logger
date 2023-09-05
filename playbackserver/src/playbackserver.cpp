@@ -184,12 +184,12 @@ pml::restgoose::response PlaybackServer::DownloadLoggerFile(const query& theQuer
 {
     auto vPath = SplitString(theEndpoint.Get(),'/');
     
-    auto itLogger = m_pManager->GetLoggers().find(vPath[vPath.size()-2]);
-    pmlLog() << "DownloadLoggerFile: " << vPath[vPath.size()-2] << ": " << vPath.back();
+    auto itLogger = m_pManager->GetLoggers().find(vPath[vPath.size()-3]);
+    pmlLog() << "DownloadLoggerFile: " << vPath[vPath.size()-3] << ": " << vPath.back();
 
     if(itLogger != m_pManager->GetLoggers().end())
     {
-        return itLogger->second->CreateDownloadFile(vPath.back(), theQuery);
+        return itLogger->second->CreateDownloadFile(vPath[vPath.size()-2], theQuery);
     }
     else
     {
