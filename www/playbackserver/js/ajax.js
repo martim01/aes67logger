@@ -250,11 +250,20 @@ function handleTimes(status, jsonObj)
 {
 	if(status == 200)
 	{
-		console.log(jsonObj);
+		if(jsonObj.length > 0)
+		{
+			jsonObj.sort();
+			var start = parseInt(jsonObj[0]);
+			var end = parseInt(jsonObj.slice(-1));
+			var startDate = new Date(start*60*1000);
+			var endDate = new Date(end*60*1000);
 
-		document.getElementById('div_time').style.visibility = '';
-		document.getElementById('download').style.visibility = '';
-
+			document.getElementById('start_time').value = startDate.toISOString().slice(0, 16);
+			document.getElementById('end_time').value = endDate.toISOString().slice(0, 16)
+		
+			document.getElementById('div_time').style.visibility = '';
+			document.getElementById('download').style.visibility = '';
+		}
 	}
 	else if(jsonObj)
 	{
