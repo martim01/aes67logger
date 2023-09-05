@@ -95,7 +95,7 @@ function handlePlaybacksStatus(status, jsonObj)
 	{
 		statusUpdate(jsonObj)
 	}
-	ws_connect('status',statusUpdate)
+	//ws_connect('status',statusUpdate)
 }
 
 function statusUpdate(jsonObj)
@@ -375,7 +375,7 @@ function handleGetSystemInfo(status, jsonObj)
 	if(status == 200)
 	{
 		updateInfo_System(jsonObj);
-		ws_connect('info', updateInfo_System);
+		//ws_connect('info', updateInfo_System);
 	}
 	else if(jsonObj)
 	{
@@ -632,7 +632,7 @@ function connectToPlayback(status, jsonObj)
 	if(status == 200)
 	{
 		handlePlaybackInfo(jsonObj);
-		ws_connect("playbacks/"+g_playback, handlePlaybackInfo);
+		//ws_connect("playbacks/"+g_playback, handlePlaybackInfo);
 	}
 	else
 	{
