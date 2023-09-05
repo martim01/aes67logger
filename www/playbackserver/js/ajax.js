@@ -263,7 +263,6 @@ function handleTimes(status, jsonObj)
 	{
 		console.log(status);
 	}
-{
 
 }
 
