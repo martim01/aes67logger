@@ -123,7 +123,7 @@ function handlePlaybacks(status, jsData)
         if(g_playbackArray !== null)
         {
 			var select = document.getElementById('select_channel');
-			while(select.firstChild())
+			while(select.firstChild)
 			{
 				select.removeChild(select.lastChild);
 			}
