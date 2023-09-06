@@ -32,7 +32,7 @@ list(APPEND definitions "NO_OPENSSL" "__GNU__")
 target_compile_definitions(opusencoder PUBLIC ${definitions})
 target_link_libraries(opusencoder pml_log pml_observer)
 target_link_libraries(opusencoder sndfile pthread opusenc)
-
+target_link_options(opusencoder PRIVATE LINKER:-Map=${CMAKE_BINARY_DIR}/${PROJECT_NAME}.map)
 set_target_properties(opusencoder PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")
 
 #linux specific

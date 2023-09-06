@@ -30,6 +30,7 @@ list(APPEND definitions "NO_OPENSSL" "__GNU__")
 target_compile_definitions(flacencoder PUBLIC ${definitions})
 target_link_libraries(flacencoder pml_log pml_observer)
 target_link_libraries(flacencoder sndfile pthread)
+target_link_options(flacencoder PRIVATE LINKER:-Map=${CMAKE_BINARY_DIR}/${PROJECT_NAME}.map)
 
 set_target_properties(flacencoder PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")
 

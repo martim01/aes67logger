@@ -30,7 +30,7 @@ list(APPEND definitions "NO_OPENSSL" "__GNU__")
 target_compile_definitions(logger PUBLIC ${definitions})
 target_link_libraries(logger pml_log aoip)
 target_link_libraries(logger sndfile pthread)
-
+target_link_options(logger PRIVATE LINKER:-Map=${CMAKE_BINARY_DIR}/${PROJECT_NAME}.map)
 set_target_properties(logger PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")
 
 #linux specific

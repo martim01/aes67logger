@@ -33,7 +33,7 @@ target_compile_options(playbackserver PRIVATE ${flags})
 list(APPEND definitions "NO_OPENSSL" "__GNU__")
 target_compile_definitions(playbackserver PUBLIC ${definitions})
 target_link_libraries(playbackserver pml_log restgoose pml_observer pthread crypto ssl)
-#target_link_libraries(playbackserver optimized pml_log restgoose debug pml_logd restgoosed)
+target_link_options(playbackserver PRIVATE LINKER:-Map=${CMAKE_BINARY_DIR}/${PROJECT_NAME}.map)
 
 set_target_properties(playbackserver PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")
 

@@ -34,7 +34,8 @@ target_compile_options(loggingserver PRIVATE ${flags})
 list(APPEND definitions "NO_OPENSSL" "__GNU__")
 target_compile_definitions(loggingserver PUBLIC ${definitions})
 target_link_libraries(loggingserver pml_log restgoose pthread crypto ssl)
-#target_link_libraries(loggingserver optimized pml_log restgoose debug pml_logd restgoosed)
+target_link_options(loggingserver PRIVATE LINKER:-Map=${CMAKE_BINARY_DIR}/${PROJECT_NAME}.map)
+
 
 set_target_properties(loggingserver PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")
 
