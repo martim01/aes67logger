@@ -16,8 +16,9 @@ include_directories(${DIR_RESTGOOSE}/include)
 include_directories(${DIR_ASIO}/asio/include)
 include_directories(${DIR_ASIO}/include)
 include_directories(${DIR_JWT}/include)
+include_directories(${DIR_BACKTRACE})
 
-link_directories("../lib")
+link_directories("../lib" ${DIR_BACKTRACE}/.libs)
 
 
 
@@ -33,7 +34,7 @@ target_compile_options(loggingserver PRIVATE ${flags})
 
 list(APPEND definitions "NO_OPENSSL" "__GNU__")
 target_compile_definitions(loggingserver PUBLIC ${definitions})
-target_link_libraries(loggingserver pml_log restgoose pthread crypto ssl)
+target_link_libraries(loggingserver pml_log restgoose pthread crypto ssl backtrace)
 target_link_options(loggingserver PRIVATE LINKER:-Map=${CMAKE_BINARY_DIR}/${PROJECT_NAME}.map)
 
 

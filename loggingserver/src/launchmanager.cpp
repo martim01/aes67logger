@@ -13,6 +13,7 @@ LaunchManager::~LaunchManager()
 {
     if(m_pThread)
     {
+        m_bRun = false;
         m_context.stop();
         m_pThread->join();
     }
@@ -272,18 +273,13 @@ void LaunchManager::PipeThread()
     pmlLog() << "Pipe Thread now start";
     m_pThread = std::make_unique<std::thread>([this]()
     {
-        pmlLog() << "Pipe Thread started";
-
         auto work = asio::require(m_context.get_executor(), asio::execution::outstanding_work_t::tracked);
 
-
-        if(m_context.stopped())
+        if(m_context.stopped() && m_bRun)
         {
             m_context.restart();
         }
         m_context.run();
-
-        pmlLog() << "Pipe Thread stopped";
     });
 }
 

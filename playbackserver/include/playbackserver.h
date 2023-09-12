@@ -15,6 +15,8 @@ class PlaybackServer : public Server
         pml::restgoose::response GetApi(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser) const final;
         pml::restgoose::response GetStatus(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser) const final;
 
+        pml::restgoose::response GetDashboard(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser);
+
         pml::restgoose::response GetLoggers(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser) const;
         pml::restgoose::response GetLogger(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser) const;
         pml::restgoose::response GetLoggerFiles(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser) const;
@@ -42,8 +44,10 @@ class PlaybackServer : public Server
 
         static const endpoint EP_LOGGERS;
         static const endpoint EP_WS_LOGGERS;
+        static const endpoint EP_DASHBOARD;
         static const std::string LOGGERS;
         static const std::string DOWNLOAD;
+        static const std::string DASHBOARD;
 
         std::unique_ptr<LoggerManager> m_pManager;
         std::map<std::string, std::shared_ptr<iniManager>> m_mLoggers;

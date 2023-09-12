@@ -12,6 +12,7 @@ SET(DIR_RESTGOOSE ${DIR_BASE}/Restgoose CACHE STRING "location of Restgoose")
 SET(DIR_ASIO ${DIR_BASE}/asio CACHE STRING "location of Asio")
 SET(RESTGOOSE_BRANCH "main" CACHE STRING "Restgoose branch to use")
 SET(DIR_JWT ${DIR_BASE}/jwt-cpp CACHE STRING "location of jwt-cpp")
+SET(DIR_BACKTRACE ${DIR_BASE}/libbacktrace CACHE STRING "location of libbacktrace")
 SET(BUILD_LOG OFF)
 
 execute_process(COMMAND ${CMAKE_COMMAND} -DNAMESPACE=${PROJECT_NAME} -DMAJOR=${PROJECT_VERSION_MAJOR} -DMINOR=${PROJECT_VERSION_MINOR} -DPATCH=${PROJECT_VERSION_PATCH} -P ${CMAKE_SOURCE_DIR}/version.cmake)
@@ -155,12 +156,39 @@ else()
     execute_process(COMMAND git -C ${DIR_JWT} pull)
 endif()
 
+
+
+#Get libbacktrace
+find_path(BACKTRACE_TEMP_DIR NAMES "backtrace.h" PATHS ${DIR_BACKTRACE})
+if((NOT BACKTRACE_TEMP_DIR) OR (NOT EXISTS ${BACKTRACE_TEMP_DIR}))
+	message(STATUS "libbacktrace not found - clone from GitHub")
+	execute_process(COMMAND git clone https://github.com/ianlancetaylor/libbacktrace.git ${DIR_BACKTRACE})
+    
+    find_path(BACKTRACE_TEMP_DIR2 NAMES "backtrace.h" PATHS ${DIR_BACKTRACE})
+    if((NOT BACKTRACE_TEMP_DIR2) OR (NOT EXISTS ${BACKTRACE_TEMP_DIR2}))
+	    message(FATAL_ERROR "Failed to clone libbacktrace")
+    endif()
+endif()
+message(STATUS "libbacktrace found - update to latest version")
+execute_process(COMMAND git -C ${DIR_BACKTRACE} pull)
+message(STATUS "libbacktrace - build")
+execute_process(COMMAND ${DIR_BACKTRACE}/configure)
+execute_process(COMMAND make -f ${DIR_BACKTRACE}/Makefile)
+
+unset(BACKTRACE_TEMP_DIR2)
+
+
 message(STATUS "Configure pml::log")
 add_subdirectory(${DIR_LOG} ${CMAKE_SOURCE_DIR}/build/log)
 message(STATUS "Configure Restgoose")
 add_subdirectory(${DIR_RESTGOOSE} ${DIR_RESTGOOSE}/build)
 message(STATUS "Configure aoip")
 add_subdirectory(${DIR_AOIP} ${DIR_AOIP}/build)
+
+
+
+
+
 
 add_subdirectory(logger)
 add_subdirectory(loggingserver)

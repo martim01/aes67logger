@@ -15,10 +15,11 @@ using namespace pml;
 
 const std::string PlaybackServer::LOGGERS     = "loggers";
 const std::string PlaybackServer::DOWNLOAD    = "download";
+const std::string PlaybackServer::DASHBOARD   = "dashboard";
 
 const endpoint PlaybackServer::EP_LOGGERS     = endpoint("/x-api/"+LOGGERS);
 const endpoint PlaybackServer::EP_WS_LOGGERS  = endpoint("/x-api/ws/"+LOGGERS);
-
+const endpoint PlaybackServer::EP_DASHBOARD     = endpoint("/x-api/"+DASHBOARD);
 
 
 PlaybackServer::PlaybackServer() : Server("playbackserver")
@@ -40,8 +41,19 @@ void PlaybackServer::AddCustomEndpoints()
     GetServer().AddEndpoint(pml::restgoose::GET, EP_LOGGERS, std::bind(&PlaybackServer::GetLoggers, this, _1,_2,_3,_4));
     AddLoggerEndpoints();
 
+    GetServer().AddEndpoint(pml::restgoose::GET, EP_DASHBOARD, std::bind(&PlaybackServer::GetDashboard, this, _1,_2,_3,_4));
+    AddLoggerEndpoints();
+
     GetServer().AddWebsocketEndpoint(EP_WS_LOGGERS, std::bind(&Server::WebsocketAuthenticate, this, _1,_2, _3, _4), std::bind(&Server::WebsocketMessage, this, _1, _2), std::bind(&Server::WebsocketClosed, this, _1, _2));
 
+}
+
+pml::restgoose::response PlaybackServer::GetDashboard(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
+{
+    pml::restgoose::response resp;
+    resp.jsonData["loggingserver"] = GetIniManager().Get(jsonConsts::server, jsonConsts::logger_server, "");
+    resp.jsonData["encodingserver"] = GetIniManager().Get(jsonConsts::server, jsonConsts::encoder_server, "");
+    resp.jsonData["playbackserver"] = GetIniManager().Get(jsonConsts::server, jsonConsts::playback_server, "");
 }
 
 
@@ -57,6 +69,7 @@ pml::restgoose::response PlaybackServer::GetApi(const query& , const postData& ,
     pml::restgoose::response theResponse;
     theResponse.jsonData = Json::Value(Json::arrayValue);
     theResponse.jsonData.append(LOGGERS);
+    theResponse.jsonData.append(DASHBOARD);
     return theResponse;
 }
 

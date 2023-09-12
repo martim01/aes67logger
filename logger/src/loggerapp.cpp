@@ -257,7 +257,10 @@ void LoggerApp::OutputSessionJson()
     m_jsStatus[jsonConsts::session][jsonConsts::name] = m_session.sName;
     m_jsStatus[jsonConsts::session][jsonConsts::type] = m_session.sType;
     m_jsStatus[jsonConsts::session][jsonConsts::description] = m_session.sDescription;
-    m_jsStatus[jsonConsts::session][jsonConsts::groups] = m_session.sGroups;
+    for(const auto& sGroup : m_session.setGroups)
+    {
+        m_jsStatus[jsonConsts::session][jsonConsts::groups].append(sGroup);
+    }
     m_jsStatus[jsonConsts::session][jsonConsts::ref_clock][jsonConsts::domain] = m_session.refClock.nDomain;
     m_jsStatus[jsonConsts::session][jsonConsts::ref_clock][jsonConsts::id] = m_session.refClock.sId;
     m_jsStatus[jsonConsts::session][jsonConsts::ref_clock][jsonConsts::type] = m_session.refClock.sType;

@@ -82,4 +82,5 @@ class LaunchManager
 
 
         asio::io_context m_context;
+        bool m_bRun = true;
 };
