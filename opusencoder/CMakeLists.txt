@@ -16,7 +16,8 @@ include_directories(/usr/include/opus)
 include_directories(${DIR_OBSERVER}/include)
 
 link_directories(${CMAKE_SOURCE_DIR}/lib)
-
+include_directories(${DIR_BACKTRACE})
+link_directories("../lib" ${DIR_BACKTRACE}/.libs)
 
 add_executable(opusencoder "../common/src/jsonconsts.cpp" "../common/src/inimanager.cpp" "../common/src/inisection.cpp" "../common/src/jsonwriter.cpp" "${DIR_JSON}/dist/jsoncpp.cpp" "../common/src/asiosession.cpp" "../common/src/encoder.cpp" "src/opusencoder.cpp" "src/main.cpp" "../common/src/soundfile.cpp" ${CMAKE_BINARY_DIR}/src/${PROJECT_NAME}_version.cpp)
 
@@ -31,7 +32,7 @@ target_compile_options(opusencoder PRIVATE ${flags})
 list(APPEND definitions "NO_OPENSSL" "__GNU__")
 target_compile_definitions(opusencoder PUBLIC ${definitions})
 target_link_libraries(opusencoder pml_log pml_observer)
-target_link_libraries(opusencoder sndfile pthread opusenc)
+target_link_libraries(opusencoder sndfile pthread opusenc backtrace)
 target_link_options(opusencoder PRIVATE LINKER:-Map=${CMAKE_BINARY_DIR}/${PROJECT_NAME}.map)
 set_target_properties(opusencoder PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")
 

@@ -7,6 +7,7 @@
 #include "jsonconsts.h"
 #include "jsonwriter.h"
 #include "opusencoder_version.h"
+#include "backtr.h"
 
 OpusEncoder theApp;       //The main loop - declared global so we can access it from signal handler and exit gracefully
 
@@ -17,16 +18,7 @@ static void sig(int signo)
     {
         case SIGSEGV:
         {
-            void* arr[10];
-            auto nSize = backtrace(arr, 10);
-            char** strings = backtrace_symbols(arr, nSize);
-
-            pmlLog(pml::LOG_CRITICAL)  << "Segmentation fault, aborting. " << nSize;
-            for(auto i = 0; i < nSize; i++)
-            {
-                pmlLog(pml::LOG_CRITICAL)  << std::hex << "0x" << reinterpret_cast<long long>(arr[i]) << "[" << strings[i] << "]";
-            }
-            free(strings); //backtrace_symbols calls malloc so we must free
+            print_back_trace();
 
             _exit(1);
         }
@@ -105,8 +97,8 @@ int main(int argc,  char** argv)
     }
     else
     {
-	std::cout << "opusencoder " << argv[1] << std::endl;
         init_signals();
+        init_back_trace(argv[0]);
         theApp.Init(argv[1]);
         return theApp.Run();
     }

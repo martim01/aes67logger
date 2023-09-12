@@ -18,6 +18,8 @@ include_directories(${DIR_ASIO}/include)
 include_directories(${DIR_JWT}/include)
 
 link_directories("../lib")
+include_directories(${DIR_BACKTRACE})
+link_directories("../lib" ${DIR_BACKTRACE}/.libs)
 
 
 add_executable(webserver "../common/src/jsonconsts.cpp" "../common/src/inimanager.cpp" "../common/src/aes67utils.cpp" "../common/src/inisection.cpp" "${DIR_JSON}/dist/jsoncpp.cpp" "src/main.cpp" "src/webserver.cpp" ${CMAKE_BINARY_DIR}/src/${PROJECT_NAME}_version.cpp)
@@ -32,7 +34,7 @@ target_compile_options(webserver PRIVATE ${flags})
 
 list(APPEND definitions "NO_OPENSSL" "__GNU__")
 target_compile_definitions(webserver PUBLIC ${definitions})
-target_link_libraries(webserver pml_log restgoose pml_observer pthread crypto ssl)
+target_link_libraries(webserver pml_log restgoose pml_observer pthread crypto ssl backtrace)
 #target_link_libraries(webserver optimized pml_log restgoose debug pml_logd restgoosed)
 
 set_target_properties(webserver PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")

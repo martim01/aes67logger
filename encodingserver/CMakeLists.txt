@@ -17,7 +17,8 @@ include_directories(${DIR_ASIO}/include)
 include_directories(${DIR_JWT}/include)
 
 link_directories("../lib")
-
+include_directories(${DIR_BACKTRACE})
+link_directories("../lib" ${DIR_BACKTRACE}/.libs)
 
 add_executable(encodingserver "../common/src/jsonconsts.cpp" "../common/src/inimanager.cpp" "../common/src/inisection.cpp" "../common/src/aes67utils.cpp" "../common/src/session.cpp" "${DIR_JSON}/dist/jsoncpp.cpp" "src/main.cpp" "src/launchmanager.cpp" "src/launcher.cpp" "src/encodingserver.cpp" "../common/uuid/guid.cpp" "../common/uuid/md5.cpp" "../common/src/ntpstatus.cpp" "../common/src/server.cpp" "../common/src/proccheck.cpp" "../common/src/sysinfomanager.cpp" ${CMAKE_BINARY_DIR}/src/${PROJECT_NAME}_version.cpp)
 
@@ -31,7 +32,7 @@ target_compile_options(encodingserver PRIVATE ${flags})
 
 list(APPEND definitions "NO_OPENSSL" "__GNU__")
 target_compile_definitions(encodingserver PUBLIC ${definitions})
-target_link_libraries(encodingserver pml_log restgoose pml_observer pthread crypto ssl)
+target_link_libraries(encodingserver pml_log restgoose pml_observer pthread crypto ssl backtrace)
 target_link_options(encodingserver PRIVATE LINKER:-Map=${CMAKE_BINARY_DIR}/${PROJECT_NAME}.map)
 
 set_target_properties(encodingserver PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")

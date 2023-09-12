@@ -8,6 +8,7 @@
 #include "jsonconsts.h"
 #include "jsonwriter.h"
 #include "logger_version.h"
+#include "backtr.h"
 
 LoggerApp theApp;       //The main loop - declared global so we can access it from signal handler and exit gracefully
 
@@ -18,17 +19,7 @@ static void sig(int signo)
     {
         case SIGSEGV:
         {
-            void* arr[10];
-            auto nSize = backtrace(arr, 10);
-            char** strings = backtrace_symbols(arr, nSize);
-
-            pmlLog(pml::LOG_CRITICAL)  << "Segmentation fault, aborting. " << nSize;
-            for(auto i = 0; i < nSize; i++)
-            {
-                pmlLog(pml::LOG_CRITICAL)  << std::hex << "0x" << reinterpret_cast<long long>(arr[i]) << "[" << strings[i] << "]";
-            }
-            free(strings); //backtrace_symbols calls malloc so we must free
-
+            print_back_trace();
             _exit(1);
         }
     case SIGTERM:
@@ -98,6 +89,7 @@ int main(int argc,  char** argv)
         std::cout << "Usage: AudioLogger.exe [full path to config file]" << std::endl;
         return -1;
     }
+    
     std::string sArg(argv[1]);
     if(sArg == "-v" || sArg == "--version")
     {
@@ -107,6 +99,7 @@ int main(int argc,  char** argv)
     else
     {
         init_signals();
+        init_back_trace(argv[0]);
         theApp.Init(argv[1]);
         return theApp.Run();
     }

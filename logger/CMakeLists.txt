@@ -13,7 +13,8 @@ include_directories(${DIR_ASIO}/include)
 include_directories(${DIR_JSON}/dist)
 
 link_directories(${CMAKE_SOURCE_DIR}/lib)
-
+include_directories(${DIR_BACKTRACE})
+link_directories("../lib" ${DIR_BACKTRACE}/.libs)
 
 add_executable(logger "../common/src/jsonconsts.cpp" "../common/src/inimanager.cpp" "../common/src/inisection.cpp" "../common/src/jsonwriter.cpp" "${DIR_JSON}/dist/jsoncpp.cpp"
  "src/jsonlog.cpp"  "src/loggerapp.cpp" "src/main.cpp" "../common/src/soundfile.cpp" "../common/src/asiosession.cpp" ${CMAKE_BINARY_DIR}/src/${PROJECT_NAME}_version.cpp)
@@ -29,7 +30,7 @@ target_compile_options(logger PRIVATE ${flags})
 list(APPEND definitions "NO_OPENSSL" "__GNU__")
 target_compile_definitions(logger PUBLIC ${definitions})
 target_link_libraries(logger pml_log aoip)
-target_link_libraries(logger sndfile pthread)
+target_link_libraries(logger sndfile pthread backtrace)
 target_link_options(logger PRIVATE LINKER:-Map=${CMAKE_BINARY_DIR}/${PROJECT_NAME}.map)
 set_target_properties(logger PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")
 

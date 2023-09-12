@@ -14,6 +14,8 @@ include_directories(${DIR_JSON}/dist)
 include_directories(${DIR_OBSERVER}/include)
 
 link_directories(${CMAKE_SOURCE_DIR}/lib)
+include_directories(${DIR_BACKTRACE})
+link_directories("../lib" ${DIR_BACKTRACE}/.libs)
 
 
 add_executable(flacencoder "../common/src/jsonconsts.cpp" "../common/src/inimanager.cpp" "../common/src/inisection.cpp" "../common/src/jsonwriter.cpp" "${DIR_JSON}/dist/jsoncpp.cpp" "../common/src/asiosession.cpp" "../common/src/encoder.cpp" "src/flacencoder.cpp" "src/main.cpp" "../common/src/soundfile.cpp" ${CMAKE_BINARY_DIR}/src/${PROJECT_NAME}_version.cpp)
@@ -29,7 +31,7 @@ target_compile_options(flacencoder PRIVATE ${flags})
 list(APPEND definitions "NO_OPENSSL" "__GNU__")
 target_compile_definitions(flacencoder PUBLIC ${definitions})
 target_link_libraries(flacencoder pml_log pml_observer)
-target_link_libraries(flacencoder sndfile pthread)
+target_link_libraries(flacencoder sndfile pthread backtrace)
 target_link_options(flacencoder PRIVATE LINKER:-Map=${CMAKE_BINARY_DIR}/${PROJECT_NAME}.map)
 
 set_target_properties(flacencoder PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")

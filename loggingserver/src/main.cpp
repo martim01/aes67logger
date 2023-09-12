@@ -66,14 +66,14 @@ void init_signals()
 
 int main(int argc,  char** argv)
 {
-    init_back_trace(argv[0]);
-    init_signals();
-
     if(argc < 2)
     {
         std::cout << "Usage: loggingserver [config file full path]" << std::endl;
         return -1;
     }
+
+    init_back_trace(argv[0]);
+    init_signals();
 
     auto nResult = g_server.Run(argv[1]);
     return nResult;

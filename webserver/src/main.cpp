@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <execinfo.h>
-
+#include "backtr.h"
 WebServer g_server;
 
 static void sig(int signo)
@@ -13,16 +13,7 @@ static void sig(int signo)
         {
             case SIGSEGV:
             {
-                void* arr[10];
-                size_t nSize = backtrace(arr, 10);
-                char** strings = backtrace_symbols(arr, nSize);
-
-                pmlLog(pml::LOG_CRITICAL)  << "Segmentation fault, aborting. " << nSize;
-                for(size_t i = 0; i < nSize; i++)
-                {
-                    pmlLog(pml::LOG_CRITICAL)  << std::hex << "0x" << reinterpret_cast<long long>(arr[i]) << "[" << strings[i] << "]";
-                }
-                free(strings);
+                print_back_trace();
 
                 _exit(1);
             }
@@ -73,13 +64,15 @@ void init_signals()
 
 int main(int argc,  char** argv)
 {
-    init_signals();
-
     if(argc < 2)
     {
         std::cout << "Usage: webserver [config file full path]" << std::endl;
         return -1;
     }
+    
+    init_signals();
+    init_back_trace(argv[0]);
+    
 
     auto nResult = g_server.Run(argv[1]);
     return nResult;

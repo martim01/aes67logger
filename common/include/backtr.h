@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <backtrace.h>
+#include "log.h"
 
 extern "C" void init_back_trace(const char *filename);
 extern "C" void print_back_trace();
@@ -18,16 +19,16 @@ int bt_callback(void *, uintptr_t, const char *filename, int lineno, const char 
   }
 
   /// print
-  printf("%s:%d in function %s\n", filename, lineno, func_name);
+  pmlLog(pml::LOG_CRITICAL) << filename << ":" << lineno << " in function " << func_name;
   return 0;
 }
 
 void bt_error_callback(void *, const char *msg, int errnum) {
-  printf("Error %d occurred when getting the stacktrace: %s", errnum, msg);
+  pmlLog(pml::LOG_CRITICAL) << "Error " << errnum << " occurred when getting the stacktrace: " << msg;
 }
 
 void bt_error_callback_create(void *, const char *msg, int errnum) {
-  printf("Error %d occurred when initializing the stacktrace: %s", errnum, msg);
+  pmlLog(pml::LOG_CRITICAL) << "Error " << errnum << " occurred when initializing the stacktrace: " << msg;
 }
 
 void init_back_trace(const char *filename) {

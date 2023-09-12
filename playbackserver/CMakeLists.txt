@@ -18,6 +18,8 @@ include_directories(${DIR_ASIO}/include)
 include_directories(${DIR_JWT}/include)
 
 link_directories("../lib")
+include_directories(${DIR_BACKTRACE})
+link_directories("../lib" ${DIR_BACKTRACE}/.libs)
 
 
 add_executable(playbackserver "../common/src/jsonconsts.cpp" "../common/src/inimanager.cpp" "../common/src/aes67utils.cpp" "../common/src/inisection.cpp" "${DIR_JSON}/dist/jsoncpp.cpp" "../common/src/server.cpp" "../common/src/ntpstatus.cpp" "../common/src/proccheck.cpp" "../common/src/sysinfomanager.cpp" "../common/src/session.cpp" "src/main.cpp" "src/loggermanager.cpp" "src/loggerobserver.cpp" "src/playbackserver.cpp" "../common/uuid/guid.cpp" "../common/uuid/md5.cpp" ${CMAKE_BINARY_DIR}/src/${PROJECT_NAME}_version.cpp)
@@ -32,7 +34,7 @@ target_compile_options(playbackserver PRIVATE ${flags})
 
 list(APPEND definitions "NO_OPENSSL" "__GNU__")
 target_compile_definitions(playbackserver PUBLIC ${definitions})
-target_link_libraries(playbackserver pml_log restgoose pml_observer pthread crypto ssl)
+target_link_libraries(playbackserver pml_log restgoose pml_observer pthread crypto ssl backtrace)
 target_link_options(playbackserver PRIVATE LINKER:-Map=${CMAKE_BINARY_DIR}/${PROJECT_NAME}.map)
 
 set_target_properties(playbackserver PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")

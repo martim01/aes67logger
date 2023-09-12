@@ -17,7 +17,6 @@ include_directories(${DIR_ASIO}/asio/include)
 include_directories(${DIR_ASIO}/include)
 include_directories(${DIR_JWT}/include)
 include_directories(${DIR_BACKTRACE})
-
 link_directories("../lib" ${DIR_BACKTRACE}/.libs)
 
 
