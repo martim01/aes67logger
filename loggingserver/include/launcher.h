@@ -9,6 +9,8 @@
 #include <array>
 #include "asio.hpp"
 #include <string_view>
+#include <mutex>
+
 class Launcher
 {
     public:

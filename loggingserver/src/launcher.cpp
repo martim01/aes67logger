@@ -281,6 +281,7 @@ void Launcher::HandleConnect(const asio::error_code& e)
 
 void Launcher::CreateSummary()
 {
+    std::scoped_lock lg(m_mutex);
     m_jsStatusSummary.clear();
     m_jsStatusSummary[jsonConsts::name] = m_pathConfig.stem().string();
     m_jsStatusSummary[jsonConsts::running] = IsRunning();
@@ -308,6 +309,7 @@ void Launcher::CreateSummary()
 }
 const Json::Value& Launcher::GetStatusSummary() const
 {
+    std::scoped_lock lg(m_mutex);
     return m_jsStatusSummary;
 }
 
