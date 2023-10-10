@@ -124,7 +124,7 @@ pml::restgoose::response LaunchManager::AddLogger(const pml::restgoose::response
                                            {jsonConsts::flac, enumJsonType::NUMBER},
                                            {jsonConsts::filelength, enumJsonType::NUMBER}}) == false)
     {
-        return pml::restgoose::response(400, "Json missing required parameters");
+        return pml::restgoose::response(400, std::string("Json missing required parameters"));
     }
 
 
@@ -308,7 +308,7 @@ pml::restgoose::response LaunchManager::GetLoggerConfig(const std::string& sName
     }
     else
     {
-        return pml::restgoose::response(404, "Config not found");
+        return pml::restgoose::response(404, std::string("Config not found"));
     }
 }
 
@@ -345,9 +345,9 @@ pml::restgoose::response LaunchManager::UpdateLoggerConfig(const std::string& sN
             ini.Write();
             return GetLoggerConfig(sName);
         }
-        return pml::restgoose::response(500, "Could not read config file for logger");
+        return pml::restgoose::response(500, std::string("Could not read config file for logger"));
     }
-    return pml::restgoose::response(400, "Patch data is not a Json array");
+    return pml::restgoose::response(400, std::string("Patch data is not a Json array"));
 }
 
 Json::Value LaunchManager::GetStatusSummary() const
