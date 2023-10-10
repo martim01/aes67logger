@@ -46,7 +46,7 @@ const endpoint Server::EP_WS_STATUS   = endpoint(EP_WS.Get()+"/"+STATUS);
 
 pml::restgoose::response ConvertPostDataToJson(const postData& vData)
 {
-    pml::restgoose::response resp(404, "No data sent or incorrect data sent");
+    pml::restgoose::response resp(404, std::string("No data sent or incorrect data sent"));
     if(vData.size() == 1)
     {
         auto js = ConvertToJson(vData[0].data.Get());
