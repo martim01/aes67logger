@@ -220,17 +220,17 @@ pml::restgoose::response WebServer::PostLogin(const query&, const postData& theD
             }
             else
             {
-                return pml::restgoose::response(401, "Username does not exist or password incorrect");
+                return pml::restgoose::response(401, std::string("Username does not exist or password incorrect"));
             }
         }
         else
         {
-            return pml::restgoose::response(400, "Username or password not sent");
+            return pml::restgoose::response(400, std::string("Username or password not sent"));
         }
     }
     else
     {
-        return pml::restgoose::response(400, "Invalid data sent");
+        return pml::restgoose::response(400, std::string("Invalid data sent"));
     }
 }
 
@@ -280,7 +280,7 @@ pml::restgoose::response WebServer::PostUser(const query&, const postData& theDa
         
             if(m_config.GetSection(sSection))
             {
-                return pml::restgoose::response(409, "User already exists");
+                return pml::restgoose::response(409, std::string("User already exists"));
             }
 
             m_config.Set(sSection, jsonConsts::password, Hash(HASH_KEY, (*user)[jsonConsts::password].asString()));
@@ -292,14 +292,14 @@ pml::restgoose::response WebServer::PostUser(const query&, const postData& theDa
             SaveUserPermission(sSection, jsonConsts::webserver, *user, true);
             SaveUserPermission(sSection, jsonConsts::logger_server, *user, false);
 
-            return pml::restgoose::response(201, "User added");
+            return pml::restgoose::response(201, std::string("User added"));
         }
         else
         {
-            return pml::restgoose::response(400, "Username or password missing");        
+            return pml::restgoose::response(400, std::string("Username or password missing"));        
         }
     }
-    return pml::restgoose::response(400, "Invalid json");
+    return pml::restgoose::response(400, std::string("Invalid json"));
 }
 
 void WebServer::SaveUserPermission(const std::string& sSection, const std::string& sSetting, const Json::Value& jsData, bool bDefault)
@@ -336,16 +336,16 @@ pml::restgoose::response WebServer::PatchUsers(const query&, const postData& the
             SaveUserPermission(sSection, jsonConsts::webserver, *user, pSection->Get(jsonConsts::webserver, false));
             SaveUserPermission(sSection, jsonConsts::logger_server, *user, pSection->Get(jsonConsts::logger_server, false));
 
-            return pml::restgoose::response(200, "User updated");
+            return pml::restgoose::response(200, std::string("User updated"));
         }
         else
         {
-            return pml::restgoose::response(404, "User not found");
+            return pml::restgoose::response(404, std::string("User not found"));
         }
     }
     else
     {
-        return pml::restgoose::response(400, "Invalid json");
+        return pml::restgoose::response(400, std::string("Invalid json"));
     }
 }
 

@@ -155,7 +155,7 @@ int Server::Run(const std::string& sConfigFile)
                      EP_API, true,true))
     {
 
-        m_server.SetAuthorizationTypeBearer(std::bind(&Server::AuthenticateToken, this, _1,_2), [](){return pml::restgoose::response(401, "Bearer token incorrect");}, true);
+        m_server.SetAuthorizationTypeBearer(std::bind(&Server::AuthenticateToken, this, _1,_2), [](){return pml::restgoose::response(401, std::string("Bearer token incorrect"));}, true);
 
         //Derived class init
         Init();
@@ -244,7 +244,7 @@ pml::restgoose::response Server::GetRoot(const query&, const postData&, const en
 
 pml::restgoose::response Server::PutUpdate(const query&, const postData&, const endpoint&, const userName&) const
 {
-    pml::restgoose::response theResponse(405, "not written yet");
+    pml::restgoose::response theResponse(405, std::string("not written yet"));
     return theResponse;
 }
 
@@ -426,7 +426,7 @@ void Server::PatchServerConfig(const Json::Value& jsData) const
 
 pml::restgoose::response Server::GetLogs(const query& theQuery, const postData&, const endpoint&, const userName&) const
 {
-    pml::restgoose::response theResponse(404, "Log not defined");
+    pml::restgoose::response theResponse(404, std::string("Log not defined"));
 
     auto itLogger = theQuery.find(queryKey("logger"));
     auto itStart = theQuery.find(queryKey("start_time"));
@@ -545,7 +545,7 @@ pml::restgoose::response Server::GetLog(const std::string& sLogger, const std::s
     catch(const std::exception& )
     {
         pmlLog(pml::LOG_WARN) << "Could not convert start and end times " << sStart << " " << sEnd;
-        return pml::restgoose::response(400, "Could not convert start and end times");
+        return pml::restgoose::response(400, std::string("Could not convert start and end times"));
     }
 
 }

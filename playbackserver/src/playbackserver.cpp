@@ -158,7 +158,7 @@ pml::restgoose::response PlaybackServer::GetLogger(const query& , const postData
     }
     else
     {
-        return pml::restgoose::response(404, "Logger not found");
+        return pml::restgoose::response(404, std::string("Logger not found"));
     }
 }
 
@@ -189,7 +189,7 @@ pml::restgoose::response PlaybackServer::GetLoggerFiles(const query& , const pos
     }
     else
     {
-        return pml::restgoose::response(404, "Logger was not found");
+        return pml::restgoose::response(404, std::string("Logger was not found"));
     }
 }
 
@@ -206,7 +206,7 @@ pml::restgoose::response PlaybackServer::DownloadLoggerFile(const query& theQuer
     }
     else
     {
-        return pml::restgoose::response(404, "Logger was not found");
+        return pml::restgoose::response(404, std::string("Logger was not found"));
     }
 }
 

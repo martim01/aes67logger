@@ -121,7 +121,7 @@ pml::restgoose::response EncodingServer::GetEncoder(const query& , const postDat
     }
     else
     {
-        return pml::restgoose::response(404, "Logger not found");
+        return pml::restgoose::response(404, std::string("Logger not found"));
     }
 }
 

@@ -239,11 +239,11 @@ pml::restgoose::response LoggingServer::DeleteLogger(const query&, const postDat
     {
         if(theResponse.jsonData.isMember("password") == false)
         {
-            return pml::restgoose::response(401, "No password sent");
+            return pml::restgoose::response(401, std::string("No password sent"));
         }
         if(theResponse.jsonData["password"].asString() != GetIniManager().Get(jsonConsts::api, jsonConsts::restricted_password, "2rnfgesgy8w!"))
         {
-            return pml::restgoose::response(403, "Password is incorrect");
+            return pml::restgoose::response(403, std::string("Password is incorrect"));
         }
 
         auto vUrl = SplitString(theEndpoint.Get(), '/');
@@ -271,11 +271,11 @@ pml::restgoose::response LoggingServer::PutLoggerPower(const query&, const postD
     {
         if(theResponse.jsonData.isMember("password") == false)
         {
-            return pml::restgoose::response(401, "No password sent");
+            return pml::restgoose::response(401, std::string("No password sent"));
         }
         if(theResponse.jsonData["password"].asString() != GetIniManager().Get(jsonConsts::api, jsonConsts::restricted_password, "2rnfgesgy8w!"))
         {
-            return pml::restgoose::response(403, "Password is incorrect");
+            return pml::restgoose::response(403, std::string("Password is incorrect"));
         }
 
         auto vPath = SplitString(theEndpoint.Get(),'/');

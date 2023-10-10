@@ -148,7 +148,7 @@ pml::restgoose::response LoggerObserver::CreateDownloadFile(const std::string& s
         auto itEnd = theQuery.find(queryKey("end_time"));
         if(itStart == theQuery.end() || itEnd == theQuery.end())
         {
-            return pml::restgoose::response(400, "No start time or end time sent");
+            return pml::restgoose::response(400, std::string("No start time or end time sent"));
         }
 
 
@@ -188,16 +188,16 @@ pml::restgoose::response LoggerObserver::CreateDownloadFile(const std::string& s
             }
             else
             {
-                return pml::restgoose::response(500, "Could not create file for ffmpeg!");
+                return pml::restgoose::response(500, std::string("Could not create file for ffmpeg!"));
             }       
         }
         catch(const std::invalid_argument& e)
         {
-            return pml::restgoose::response(404, "Invalid start or end time");
+            return pml::restgoose::response(404, std::string("Invalid start or end time"));
         }
         catch(const std::out_of_range& e)
         {
-            return pml::restgoose::response(404, "Invalid start or end time");
+            return pml::restgoose::response(404, std::string("Invalid start or end time"));
         }
 
     }
