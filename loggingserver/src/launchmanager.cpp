@@ -169,8 +169,18 @@ void LaunchManager::CreateLoggerConfig(const Json::Value& jsData) const
     }
     else
     {
-        config.Set(jsonConsts::log, jsonConsts::console, (int)m_nLoggerConsoleLevel);
+        config.Set(jsonConsts::log, jsonConsts::console, -1);
     }
+
+    if(CheckJsonMembers(jsData, {{jsonConsts::file, enumJsonType::NUMBER}}))
+    {
+        config.Set(jsonConsts::log, jsonConsts::file, jsData[jsonConsts::file].asInt());
+    }
+    else
+    {
+        config.Set(jsonConsts::log, jsonConsts::file, 2);
+    }
+
     if(CheckJsonMembers(jsData, {{jsonConsts::file, enumJsonType::NUMBER}}))
     {
         config.Set(jsonConsts::log, jsonConsts::file, jsData[jsonConsts::file].asInt());
