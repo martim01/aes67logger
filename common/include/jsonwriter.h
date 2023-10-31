@@ -1,6 +1,7 @@
 #pragma once
 #include "json/json.h"
 #include <memory>
+#include <mutex>
 
 class AsioServer;
 class JsonWriter
@@ -16,6 +17,7 @@ class JsonWriter
         ~JsonWriter();
         std::unique_ptr<Json::StreamWriter> m_pWriter;
 
+        std::mutex m_mutex;
 
 };
 

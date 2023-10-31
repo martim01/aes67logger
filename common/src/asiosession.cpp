@@ -44,8 +44,7 @@ void AsioServer::do_accept()
     try
     {
 
-        m_acceptor.async_accept(
-            [this](std::error_code ec, asio::local::stream_protocol::socket socket)
+        m_acceptor.async_accept([this](std::error_code ec, asio::local::stream_protocol::socket socket)
             {
               if (!ec)
               {
@@ -91,12 +90,13 @@ void AsioServer::StartTimer(const std::chrono::milliseconds& duration, const std
 {
     m_timer.cancel();
     m_timer.expires_from_now(duration);
-    m_timer.async_wait([callback](const asio::error_code& ec){
-                       if(!ec)
-                        {
-                            callback();
-                        }
-                       });
+    m_timer.async_wait([callback](const asio::error_code& ec)
+    {
+        if(!ec)
+        {
+            callback();
+        }
+    });
 }
 
 void AsioServer::StopTimer()

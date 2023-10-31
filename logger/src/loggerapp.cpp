@@ -39,17 +39,41 @@ bool LoggerApp::Init(const std::filesystem::path& config)
     m_pathSockets /= m_sName;
     m_pathSockets.replace_extension(std::to_string(getpid()));
 
+
     //make sure the file does not exist
-    std::filesystem::remove(m_pathSockets);
+    try
+    {
+        std::filesystem::remove(m_pathSockets);
+    }
+    catch(const std::filesystem::filesystem_error& ec)
+    {
+        pmlLog(pml::LOG_WARN) << "Failed to remove " << m_pathSockets << "\t" << ec.what();
+    }
 
-    m_pServer = std::make_shared<AsioServer>(m_pathSockets);
-    m_pServer->Run();
+    pmlLog() << "Create socket pipe " << m_pathSockets.string();
+    //make sure the directory exists
+    try
+    {
+        pmlLog() << "Create socket pipe " << m_pathSockets.string();
+        std::filesystem::create_directories(m_pathSockets.parent_path());
+        m_pServer = std::make_shared<AsioServer>(m_pathSockets);
+        m_pServer->Run();
 
+        m_heartbeatGap = std::chrono::milliseconds(m_config.Get(jsonConsts::heartbeat, jsonConsts::gap, 10000L));
 
-    m_heartbeatGap = std::chrono::milliseconds(m_config.Get(jsonConsts::heartbeat, jsonConsts::gap, 10000L));
+        return true;
 
-    return true;
-
+    }
+    catch(const std::filesystem::filesystem_error& ec)
+    {
+        pmlLog(pml::LOG_WARN) << "Failed to create " << m_pathSockets.parent_path() << "\t" << ec.what();
+        return false;
+    }
+    catch(const std::system_error& ec)
+    {
+        pmlLog(pml::LOG_WARN) << "Failed to open socket pipe\t" << ec.what();
+        return false;
+    }
 }
 
 int LoggerApp::Run()
@@ -64,14 +88,16 @@ int LoggerApp::Run()
 
 void LoggerApp::Exit()
 {
-    pmlLog() << "Exit";
     if(m_pClient)
     {
         m_pClient->Stop();
         m_pClient = nullptr;
     }
     m_pServer = nullptr;
-    std::filesystem::remove(m_pathSockets);
+    
+    
+    std::error_code ec; 
+    std::filesystem::remove(m_pathSockets,ec);
 }
 
 
@@ -81,7 +107,7 @@ bool LoggerApp::LoadConfig(const std::filesystem::path& config)
     {
         m_sName = m_config.Get(jsonConsts::general, jsonConsts::name, "");
         CreateLogging();
-
+        pmlLog() << "Logging created";
         m_pathWav.assign(m_config.Get(jsonConsts::path, jsonConsts::audio, "/var/loggers/audio"));
         m_pathWav /= "wav";
         m_pathWav /= m_sName;
@@ -148,7 +174,8 @@ void LoggerApp::CreateLogging()
 
 void LoggerApp::StartRecording()
 {
-    m_pClient = std::make_unique<pml::aoip::AoipClient>(m_config.Get(jsonConsts::aoip, jsonConsts::interface, "eth0"), m_config.Get(jsonConsts::general, jsonConsts::name, "test"), m_config.Get(jsonConsts::aoip, jsonConsts::buffer, 4096L));
+    pmlLog() << "StartRecording";
+    m_pClient = std::make_unique<pml::aoip::AoipClient>(m_config.Get(jsonConsts::aoip, jsonConsts::buffer, 4096L));
 
     m_pClient->AddAudioCallback(std::bind(&LoggerApp::WriteToSoundFile, this, _1, _2));
     m_pClient->AddQosCallback(std::bind(&LoggerApp::QoSCallback, this, _1, _2));
@@ -200,6 +227,7 @@ void LoggerApp::QoSCallback(std::shared_ptr<pml::aoip::AoIPSource>, std::shared_
 
 void LoggerApp::OutputQoSJson(std::shared_ptr<pml::aoip::qosData> pData)
 {
+    std::scoped_lock lg(m_mutex);
     m_jsStatus[jsonConsts::id] = m_sName;
     m_jsStatus[jsonConsts::qos][jsonConsts::bitrate] = pData->dkbits_per_second_Now;
     m_jsStatus[jsonConsts::qos][jsonConsts::packets][jsonConsts::received] = pData->nTotNumPacketsReceived;
@@ -219,8 +247,7 @@ void LoggerApp::SessionCallback(std::shared_ptr<pml::aoip::AoIPSource>,  const p
     m_pServer->StartTimer(std::chrono::milliseconds(500), std::bind(&LoggerApp::StreamFail, this));
 
     m_session = theSession;
-    auto itSubsession = theSession.GetCurrentSubsession();
-    if(itSubsession !=  theSession.lstSubsession.end())
+    if(auto itSubsession = theSession.GetCurrentSubsession(); itSubsession !=  theSession.lstSubsession.end())
     {
         m_subsession = (*itSubsession);
 
@@ -251,6 +278,7 @@ void LoggerApp::SessionCallback(std::shared_ptr<pml::aoip::AoIPSource>,  const p
 
 void LoggerApp::OutputSessionJson()
 {
+    std::scoped_lock lg(m_mutex);
     m_jsStatus[jsonConsts::id] = m_sName;
 
     m_jsStatus[jsonConsts::session][jsonConsts::sdp] = m_session.sRawSDP;
@@ -305,6 +333,7 @@ void LoggerApp::StreamCallback(std::shared_ptr<pml::aoip::AoIPSource>, bool bStr
 
 void LoggerApp::OutputStreamJson(bool bStreaming)
 {
+    std::scoped_lock lg(m_mutex);
     m_jsStatus[jsonConsts::id] = m_sName;
     m_jsStatus[jsonConsts::streaming][jsonConsts::name] = m_config.Get(jsonConsts::source, jsonConsts::name, "test");
     if(m_config.Get(jsonConsts::source, jsonConsts::rtsp, "").empty() == false)
@@ -335,6 +364,7 @@ void LoggerApp::LoopCallback(std::chrono::microseconds duration)
 
 void LoggerApp::OutputHeartbeatJson()
 {
+    std::scoped_lock lg(m_mutex);
     m_jsStatus[jsonConsts::id] = m_sName;
     m_jsStatus[jsonConsts::heartbeat][jsonConsts::heartbeat] = m_bHeartbeat;
     m_jsStatus[jsonConsts::heartbeat][jsonConsts::timestamp] = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
@@ -392,6 +422,7 @@ void LoggerApp::WriteToSoundFile(std::shared_ptr<pml::aoip::AoIPSource>, std::sh
 
 void LoggerApp::OutputFileJson()
 {
+    std::scoped_lock lg(m_mutex);
     m_jsStatus[jsonConsts::id] = m_sName;
     m_jsStatus[jsonConsts::file][jsonConsts::filename] = m_sf.GetFile().stem().string();
     m_jsStatus[jsonConsts::file][jsonConsts::filepath] = m_sf.GetFile().string();

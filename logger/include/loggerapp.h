@@ -8,6 +8,7 @@
 #include "aoipclient.h"
 #include <filesystem>
 #include "json/json.h"
+#include <mutex>
 
 class AsioServer;
 
@@ -47,8 +48,6 @@ class LoggerApp
 
         void StartRecording();
         bool OpenSoundFile();
-
-        void Log();
 
 
         void WriteToSoundFile(std::shared_ptr<pml::aoip::AoIPSource> pSource, std::shared_ptr<pml::aoip::timedbuffer> pBuffer);
@@ -106,6 +105,8 @@ class LoggerApp
 
         std::string m_sSdp;
         Json::Value m_jsStatus;
+
+        std::mutex m_mutex;
 };
 
 

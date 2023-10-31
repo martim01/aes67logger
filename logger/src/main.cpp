@@ -18,19 +18,26 @@ static void sig(int signo)
     switch (signo)
     {
         case SIGSEGV:
+        case SIGILL:
+        case SIGABRT:
+        case SIGFPE:
         {
             print_back_trace();
             _exit(1);
         }
-    case SIGTERM:
-    case SIGINT:
-    case SIGQUIT:
-        {
-            pmlLog(pml::LOG_WARN) << "User abort";
-            theApp.Exit();
-            _exit(0);
-        }
-        break;
+            break;
+        case SIGPIPE:
+            pmlLog(pml::LOG_WARN) << "Broken pipe";
+            break;
+        case SIGTERM:
+        case SIGINT:
+        case SIGQUIT:
+            {
+                pmlLog(pml::LOG_WARN) << "User abort";
+                theApp.Exit();
+                _exit(0);
+            }
+            break;
     }
 }
 
@@ -63,6 +70,29 @@ void init_signals()
     {
         sigaction(SIGQUIT, &new_action, nullptr);
     }
+    sigaction(SIGILL, nullptr, &old_action);
+    if(old_action.sa_handler != SIG_IGN)
+    {
+        sigaction(SIGILL, &new_action, nullptr);
+    }
+    sigaction(SIGABRT, nullptr, &old_action);
+    if(old_action.sa_handler != SIG_IGN)
+    {
+        sigaction(SIGABRT, &new_action, nullptr);
+    }
+    sigaction(SIGFPE, nullptr, &old_action);
+    if(old_action.sa_handler != SIG_IGN)
+    {
+        sigaction(SIGFPE, &new_action, nullptr);
+    }
+    sigaction(SIGPIPE, nullptr, &old_action);
+    if(old_action.sa_handler != SIG_IGN)
+    {
+        sigaction(SIGPIPE, &new_action, nullptr);
+    }
+    
+    
+    
 
 }
 
@@ -100,8 +130,15 @@ int main(int argc,  char** argv)
     {
         init_signals();
         init_back_trace(argv[0]);
-        theApp.Init(argv[1]);
-        return theApp.Run();
+        if(theApp.Init(argv[1]))
+        {
+            return theApp.Run();
+        }
+        else
+        {
+            std::cout << "Critical error: Exit" << std::endl;
+            return -1;
+        }
     }
 }
 

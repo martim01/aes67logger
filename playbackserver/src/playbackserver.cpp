@@ -54,6 +54,7 @@ pml::restgoose::response PlaybackServer::GetDashboard(const query& theQuery, con
     resp.jsonData["loggingserver"] = GetIniManager().Get(jsonConsts::server, jsonConsts::logger_server, "");
     resp.jsonData["encodingserver"] = GetIniManager().Get(jsonConsts::server, jsonConsts::encoder_server, "");
     resp.jsonData["playbackserver"] = GetIniManager().Get(jsonConsts::server, jsonConsts::playback_server, "");
+    return resp;
 }
 
 
