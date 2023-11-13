@@ -162,6 +162,7 @@ void LoggerApp::CreateLogging()
             std::filesystem::path pathLog = m_config.Get(jsonConsts::path,  jsonConsts::logs, "/var/loggers/log");
             pathLog.append(m_sName);
             m_nLogOutputFile = (int)pml::LogStream::AddOutput(std::make_unique<pml::LogToFile>(pathLog));
+	    pmlLog() << "Log to file " << pathLog.string() << " level: " << nFile;
         }
         pml::LogStream::SetOutputLevel(m_nLogOutputFile, (pml::enumLevel)nFile);
     }
@@ -204,9 +205,13 @@ void LoggerApp::StartRecording()
 
     OutputStreamJson(false);
 
+    m_pClient->Run(true);   //does not return until we exit
     m_pClient->StreamFromSource(pSource);
-    m_pClient->Run();   //does not return until we exit
 
+    while(true)
+    {
+         std::this_thread::sleep_for(std::chrono::seconds(1));
+    };
 }
 
 
@@ -227,7 +232,6 @@ void LoggerApp::QoSCallback(std::shared_ptr<pml::aoip::AoIPSource>, std::shared_
 
 void LoggerApp::OutputQoSJson(std::shared_ptr<pml::aoip::qosData> pData)
 {
-    std::scoped_lock lg(m_mutex);
     m_jsStatus[jsonConsts::id] = m_sName;
     m_jsStatus[jsonConsts::qos][jsonConsts::bitrate] = pData->dkbits_per_second_Now;
     m_jsStatus[jsonConsts::qos][jsonConsts::packets][jsonConsts::received] = pData->nTotNumPacketsReceived;
@@ -278,17 +282,16 @@ void LoggerApp::SessionCallback(std::shared_ptr<pml::aoip::AoIPSource>,  const p
 
 void LoggerApp::OutputSessionJson()
 {
-    std::scoped_lock lg(m_mutex);
     m_jsStatus[jsonConsts::id] = m_sName;
 
     m_jsStatus[jsonConsts::session][jsonConsts::sdp] = m_session.sRawSDP;
     m_jsStatus[jsonConsts::session][jsonConsts::name] = m_session.sName;
     m_jsStatus[jsonConsts::session][jsonConsts::type] = m_session.sType;
     m_jsStatus[jsonConsts::session][jsonConsts::description] = m_session.sDescription;
-    for(const auto& sGroup : m_session.setGroups)
-    {
-        m_jsStatus[jsonConsts::session][jsonConsts::groups].append(sGroup);
-    }
+//    for(const auto& sGroup : m_session.setGroups)
+//    {
+//        m_jsStatus[jsonConsts::session][jsonConsts::groups].append(sGroup);
+//    }
     m_jsStatus[jsonConsts::session][jsonConsts::ref_clock][jsonConsts::domain] = m_session.refClock.nDomain;
     m_jsStatus[jsonConsts::session][jsonConsts::ref_clock][jsonConsts::id] = m_session.refClock.sId;
     m_jsStatus[jsonConsts::session][jsonConsts::ref_clock][jsonConsts::type] = m_session.refClock.sType;
@@ -333,7 +336,6 @@ void LoggerApp::StreamCallback(std::shared_ptr<pml::aoip::AoIPSource>, bool bStr
 
 void LoggerApp::OutputStreamJson(bool bStreaming)
 {
-    std::scoped_lock lg(m_mutex);
     m_jsStatus[jsonConsts::id] = m_sName;
     m_jsStatus[jsonConsts::streaming][jsonConsts::name] = m_config.Get(jsonConsts::source, jsonConsts::name, "test");
     if(m_config.Get(jsonConsts::source, jsonConsts::rtsp, "").empty() == false)
@@ -364,7 +366,6 @@ void LoggerApp::LoopCallback(std::chrono::microseconds duration)
 
 void LoggerApp::OutputHeartbeatJson()
 {
-    std::scoped_lock lg(m_mutex);
     m_jsStatus[jsonConsts::id] = m_sName;
     m_jsStatus[jsonConsts::heartbeat][jsonConsts::heartbeat] = m_bHeartbeat;
     m_jsStatus[jsonConsts::heartbeat][jsonConsts::timestamp] = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
@@ -422,7 +423,6 @@ void LoggerApp::WriteToSoundFile(std::shared_ptr<pml::aoip::AoIPSource>, std::sh
 
 void LoggerApp::OutputFileJson()
 {
-    std::scoped_lock lg(m_mutex);
     m_jsStatus[jsonConsts::id] = m_sName;
     m_jsStatus[jsonConsts::file][jsonConsts::filename] = m_sf.GetFile().stem().string();
     m_jsStatus[jsonConsts::file][jsonConsts::filepath] = m_sf.GetFile().string();

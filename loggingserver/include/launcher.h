@@ -34,7 +34,7 @@ class Launcher
         void Read();
 
         const Json::Value& GetJsonStatus() const { return m_jsStatus;}
-        const Json::Value& GetStatusSummary() const;
+        Json::Value GetStatusSummary() const;
 
 
         enum exitCode{FORK_ERROR=-1, REMOVED=1};

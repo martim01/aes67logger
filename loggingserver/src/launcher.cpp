@@ -307,7 +307,7 @@ void Launcher::CreateSummary()
     }
 
 }
-const Json::Value& Launcher::GetStatusSummary() const
+Json::Value Launcher::GetStatusSummary() const
 {
     std::scoped_lock lg(m_mutex);
     return m_jsStatusSummary;
