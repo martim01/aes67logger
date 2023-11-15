@@ -106,7 +106,7 @@ class LoggerApp
         std::string m_sSdp;
         Json::Value m_jsStatus;
 
-        std::mutex m_mutex;
+        std::chrono::milliseconds m_timeSinceLastAudio = std::chrono::milliseconds(0);
 };
 
 

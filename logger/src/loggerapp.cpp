@@ -205,7 +205,7 @@ void LoggerApp::StartRecording()
 
     OutputStreamJson(false);
 
-    m_pClient->Run(true);   //does not return until we exit
+    m_pClient->Run();   //does not return until we exit
     m_pClient->StreamFromSource(pSource);
 
     while(true)
@@ -282,16 +282,13 @@ void LoggerApp::SessionCallback(std::shared_ptr<pml::aoip::AoIPSource>,  const p
 
 void LoggerApp::OutputSessionJson()
 {
+
     m_jsStatus[jsonConsts::id] = m_sName;
 
     m_jsStatus[jsonConsts::session][jsonConsts::sdp] = m_session.sRawSDP;
     m_jsStatus[jsonConsts::session][jsonConsts::name] = m_session.sName;
     m_jsStatus[jsonConsts::session][jsonConsts::type] = m_session.sType;
     m_jsStatus[jsonConsts::session][jsonConsts::description] = m_session.sDescription;
-//    for(const auto& sGroup : m_session.setGroups)
-//    {
-//        m_jsStatus[jsonConsts::session][jsonConsts::groups].append(sGroup);
-//    }
     m_jsStatus[jsonConsts::session][jsonConsts::ref_clock][jsonConsts::domain] = m_session.refClock.nDomain;
     m_jsStatus[jsonConsts::session][jsonConsts::ref_clock][jsonConsts::id] = m_session.refClock.sId;
     m_jsStatus[jsonConsts::session][jsonConsts::ref_clock][jsonConsts::type] = m_session.refClock.sType;
@@ -362,6 +359,11 @@ void LoggerApp::LoopCallback(std::chrono::microseconds duration)
 
         OutputHeartbeatJson();
     }
+    m_timeSinceLastAudio += duration;
+    if(std::chrono::duration_cast<std::chrono::milliseconds>(m_timeSinceLastHeartbeat) >= std::chrono::milliseconds(500))
+    {
+        StreamFail();
+    }
 }
 
 void LoggerApp::OutputHeartbeatJson()
@@ -378,6 +380,8 @@ void LoggerApp::WriteToSoundFile(std::shared_ptr<pml::aoip::AoIPSource>, std::sh
 {
     if(m_subsession.nChannels > 0)
     {
+        m_timeSinceLastAudio = std::chrono::microseconds(0);
+
         if(!m_bReceivingAudio)
         {
             m_bReceivingAudio = true;
@@ -417,8 +421,6 @@ void LoggerApp::WriteToSoundFile(std::shared_ptr<pml::aoip::AoIPSource>, std::sh
             //what do we do next time we get a buffer??
         }
     }
-
-    m_pServer->StartTimer(std::chrono::milliseconds(500), std::bind(&LoggerApp::StreamFail, this));
 }
 
 void LoggerApp::OutputFileJson()

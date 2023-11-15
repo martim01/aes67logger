@@ -19,16 +19,17 @@ int bt_callback(void *, uintptr_t, const char *filename, int lineno, const char 
   }
 
   /// print
-  pmlLog(pml::LOG_CRITICAL) << filename << ":" << lineno << " in function " << func_name;
+  //pmlLog(pml::LOG_CRITICAL) << filename << ":" << lineno << " in function " << func_name;
+  std::cout << filename << ":" << lineno << " in function " << func_name << std::endl;
   return 0;
 }
 
 void bt_error_callback(void *, const char *msg, int errnum) {
-  pmlLog(pml::LOG_CRITICAL) << "Error " << errnum << " occurred when getting the stacktrace: " << msg;
+  std::cout << "Error " << errnum << " occurred when getting the stacktrace: " << msg << std::endl;
 }
 
 void bt_error_callback_create(void *, const char *msg, int errnum) {
-  pmlLog(pml::LOG_CRITICAL) << "Error " << errnum << " occurred when initializing the stacktrace: " << msg;
+  std::cout << "Error " << errnum << " occurred when initializing the stacktrace: " << msg << std::endl;
 }
 
 void init_back_trace(const char *filename) {
