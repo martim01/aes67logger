@@ -44,7 +44,7 @@ const std::function<void(const std::string&, int, bool)>& exitCallback)
 
 void LaunchManager::EnumLoggers()
 {
-    pmlLog() << "EnumLoggers...";
+    pmlLog(pml::LOG_INFO, "aes67") << "EnumLoggers...";
 
     std::scoped_lock<std::mutex> lg(m_mutex);
 
@@ -56,7 +56,7 @@ void LaunchManager::EnumLoggers()
         {
             if(entry.path().extension() == ".ini")
             {
-                pmlLog() << "Logger: '" << entry.path().stem() << "' found";
+                pmlLog(pml::LOG_INFO, "aes67") << "Logger: '" << entry.path().stem() << "' found";
 
                 m_mLaunchers.try_emplace(entry.path().stem(), std::make_shared<Launcher>(m_context, entry.path(),
                                                                                      MakeSocketFullPath(entry.path().stem()),
@@ -70,7 +70,7 @@ void LaunchManager::EnumLoggers()
     }
     catch(std::filesystem::filesystem_error& e)
     {
-        pmlLog(pml::LOG_CRITICAL) << "Could not enum loggers..." << e.what();
+        pmlLog(pml::LOG_CRITICAL, "aes67") << "Could not enum loggers..." << e.what();
     }
 }
 
@@ -92,7 +92,7 @@ void LaunchManager::LaunchAll()
 {
     std::scoped_lock<std::mutex> lg(m_mutex);
 
-    pmlLog() << "Start all loggers";
+    pmlLog(pml::LOG_INFO, "aes67") << "Start all loggers";
 
     for(const auto& [sName, pLauncher] : m_mLaunchers)
     {
@@ -114,7 +114,7 @@ void LaunchManager::LaunchLogger(std::shared_ptr<Launcher> pLauncher) const
 pml::restgoose::response LaunchManager::AddLogger(const pml::restgoose::response& theData)
 {
     //check for the data
-	pmlLog() << theData.jsonData;
+	pmlLog(pml::LOG_INFO, "aes67") << theData.jsonData;
     if(CheckJsonMembers(theData.jsonData, {{jsonConsts::name, enumJsonType::STRING},
                                            {jsonConsts::source, enumJsonType::STRING},
                                            {jsonConsts::rtsp, enumJsonType::STRING},
@@ -131,7 +131,7 @@ pml::restgoose::response LaunchManager::AddLogger(const pml::restgoose::response
 
     std::scoped_lock<std::mutex> lg(m_mutex);
 
-    pmlLog() << "Add logger '" << theData.jsonData[jsonConsts::name].asString() << "'";
+    pmlLog(pml::LOG_INFO, "aes67") << "Add logger '" << theData.jsonData[jsonConsts::name].asString() << "'";
 
     if(m_mLaunchers.find(theData.jsonData[jsonConsts::name].asString()) != m_mLaunchers.end())
     {
@@ -256,7 +256,7 @@ void LaunchManager::CreateLoggerConfig(const Json::Value& jsData) const
 
 pml::restgoose::response LaunchManager::RemoveLogger(const std::string& sName)
 {
-    pmlLog() << "Remove logger '" << sName << "'";
+    pmlLog(pml::LOG_INFO, "aes67") << "Remove logger '" << sName << "'";
 
     if(auto itLogger = m_mLaunchers.find(sName); itLogger != m_mLaunchers.end())
     {
@@ -271,7 +271,7 @@ pml::restgoose::response LaunchManager::RemoveLogger(const std::string& sName)
 
 void LaunchManager::PipeThread()
 {
-    pmlLog() << "Pipe Thread check if running";
+    pmlLog(pml::LOG_INFO, "aes67") << "Pipe Thread check if running";
     if(m_pThread)
     {
         m_context.stop();
@@ -280,7 +280,7 @@ void LaunchManager::PipeThread()
         m_pThread = nullptr;
     }
 
-    pmlLog() << "Pipe Thread now start";
+    pmlLog(pml::LOG_INFO, "aes67") << "Pipe Thread now start";
     m_pThread = std::make_unique<std::thread>([this]()
     {
         auto work = asio::require(m_context.get_executor(), asio::execution::outstanding_work_t::tracked);
@@ -383,7 +383,7 @@ pml::restgoose::response LaunchManager::RestartLogger(const std::string& sName)
 
 void LaunchManager::ExitCallback(const std::string& sLogger, int nExitCode, bool bRemove)
 {
-    pmlLog() << "Logger " << sLogger << " has exited with exit code " << nExitCode;
+    pmlLog(pml::LOG_INFO, "aes67") << "Logger " << sLogger << " has exited with exit code " << nExitCode;
     if(bRemove)
     {
         m_mLaunchers.erase(sLogger);

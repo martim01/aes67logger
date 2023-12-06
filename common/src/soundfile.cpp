@@ -13,7 +13,7 @@ bool SoundFile::Close()
 {
     if(m_pHandle)
     {
-        pmlLog() << "Closed sound file '" << m_file.string() << "'";
+        pmlLog(pml::LOG_INFO, "aes67") << "Closed sound file '" << m_file.string() << "'";
         m_file.clear();
         m_pHandle = nullptr;
     }
@@ -23,7 +23,7 @@ bool SoundFile::Close()
 
 bool SoundFile::OpenToWrite(const std::filesystem::path& path, unsigned short nChannels, unsigned long nSampleRate, unsigned short nBitLength)
 {
-    pmlLog() << "Attempt to open Sound File '" << path.string() << "' channels=" << nChannels << " sampleRate=" << nSampleRate;
+    pmlLog(pml::LOG_INFO, "aes67") << "Attempt to open Sound File '" << path.string() << "' channels=" << nChannels << " sampleRate=" << nSampleRate;
 
     m_file = path;
 
@@ -47,7 +47,7 @@ bool SoundFile::OpenToWrite(const std::filesystem::path& path, unsigned short nC
     m_nWritten = 0;
     if(m_pHandle == nullptr)
     {
-        pmlLog(pml::LOG_WARN) << "Could not open the sound file for writing";
+        pmlLog(pml::LOG_WARN, "aes67") << "Could not open the sound file for writing";
     }
 
     return (m_pHandle != nullptr);
@@ -55,7 +55,7 @@ bool SoundFile::OpenToWrite(const std::filesystem::path& path, unsigned short nC
 
 bool SoundFile::OpenToWriteFlac(const std::filesystem::path& path, unsigned short nChannels, unsigned long nSampleRate, unsigned short nBitLength)
 {
-    pmlLog() << "Attempt to open Sound File '" << path.string() << "' channels=" << nChannels << " sampleRate=" << nSampleRate;
+    pmlLog(pml::LOG_INFO, "aes67") << "Attempt to open Sound File '" << path.string() << "' channels=" << nChannels << " sampleRate=" << nSampleRate;
 
     m_file = path;
 
@@ -78,7 +78,7 @@ bool SoundFile::OpenToWriteFlac(const std::filesystem::path& path, unsigned shor
     m_nWritten = 0;
     if(m_pHandle == nullptr)
     {
-        pmlLog(pml::LOG_WARN) << "Could not open the sound file for writing";
+        pmlLog(pml::LOG_WARN,"aes67") << "Could not open the sound file for writing";
     }
 
     return (m_pHandle != nullptr);
@@ -86,13 +86,13 @@ bool SoundFile::OpenToWriteFlac(const std::filesystem::path& path, unsigned shor
 
 bool SoundFile::OpenToRead(const std::filesystem::path& path)
 {
-    pmlLog() << "Attempt to open Sound File '" << path.string() << "' to read";
+    pmlLog(pml::LOG_INFO, "aes67") << "Attempt to open Sound File '" << path.string() << "' to read";
     m_file = path;
 
     m_pHandle = std::make_unique<SndfileHandle>(m_file.string().c_str());
     if(m_pHandle == nullptr)
     {
-        pmlLog(pml::LOG_WARN) << "Could not open the sound file for reading";
+        pmlLog(pml::LOG_WARN, "aes67") << "Could not open the sound file for reading";
     }
     return (m_pHandle != nullptr);
 }

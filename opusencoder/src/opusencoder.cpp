@@ -37,7 +37,7 @@ bool OpusEncoder::InitEncoder()
     m_pComments = ope_comments_create();
 	if( !m_pComments )
 	{
-        pmlLog(pml::LOG_CRITICAL) << "Could not allocate opus comments";
+        pmlLog(pml::LOG_CRITICAL, "aes67") << "Could not allocate opus comments";
         return false;
 	}
     return true;
@@ -48,12 +48,12 @@ bool OpusEncoder::EncodeFile(const std::filesystem::path& wavFile)
     SoundFile sf;
     if(sf.OpenToRead(wavFile) == false)
     {
-        pmlLog(pml::LOG_ERROR) << "Could not read wav file " << wavFile;
+        pmlLog(pml::LOG_ERROR, "aes67") << "Could not read wav file " << wavFile;
 
         SendError("Could not read wav file", wavFile);
         return false;
     }
-    pmlLog(pml::LOG_DEBUG) << "Opened wav fie " << wavFile;
+    pmlLog(pml::LOG_DEBUG, "aes67") << "Opened wav fie " << wavFile;
     auto path = GetPathEncoded();
     path /= wavFile.stem();
     path.replace_extension(".opus");
@@ -66,22 +66,22 @@ bool OpusEncoder::EncodeFile(const std::filesystem::path& wavFile)
         m_pEncoder = ope_encoder_create_file(path.string().c_str(), m_pComments, sf.GetSampleRate(), sf.GetChannelCount(), 0, nullptr);
         if(m_pEncoder == nullptr)
         {
-            pmlLog(pml::LOG_ERROR) << "Failed to open encoder";
+            pmlLog(pml::LOG_ERROR, "aes67") << "Failed to open encoder";
 
             SendError("Could not create encoder", wavFile);
             return false;
         }
-        pmlLog(pml::LOG_DEBUG) << "Opened encoder";
+        pmlLog(pml::LOG_DEBUG, "aes67") << "Opened encoder";
     }
     else if(ope_encoder_continue_new_file(m_pEncoder, path.string().c_str(), m_pComments ) != OPE_OK)
     {
-        pmlLog(pml::LOG_ERROR) << "Failed to open encoder for new file";
+        pmlLog(pml::LOG_ERROR, "aes67") << "Failed to open encoder for new file";
         SendError("Could not reopen encoder", wavFile);
         return false;
     }
     else
     {
-	    pmlLog(pml::LOG_DEBUG) << "Continue new file " << path;
+	    pmlLog(pml::LOG_DEBUG, "aes67") << "Continue new file " << path;
     }
 
     auto tpStart = std::chrono::system_clock::now();
@@ -97,12 +97,12 @@ bool OpusEncoder::EncodeFile(const std::filesystem::path& wavFile)
 
             if(ope_encoder_ctl(m_pEncoder, OPUS_SET_LSB_DEPTH(24)) != OPE_OK)
             {
-                pmlLog(pml::LOG_WARN) << "Failed to set LSB_DEPTH, continuing anyway...";
+                pmlLog(pml::LOG_WARN, "aes67") << "Failed to set LSB_DEPTH, continuing anyway...";
                 SendError("Failed to set LSB_DEPTH", wavFile);
             }
             if(ope_encoder_write_float(m_pEncoder, vBuffer.data(), vBuffer.size()/2) != OPE_OK)
             {
-                pmlLog(pml::LOG_ERROR) << "Failed to encode file " << wavFile.string();
+                pmlLog(pml::LOG_ERROR, "aes67") << "Failed to encode file " << wavFile.string();
                 SendError("Failed to encode file", wavFile);
                 bOk = false;
             }
@@ -115,7 +115,7 @@ bool OpusEncoder::EncodeFile(const std::filesystem::path& wavFile)
         }
 
     } while (bOk && vBuffer.size() == GetBufferSize());
-    pmlLog() << "Encoded " << path;
+    pmlLog(pml::LOG_INFO, "aes67") << "Encoded " << path;
 
     
     FileEncoded(wavFile);

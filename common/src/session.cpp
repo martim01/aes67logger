@@ -46,7 +46,7 @@ SessionCookie::SessionCookie(const userName& user, const ipAddress& peer) : m_us
 {
     m_tpCreated = std::chrono::system_clock::now();
     m_id = CreateGuid(GetCurrentTimeAsString(true)+peer.Get()+user.Get());
-    pmlLog() << "SessionCookie created";
+
 }
 
 void SessionCookie::Accessed()

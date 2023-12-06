@@ -23,19 +23,19 @@ bool FlacEncoder::EncodeFile(const std::filesystem::path& wavFile)
 
     if(sf.OpenToRead(wavFile) == false)
     {
-        pmlLog(pml::LOG_ERROR) << "Could not read wav file " << wavFile;
+        pmlLog(pml::LOG_ERROR, "aes67") << "Could not read wav file " << wavFile;
 
         SendError("Could not read wav file", wavFile);
         return false;
     }
-    pmlLog(pml::LOG_DEBUG) << "Opened wav fie " << wavFile;
+    pmlLog(pml::LOG_DEBUG, "aes67") << "Opened wav fie " << wavFile;
     auto path = GetPathEncoded();
     path /= wavFile.stem();
     path.replace_extension(".flac");
 
     if(sfFlac.OpenToWriteFlac(path, sf.GetChannelCount(), sf.GetSampleRate(), sf.GetBitDepth()) == false)
     {
-        pmlLog(pml::LOG_ERROR) << "Could not create flac file " << path;
+        pmlLog(pml::LOG_ERROR, "aes67") << "Could not create flac file " << path;
 
         SendError("Could not create flac file", path);
         return false;
@@ -51,7 +51,7 @@ bool FlacEncoder::EncodeFile(const std::filesystem::path& wavFile)
         }
 
     } while (bOk && vBuffer.size() == GetBufferSize());
-    pmlLog() << "Encoded " << path;
+    pmlLog(pml::LOG_INFO, "aes67") << "Encoded " << path;
 
     FileEncoded(wavFile);
     return true;

@@ -36,7 +36,7 @@ void PlaybackServer::Init()
 
 void PlaybackServer::AddCustomEndpoints()
 {
-    pmlLog() << "Create Custom Endpoints";
+    pmlLog(pml::LOG_INFO, "aes67") << "Create Custom Endpoints";
 
     GetServer().AddEndpoint(pml::restgoose::GET, EP_LOGGERS, std::bind(&PlaybackServer::GetLoggers, this, _1,_2,_3,_4));
     AddLoggerEndpoints();
@@ -66,7 +66,7 @@ void PlaybackServer::DeleteCustomEndpoints()
 
 pml::restgoose::response PlaybackServer::GetApi(const query& , const postData& , const endpoint& , const userName& ) const
 {
-    pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "GetApi" ;
+    pmlLog(pml::LOG_DEBUG, "aes67") << "Endpoints\t" << "GetApi" ;
     pml::restgoose::response theResponse;
     theResponse.jsonData = Json::Value(Json::arrayValue);
     theResponse.jsonData.append(LOGGERS);
@@ -130,7 +130,7 @@ void PlaybackServer::RemoveLoggerEndpoints(const std::string& sName, std::shared
 
 pml::restgoose::response PlaybackServer::GetLoggers(const query& , const postData& , const endpoint& , const userName& ) const
 {
-    pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "GetLoggers" ;
+    pmlLog(pml::LOG_DEBUG, "aes67") << "Endpoints\t" << "GetLoggers" ;
     
     pml::restgoose::response theResponse;
     theResponse.jsonData = Json::Value(Json::arrayValue);
@@ -169,7 +169,7 @@ pml::restgoose::response PlaybackServer::GetLoggerFiles(const query& , const pos
     auto vPath = SplitString(theEndpoint.Get(),'/');
     
     auto itLogger = m_pManager->GetLoggers().find(vPath[vPath.size()-2]);
-    pmlLog() << "GetLoggerFiles: " << vPath[vPath.size()-2] << ": " << vPath.back();
+    pmlLog(pml::LOG_INFO, "aes67") << "GetLoggerFiles: " << vPath[vPath.size()-2] << ": " << vPath.back();
 
     if(itLogger != m_pManager->GetLoggers().end())
     {
@@ -199,7 +199,7 @@ pml::restgoose::response PlaybackServer::DownloadLoggerFile(const query& theQuer
     auto vPath = SplitString(theEndpoint.Get(),'/');
     
     auto itLogger = m_pManager->GetLoggers().find(vPath[vPath.size()-3]);
-    pmlLog() << "DownloadLoggerFile: " << vPath[vPath.size()-3] << ": " << vPath.back();
+    pmlLog(pml::LOG_INFO, "aes67") << "DownloadLoggerFile: " << vPath[vPath.size()-3] << ": " << vPath.back();
 
     if(itLogger != m_pManager->GetLoggers().end())
     {

@@ -38,7 +38,7 @@ bool Launcher::IsRunning() const
 
 int Launcher::LaunchEncoder()
 {
-    pmlLog(pml::LOG_DEBUG) << "LaunchEncoder: " << m_pathSocket.stem().string();
+    pmlLog(pml::LOG_DEBUG, "aes67") << "LaunchEncoder: " << m_pathSocket.stem().string();
     if(CheckForOrphanedEncoder())
     {
         return m_pid;
@@ -48,13 +48,13 @@ int Launcher::LaunchEncoder()
         m_pid = fork();
         if(m_pid < 0)
         {
-            pmlLog(pml::LOG_ERROR) << "could not fork: " << strerror(errno) << std::endl;
+            pmlLog(pml::LOG_ERROR, "aes67") << "could not fork: " << strerror(errno) << std::endl;
 
             return FORK_ERROR;
         }
         else if(m_pid > 0)
         {   // Parent
-            pmlLog() << "Encoder launched";
+            pmlLog(pml::LOG_INFO, "aes67") << "Encoder launched";
             m_pathSocket.replace_extension(std::to_string(m_pid));
             m_pSocket = std::make_shared<asio::local::stream_protocol::socket>(m_context);
             Connect(std::chrono::milliseconds(50));
@@ -80,40 +80,40 @@ void Launcher::Connect(const std::chrono::milliseconds& wait)
 {
     try
     {
-        pmlLog() << "Start timer to connect to " << m_pathSocket.stem().string();
+        pmlLog(pml::LOG_INFO, "aes67") << "Start timer to connect to " << m_pathSocket.stem().string();
         if(m_context.stopped())
         {
-            pmlLog(pml::LOG_ERROR) << "Context has stopped!!";
+            pmlLog(pml::LOG_ERROR, "aes67") << "Context has stopped!!";
         }
         m_timer.expires_from_now(wait);
         m_timer.async_wait([this](const asio::error_code& e)
         {
             if(!e && m_pSocket)
             {
-                pmlLog() << "Try to connect to " << m_pathSocket.stem().string();
+                pmlLog(pml::LOG_INFO, "aes67") << "Try to connect to " << m_pathSocket.stem().string();
                 m_pSocket->async_connect(asio::local::stream_protocol::endpoint(m_pathSocket.string()), 
                 std::bind(&Launcher::HandleConnect, this, _1));
             }
             else if(e != asio::error::operation_aborted)
             {
-                pmlLog(pml::LOG_ERROR) << "deadline timer failed!";
+                pmlLog(pml::LOG_ERROR, "aes67") << "deadline timer failed!";
             }
             else
             {
-                pmlLog(pml::LOG_DEBUG) << "deadline aborted";
+                pmlLog(pml::LOG_DEBUG, "aes67") << "deadline aborted";
             }
          });
     }
     catch(asio::system_error& e)
     {
-        pmlLog(pml::LOG_ERROR) << "Could not connect create timer to connect to Encoder!";
+        pmlLog(pml::LOG_ERROR, "aes67") << "Could not connect create timer to connect to Encoder!";
     }
 }
 
 
 bool Launcher::RestartEncoder()
 {
-    pmlLog() << m_pathSocket.stem().string() << " restart Encoder";
+    pmlLog(pml::LOG_INFO, "aes67") << m_pathSocket.stem().string() << " restart Encoder";
     m_bMarkedForRemoval = false;
     CloseAndLaunchOrRemove(SIGKILL);
     return true;
@@ -121,7 +121,7 @@ bool Launcher::RestartEncoder()
 
 bool Launcher::RemoveEncoder()
 {
-    pmlLog() << m_pathSocket.stem().string() << " remove Encoder";
+    pmlLog(pml::LOG_INFO, "aes67") << m_pathSocket.stem().string() << " remove Encoder";
     m_bMarkedForRemoval = true;
     CloseAndLaunchOrRemove(SIGKILL);
     return true;
@@ -132,22 +132,22 @@ int Launcher::CloseEncoder(int nSignal)
 {
     if(m_pid != 0)
     {
-        pmlLog() << m_pathSocket.stem().string() << " stop read socket timer";
+        pmlLog(pml::LOG_INFO, "aes67") << m_pathSocket.stem().string() << " stop read socket timer";
         m_timer.cancel();
 
-        pmlLog() << m_pathSocket.stem().string() << " close the socket";
+        pmlLog(pml::LOG_INFO, "aes67") << m_pathSocket.stem().string() << " close the socket";
         m_pSocket->close();
 
         m_pSocket = nullptr;
 
-        pmlLog() << m_pathSocket.stem().string() << " send " << nSignal << " to pid " << m_pid;
+        pmlLog(pml::LOG_INFO, "aes67") << m_pathSocket.stem().string() << " send " << nSignal << " to pid " << m_pid;
         kill(m_pid, nSignal);
         int nStatus;
 
-        pmlLog() << m_pathSocket.stem().string() << " waitpid";
+        pmlLog(pml::LOG_INFO, "aes67") << m_pathSocket.stem().string() << " waitpid";
         waitpid(m_pid, &nStatus,0);
 
-        pmlLog() << m_pathSocket.stem().string() << " waitpid returned " << nStatus << " now remove socket file it still there";
+        pmlLog(pml::LOG_INFO, "aes67") << m_pathSocket.stem().string() << " waitpid returned " << nStatus << " now remove socket file it still there";
 
         if(m_pathSocket.has_extension())
         {
@@ -158,7 +158,7 @@ int Launcher::CloseEncoder(int nSignal)
             }
             catch(std::filesystem::filesystem_error& e)
             {
-                pmlLog(pml::LOG_WARN) << "Could not remove socket " << e.what();
+                pmlLog(pml::LOG_WARN, "aes67") << "Could not remove socket " << e.what();
             }
         }
         return nStatus;
@@ -190,12 +190,12 @@ void Launcher::Read()
     {
         if(!e)
         {
-            pmlLog(pml::LOG_ERROR) << m_pathSocket << "\tTimeout - close Encoder and relaunch" << std::endl;
+            pmlLog(pml::LOG_ERROR, "aes67") << m_pathSocket << "\tTimeout - close Encoder and relaunch" << std::endl;
             CloseAndLaunchOrRemove(SIGKILL);
         }
         else if(e != asio::error::operation_aborted)
         {
-            pmlLog(pml::LOG_ERROR) << "deadline timer failed!";
+            pmlLog(pml::LOG_ERROR, "aes67") << "deadline timer failed!";
         }
     });
 
@@ -231,7 +231,7 @@ void Launcher::HandleRead(std::error_code ec, std::size_t nLength)
     }
     else if(ec != asio::error::operation_aborted)
     {
-        pmlLog(pml::LOG_ERROR) << m_pathSocket << "\tEOF or Read Error: " << ec.message();
+        pmlLog(pml::LOG_ERROR, "aes67") << m_pathSocket << "\tEOF or Read Error: " << ec.message();
         CloseAndLaunchOrRemove(SIGKILL);
     }
 }
@@ -264,12 +264,12 @@ void Launcher::HandleConnect(const asio::error_code& e)
 {
     if(!e)
     {
-        pmlLog() << "Connected to " << m_pathSocket.stem().string();
+        pmlLog(pml::LOG_INFO, "aes67") << "Connected to " << m_pathSocket.stem().string();
         Read();
     }
     else
     {
-        pmlLog(pml::LOG_ERROR) << "Could not connect to Encoder " << m_pathSocket.stem().string() << " " << e.message() << " " << m_pathSocket;
+        pmlLog(pml::LOG_ERROR, "aes67") << "Could not connect to Encoder " << m_pathSocket.stem().string() << " " << e.message() << " " << m_pathSocket;
         Connect(std::chrono::seconds(1));
     }
 }
@@ -290,7 +290,7 @@ bool Launcher::CheckForOrphanedEncoder()
 {
     auto pathOrphan = m_pathSocket.parent_path();
 
-    pmlLog() << "CheckForOrphanedEncoder in " << pathOrphan;
+    pmlLog(pml::LOG_INFO, "aes67") << "CheckForOrphanedEncoder in " << pathOrphan;
 
     for(const auto& entry : std::filesystem::directory_iterator(pathOrphan))
     {
@@ -310,7 +310,7 @@ bool Launcher::CheckForOrphanedEncoder()
             {
                 if(kill(nPid, 0) == 0)
                 {
-                    pmlLog() << "Encoder " << m_pathSocket.stem().string() << " is still running on pid " << nPid;
+                    pmlLog(pml::LOG_INFO, "aes67") << "Encoder " << m_pathSocket.stem().string() << " is still running on pid " << nPid;
                     m_pid = nPid;
                     m_pathSocket.replace_extension(std::to_string(m_pid));
                     m_pSocket = std::make_shared<asio::local::stream_protocol::socket>(m_context);
@@ -319,14 +319,14 @@ bool Launcher::CheckForOrphanedEncoder()
                 }
                 else
                 {
-                    pmlLog() << "Encoder " << m_pathSocket.stem().string() << " was running on pid " << nPid << " and has left socket open. Close it";
+                    pmlLog(pml::LOG_INFO, "aes67") << "Encoder " << m_pathSocket.stem().string() << " was running on pid " << nPid << " and has left socket open. Close it";
                     try
                     {
                         std::filesystem::remove(entry.path());
                     }
                     catch(std::filesystem::filesystem_error& e)
                     {
-                        pmlLog(pml::LOG_WARN) << "Could not remove socket " << e.what();
+                        pmlLog(pml::LOG_WARN, "aes67") << "Could not remove socket " << e.what();
                     }
                 }
             }
@@ -340,10 +340,10 @@ void Launcher::DoRemoveEncoder()
     try
     {
         std::filesystem::remove(m_pathSocket);
-        pmlLog() << "Sockets for " << m_pathSocket.stem().string() << " removed";
+        pmlLog(pml::LOG_INFO, "aes67") << "Sockets for " << m_pathSocket.stem().string() << " removed";
     }
     catch(std::filesystem::filesystem_error& e)
     {
-        pmlLog() << m_pathSocket.stem().string() << " failed to remove all files " << e.what();
+        pmlLog(pml::LOG_INFO, "aes67") << m_pathSocket.stem().string() << " failed to remove all files " << e.what();
     }
 }

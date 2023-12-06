@@ -27,7 +27,7 @@ void AsioSession::write(const std::string& sMessage)
     }
     catch(asio::system_error& e)
     {
-        pmlLog(pml::LOG_ERROR) << "Socket write error: " << e.what();
+        pmlLog(pml::LOG_ERROR, "aes67") << "Socket write error: " << e.what();
     }
 }
 
@@ -56,7 +56,7 @@ void AsioServer::do_accept()
     }
     catch(asio::system_error &e)
     {
-        pmlLog(pml::LOG_ERROR) << "Socket accept error: " << e.what();
+        pmlLog(pml::LOG_ERROR, "aes67") << "Socket accept error: " << e.what();
     }
 }
 

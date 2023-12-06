@@ -30,7 +30,7 @@ void EncodingServer::Init()
 void EncodingServer::AddCustomEndpoints()
 {
 
-    pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "AddCustomEndpoints";
+    pmlLog(pml::LOG_DEBUG, "aes67") << "Endpoints\t" << "AddCustomEndpoints";
 
     GetServer().AddEndpoint(pml::restgoose::GET, endpoint("/x-api/encoders"), std::bind(&EncodingServer::GetEncoders, this, _1,_2,_3,_4));
 
@@ -57,7 +57,7 @@ void EncodingServer::DeleteCustomEndpoints()
 
 pml::restgoose::response EncodingServer::GetApi(const query& , const postData& , const endpoint& , const userName& ) const
 {
-    pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "GetApi" ;
+    pmlLog(pml::LOG_DEBUG, "aes67") << "Endpoints\t" << "GetApi" ;
     pml::restgoose::response theResponse;
     theResponse.jsonData = Json::Value(Json::arrayValue);
     theResponse.jsonData.append(ENCODERS);
@@ -96,7 +96,7 @@ void EncodingServer::RemoveEncoderEndpoints(const std::string& sName)
 
 pml::restgoose::response EncodingServer::GetEncoders(const query& , const postData& , const endpoint& , const userName& ) const
 {
-    pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "GetEncoders" ;
+    pmlLog(pml::LOG_DEBUG, "aes67") << "Endpoints\t" << "GetEncoders" ;
     
     pml::restgoose::response theResponse;
     theResponse.jsonData = Json::Value(Json::arrayValue);
@@ -148,13 +148,13 @@ void EncodingServer::ExitCallback(const std::string& sEncoderId, int nExit, bool
     if(WIFEXITED(nExit))
     {
         jsStatus[jsonConsts::exit][jsonConsts::code] = WEXITSTATUS(nExit);
-        pmlLog() << "Logger exited " << "Code: " << WEXITSTATUS(nExit);
+        pmlLog(pml::LOG_INFO, "aes67") << "Logger exited " << "Code: " << WEXITSTATUS(nExit);
     }
     if(WIFSIGNALED(nExit))
     {
         jsStatus[jsonConsts::exit][jsonConsts::signal][jsonConsts::code] = WTERMSIG(nExit);
         jsStatus[jsonConsts::exit][jsonConsts::signal][jsonConsts::description] = strsignal(WTERMSIG(nExit));
-        pmlLog() << "Logger signaled "  << "Code: " << WTERMSIG(nExit) << " " << strsignal(WTERMSIG(nExit));
+        pmlLog(pml::LOG_INFO, "aes67") << "Logger signaled "  << "Code: " << WTERMSIG(nExit) << " " << strsignal(WTERMSIG(nExit));
 
         if(WCOREDUMP(nExit))
         {
@@ -164,12 +164,12 @@ void EncodingServer::ExitCallback(const std::string& sEncoderId, int nExit, bool
     if(WIFSTOPPED(nExit))
     {
         jsStatus[jsonConsts::stopped][jsonConsts::signal] = WSTOPSIG(nExit);
-        pmlLog() << "Logger stopped "  << "Signal: " << WSTOPSIG(nExit);
+        pmlLog(pml::LOG_INFO, "aes67") << "Logger stopped "  << "Signal: " << WSTOPSIG(nExit);
     }
     if(WIFCONTINUED(nExit))
     {
         jsStatus[jsonConsts::resumed][jsonConsts::signal] = WSTOPSIG(nExit);
-        pmlLog() << "Logger resumed Signal:" << WSTOPSIG(nExit);
+        pmlLog(pml::LOG_INFO, "aes67") << "Logger resumed Signal:" << WSTOPSIG(nExit);
     }
 
     GetServer().SendWebsocketMessage({endpoint(EP_WS_ENCODERS.Get()+"/"+sEncoderId)}, jsStatus);

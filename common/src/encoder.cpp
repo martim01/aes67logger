@@ -70,7 +70,7 @@ bool Encoder::LoadConfig(const std::filesystem::path& config)
         }
         catch(std::filesystem::filesystem_error& e)
         {
-            pmlLog(pml::LOG_ERROR) << "Could not create " << m_sType << " file directory " << m_pathEncoded;
+            pmlLog(pml::LOG_ERROR, "aes67") << "Could not create " << m_sType << " file directory " << m_pathEncoded;
         }
 
         return true;
@@ -130,7 +130,7 @@ std::filesystem::path Encoder::GetNextFile()
     {
         path = m_qToEncode.front();
         m_qToEncode.pop();
-        pmlLog(pml::LOG_DEBUG) << "Queue=" << m_qToEncode.size();
+        pmlLog(pml::LOG_DEBUG, "aes67") << "Queue=" << m_qToEncode.size();
     }
 
     OutputEncodedStats(path, 0.0);
@@ -140,7 +140,7 @@ std::filesystem::path Encoder::GetNextFile()
 
 int Encoder::Run()
 {
-    pmlLog(pml::LOG_DEBUG) << "Run";
+    pmlLog(pml::LOG_DEBUG, "aes67") << "Run";
 
     CreateInitialFileQueue();
     StartObserver();
@@ -159,10 +159,10 @@ int Encoder::Run()
                 m_condition.wait_for(lk, std::chrono::seconds(2), [this]{return m_qToEncode.empty() == false;});
             }
         }
-	    pmlLog(pml::LOG_DEBUG) << "Finished OK";
+	    pmlLog(pml::LOG_DEBUG, "aes67") << "Finished OK";
         return 0;
     }
-    pmlLog(pml::LOG_DEBUG) << "Finished ERROR";
+    pmlLog(pml::LOG_DEBUG, "aes67") << "Finished ERROR";
 
     return -1;
 }
@@ -170,7 +170,7 @@ int Encoder::Run()
 
 void Encoder::CreateInitialFileQueue()
 {
-    pmlLog(pml::LOG_INFO) << " - enum " << m_pathWav;
+    pmlLog(pml::LOG_INFO, "aes67") << " - enum " << m_pathWav;
 
     std::map<std::string, std::filesystem::path> mWavFiles;
     try
@@ -182,7 +182,7 @@ void Encoder::CreateInitialFileQueue()
                 mWavFiles.try_emplace(entry.path().stem(), entry.path());
             }
         }
-        pmlLog(pml::LOG_INFO) << "Found " << mWavFiles.size();
+        pmlLog(pml::LOG_INFO, "aes67") << "Found " << mWavFiles.size();
         //now remove all the files that have already been encoded
         for(const auto& entry : std::filesystem::directory_iterator(m_pathEncoded))
         {   
@@ -192,7 +192,7 @@ void Encoder::CreateInitialFileQueue()
             }
         }
 
-        pmlLog(pml::LOG_INFO) << "Need to encode " << mWavFiles.size();
+        pmlLog(pml::LOG_INFO, "aes67") << "Need to encode " << mWavFiles.size();
 
         //and add all the files to the queue
         for(const auto& [name, path] : mWavFiles)
@@ -202,7 +202,7 @@ void Encoder::CreateInitialFileQueue()
     }
     catch(const std::exception& e)
     {
-        pmlLog(pml::LOG_ERROR) << m_sName << " - Failed to enum " << m_pathWav << ": " << e.what();
+        pmlLog(pml::LOG_ERROR, "aes67") << m_sName << " - Failed to enum " << m_pathWav << ": " << e.what();
         SendError("Failed to enumerate", m_pathWav);
         std::cerr << e.what() << '\n';
     }
@@ -214,16 +214,16 @@ void Encoder::StartObserver()
     {
         if(m_observer.AddWatchHandler(nWatch, std::bind(&Encoder::OnWavWritten, this, _1, _2, _3, _4), pml::filewatch::Observer::enumWatch::CLOSED_WRITE))
         {
-            pmlLog() << m_sName << " added watch handler to " << m_pathWav;
+            pmlLog(pml::LOG_INFO, "aes67") << m_sName << " added watch handler to " << m_pathWav;
         }
         else
         {
-            pmlLog(pml::LOG_ERROR) << "Failed to attach watch handler to " << m_pathWav;
+            pmlLog(pml::LOG_ERROR, "aes67") << "Failed to attach watch handler to " << m_pathWav;
         }
     }
     else
     {
-        pmlLog(pml::LOG_ERROR) << "Failed to attach watch to " << m_pathWav;
+        pmlLog(pml::LOG_ERROR, "aes67") << "Failed to attach watch to " << m_pathWav;
     }
     m_observer.Run();
 }
@@ -232,7 +232,7 @@ void Encoder::OnWavWritten(int , const std::filesystem::path& path, uint32_t , b
 {
     std::scoped_lock<std::mutex> lg(m_mutex);
    
-     pmlLog(pml::LOG_DEBUG) << "Add " << path << " to queue now its written";
+     pmlLog(pml::LOG_DEBUG, "aes67") << "Add " << path << " to queue now its written";
 
     m_qToEncode.push(path);
     m_condition.notify_one();

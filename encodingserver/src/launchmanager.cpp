@@ -51,7 +51,7 @@ const std::function<void(const std::string&, int, bool)>& exitCallback)
 
 void LaunchManager::EnumLoggers()
 {
-    pmlLog() << "EnumLoggers...";
+    pmlLog(pml::LOG_INFO, "aes67") << "EnumLoggers...";
 
     std::scoped_lock<std::mutex> lg(m_mutex);
 
@@ -63,7 +63,7 @@ void LaunchManager::EnumLoggers()
         {
             if(entry.path().extension() == ".ini")
             {
-                pmlLog() << "Logger: '" << entry.path().stem() << "' found";
+                pmlLog(pml::LOG_INFO, "aes67") << "Logger: '" << entry.path().stem() << "' found";
 
                 CheckLoggerConfig(entry.path());
             }   
@@ -71,13 +71,13 @@ void LaunchManager::EnumLoggers()
     }
     catch(std::filesystem::filesystem_error& e)
     {
-        pmlLog(pml::LOG_CRITICAL) << "Could not enum Loggers..." << e.what();
+        pmlLog(pml::LOG_CRITICAL, "aes67") << "Could not enum Loggers..." << e.what();
     }
 }
 
 void LaunchManager::WatchLoggerPath()
 {
-    pmlLog() << "Watch " << m_pathLaunchers << " for loggers being created or deleted";
+    pmlLog(pml::LOG_INFO, "aes67") << "Watch " << m_pathLaunchers << " for loggers being created or deleted";
 
     auto nWatch = m_observer.AddWatch(m_pathLaunchers, pml::filewatch::Observer::CREATED | pml::filewatch::Observer::DELETED, false);
     if(nWatch != -1)
@@ -87,7 +87,7 @@ void LaunchManager::WatchLoggerPath()
     }
     else
     {
-        pmlLog(pml::LOG_ERROR) << "Could not created watch";
+        pmlLog(pml::LOG_ERROR, "aes67") << "Could not created watch";
     }
     m_observer.Run();
 }
@@ -110,7 +110,7 @@ void LaunchManager::LaunchAll()
 {
     std::scoped_lock<std::mutex> lg(m_mutex);
 
-    pmlLog() << "Start all encoders";
+    pmlLog(pml::LOG_INFO, "aes67") << "Start all encoders";
 
     for(const auto& [sName, pLauncher] : m_mLaunchers)
     {
@@ -133,7 +133,7 @@ void LaunchManager::LaunchEncoder(std::shared_ptr<Launcher> pLauncher) const
 
 void LaunchManager::PipeThread()
 {
-    pmlLog() << "Pipe Thread check if running";
+    pmlLog(pml::LOG_INFO, "aes67") << "Pipe Thread check if running";
     if(m_pThread)
     {
         m_context.stop();
@@ -142,10 +142,10 @@ void LaunchManager::PipeThread()
         m_pThread = nullptr;
     }
 
-    pmlLog() << "Pipe Thread now start";
+    pmlLog(pml::LOG_INFO, "aes67") << "Pipe Thread now start";
     m_pThread = std::make_unique<std::thread>([this]()
     {
-        pmlLog() << "Pipe Thread started";
+        pmlLog(pml::LOG_INFO, "aes67") << "Pipe Thread started";
 
         auto work = asio::require(m_context.get_executor(), asio::execution::outstanding_work_t::tracked);
 
@@ -156,7 +156,7 @@ void LaunchManager::PipeThread()
         }
         m_context.run();
 
-        pmlLog() << "Pipe Thread stopped";
+        pmlLog(pml::LOG_INFO, "aes67") << "Pipe Thread stopped";
     });
 }
 
@@ -184,7 +184,7 @@ pml::restgoose::response LaunchManager::RestartEncoder(const std::string& sName)
 
 void LaunchManager::ExitCallback(const std::string& sEncoder, int nExitCode, bool bRemove)
 {
-    pmlLog() << "Encoder " << sEncoder << " has exited with exit code " << nExitCode;
+    pmlLog(pml::LOG_INFO, "aes67") << "Encoder " << sEncoder << " has exited with exit code " << nExitCode;
     if(bRemove)
     {
         m_mLaunchers.erase(sEncoder);
@@ -232,14 +232,14 @@ void LaunchManager::LaunchEncoders(const std::filesystem::path& pathConfig, std:
             }
             catch(std::exception& e)
             {
-                pmlLog(pml::LOG_WARN) << "Keep: " << sType << " is invalid " << sValue;
+                pmlLog(pml::LOG_WARN, "aes67") << "Keep: " << sType << " is invalid " << sValue;
             }
         }
     }
 }
 void LaunchManager::LaunchEncoder(const std::filesystem::path& pathConfig, const std::string& sType)
 {
-    pmlLog() << "Logger " << pathConfig.stem().string() << " requires a " << sType << " encoder";
+    pmlLog(pml::LOG_INFO, "aes67") << "Logger " << pathConfig.stem().string() << " requires a " << sType << " encoder";
     auto itApp = m_mEncoderApps.find(sType);
     if(itApp != m_mEncoderApps.end())
     {
@@ -256,7 +256,7 @@ void LaunchManager::LaunchEncoder(const std::filesystem::path& pathConfig, const
     }
     else
     {
-        pmlLog(pml::LOG_ERROR) << "No encoder app associated with " << sType;
+        pmlLog(pml::LOG_ERROR, "aes67") << "No encoder app associated with " << sType;
     }
 }
 

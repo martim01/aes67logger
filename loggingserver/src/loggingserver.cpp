@@ -37,7 +37,7 @@ void LoggingServer::ReadDiscoveryConfig()
 {
     if(m_discovery.Read(GetIniManager().Get(jsonConsts::path, "discovery","discovery.ini")) == false)
     {
-        pmlLog(pml::LOG_ERROR) << "Unable to read discovery config file, won't be able to find stream sources";
+        pmlLog(pml::LOG_ERROR, "aes67") << "Unable to read discovery config file, won't be able to find stream sources";
     }
 }
 
@@ -96,7 +96,7 @@ void LoggingServer::DeleteCustomEndpoints()
 
 pml::restgoose::response LoggingServer::GetApi(const query&, const postData&, const endpoint&, const userName&) const
 {
-    pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "GetApi" ;
+    pmlLog(pml::LOG_DEBUG, "aes67") << "Endpoints\t" << "GetApi" ;
     pml::restgoose::response theResponse;
     theResponse.jsonData = Json::Value(Json::arrayValue);
     theResponse.jsonData.append(LOGGERS);
@@ -133,12 +133,12 @@ Json::Value LoggingServer::GetDiscoveredRtspSources() const
         }
         else
         {
-            pmlLog(pml::LOG_WARN) << "Read rtsp ini file " << " but no rtsp section";
+            pmlLog(pml::LOG_WARN, "aes67") << "Read rtsp ini file " << " but no rtsp section";
         }
     }
     else
     {
-        pmlLog(pml::LOG_WARN) << "Unable to read rtsp ini file ";
+        pmlLog(pml::LOG_WARN, "aes67") << "Unable to read rtsp ini file ";
     }
     return jsArray;
 }
@@ -163,7 +163,7 @@ pml::restgoose::response LoggingServer::GetStatus(const query&, const postData&,
 
 pml::restgoose::response LoggingServer::GetLoggers(const query&, const postData&, const endpoint&, const userName&) const
 {
-    pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "GetLoggers" ;
+    pmlLog(pml::LOG_DEBUG, "aes67") << "Endpoints\t" << "GetLoggers" ;
     pml::restgoose::response theResponse;
     theResponse.jsonData = Json::Value(Json::arrayValue);
     for(const auto& [sName, pLauncher] : m_launcher.GetLaunchers())
@@ -193,7 +193,7 @@ pml::restgoose::response LoggingServer::GetLogger(const query&, const postData&,
 
 pml::restgoose::response LoggingServer::GetLoggerStatus(const query&, const postData&, const endpoint& theEndpoint, const userName&) const
 {
-    pmlLog() << "Server::GetLogger " << theEndpoint;
+    pmlLog(pml::LOG_INFO, "aes67") << "Server::GetLogger " << theEndpoint;
     pml::restgoose::response theResponse(400);
     auto vPath = SplitString(theEndpoint.Get(),'/');
     
@@ -329,13 +329,13 @@ void LoggingServer::ExitCallback(const std::string& sLoggerId, int nExit, bool b
     if(WIFEXITED(nExit))
     {
         jsStatus[jsonConsts::exit][jsonConsts::code] = WEXITSTATUS(nExit);
-        pmlLog() << "Logger exited " << "Code: " << WEXITSTATUS(nExit);
+        pmlLog(pml::LOG_INFO, "aes67") << "Logger exited " << "Code: " << WEXITSTATUS(nExit);
     }
     if(WIFSIGNALED(nExit))
     {
         jsStatus[jsonConsts::exit][jsonConsts::signal][jsonConsts::code] = WTERMSIG(nExit);
         jsStatus[jsonConsts::exit][jsonConsts::signal][jsonConsts::description] = strsignal(WTERMSIG(nExit));
-        pmlLog() << "Logger signaled "  << "Code: " << WTERMSIG(nExit) << " " << strsignal(WTERMSIG(nExit));
+        pmlLog(pml::LOG_INFO, "aes67") << "Logger signaled "  << "Code: " << WTERMSIG(nExit) << " " << strsignal(WTERMSIG(nExit));
 
         if(WCOREDUMP(nExit))
         {
@@ -345,12 +345,12 @@ void LoggingServer::ExitCallback(const std::string& sLoggerId, int nExit, bool b
     if(WIFSTOPPED(nExit))
     {
         jsStatus[jsonConsts::stopped][jsonConsts::signal] = WSTOPSIG(nExit);
-        pmlLog() << "Logger stopped "  << "Signal: " << WSTOPSIG(nExit);
+        pmlLog(pml::LOG_INFO, "aes67") << "Logger stopped "  << "Signal: " << WSTOPSIG(nExit);
     }
     if(WIFCONTINUED(nExit))
     {
         jsStatus[jsonConsts::resumed][jsonConsts::signal] = WSTOPSIG(nExit);
-        pmlLog() << "Logger resumed Signal:" << WSTOPSIG(nExit);
+        pmlLog(pml::LOG_INFO, "aes67") << "Logger resumed Signal:" << WSTOPSIG(nExit);
     }
 
     GetServer().SendWebsocketMessage({endpoint(EP_WS_LOGGERS.Get()+"/"+sLoggerId)}, jsStatus);

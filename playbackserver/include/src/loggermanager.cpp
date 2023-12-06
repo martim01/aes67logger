@@ -26,7 +26,7 @@ void LoggerManager::EnumLoggers()
     }
     catch(std::filesystem::filesystem_error& e)
     {
-        pmlLog(pml::LOG_CRITICAL) << "Could not enum loggers..." << e.what();
+        pmlLog(pml::LOG_CRITICAL, "aes67") << "Could not enum loggers..." << e.what();
     }
 }
 
@@ -50,7 +50,7 @@ std::shared_ptr<LoggerObserver> LoggerManager::CreateLoggerObserver(const std::f
     }
     else
     {
-        pmlLog(pml::LOG_ERROR) << "LoggerManager - could not read " << path;
+        pmlLog(pml::LOG_ERROR, "aes67") << "LoggerManager - could not read " << path;
         return nullptr;
     }
 }

@@ -42,17 +42,17 @@ m_sName(sName)
             }
             catch(const std::invalid_argument& e)
             {
-                pmlLog(pml::LOG_DEBUG) << m_sName << " - Could not decode keep value " << key << "=" << value;
+                pmlLog(pml::LOG_DEBUG, "aes67") << m_sName << " - Could not decode keep value " << key << "=" << value;
             }
             catch(const std::out_of_range& e)
             {
-                pmlLog(pml::LOG_DEBUG) << m_sName << " - Could not decode keep value " << key << "=" << value;
+                pmlLog(pml::LOG_DEBUG, "aes67") << m_sName << " - Could not decode keep value " << key << "=" << value;
             }
         }
     }
     else
     {
-        pmlLog(pml::LOG_ERROR) << m_sName << " - could not find keep section in ini file";
+        pmlLog(pml::LOG_ERROR, "aes67") << m_sName << " - could not find keep section in ini file";
     }
 }
 
@@ -60,7 +60,7 @@ m_sName(sName)
 
 std::set<std::filesystem::path> LoggerObserver::EnumFiles(const std::filesystem::path& path, const std::string& sExt) const
 {
-    pmlLog(pml::LOG_INFO) << m_sName << " - enum " << path;
+    pmlLog(pml::LOG_INFO, "aes67") << m_sName << " - enum " << path;
 
     std::set<std::filesystem::path> setFiles;
     try
@@ -75,7 +75,7 @@ std::set<std::filesystem::path> LoggerObserver::EnumFiles(const std::filesystem:
     }
     catch(const std::filesystem::filesystem_error& e)
     {
-        pmlLog(pml::LOG_ERROR) << m_sName << " - Failed to enum " << path << ": " << e.what();
+        pmlLog(pml::LOG_ERROR, "aes67") << m_sName << " - Failed to enum " << path << ": " << e.what();
         std::cerr << e.what() << '\n';
     }
     return setFiles;
@@ -93,16 +93,16 @@ void LoggerObserver::OnFileCreated(int nWd, const std::filesystem::path& path, u
             itFiles->second.insert(path);
             m_server.FileCreated(m_sName, path);
 
-            pmlLog(pml::LOG_INFO) << m_sName << " - " << path << " created";
+            pmlLog(pml::LOG_INFO, "aes67") << m_sName << " - " << path << " created";
         }
         else
         {
-            pmlLog(pml::LOG_WARN) << m_sName << " - " << path << " created but not expected type";
+            pmlLog(pml::LOG_WARN, "aes67") << m_sName << " - " << path << " created but not expected type";
         }
     }
     else
     {
-        pmlLog(pml::LOG_WARN) << m_sName << " - " << path << " created but watch not found";
+        pmlLog(pml::LOG_WARN, "aes67") << m_sName << " - " << path << " created but watch not found";
     }
 }
 
@@ -117,16 +117,16 @@ void LoggerObserver::OnFileDeleted(int nWd, const std::filesystem::path& path, u
             itFiles->second.erase(path);
             m_server.FileDeleted(m_sName, path);
 
-            pmlLog(pml::LOG_INFO) << m_sName << " - " << path << " deleted";
+            pmlLog(pml::LOG_INFO, "aes67") << m_sName << " - " << path << " deleted";
         }
         else
         {
-            pmlLog(pml::LOG_WARN) << m_sName << " - " << path << " deleted but not expected type";
+            pmlLog(pml::LOG_WARN, "aes67") << m_sName << " - " << path << " deleted but not expected type";
         }
     }
     else
     {
-        pmlLog(pml::LOG_WARN) << m_sName << " - " << path << " deleted but watch not found";
+        pmlLog(pml::LOG_WARN, "aes67") << m_sName << " - " << path << " deleted but watch not found";
     }
 }
 
@@ -154,7 +154,7 @@ pml::restgoose::response LoggerObserver::CreateDownloadFile(const std::string& s
 
         try
         {       
-            pmlLog() << "CreateDownloadFile from: " << std::min(std::stoul(itStart->second.Get()), std::stoul(itEnd->second.Get())) << " to " << std::max(std::stoul(itStart->second.Get()), std::stoul(itEnd->second.Get()));
+            pmlLog(pml::LOG_INFO, "aes67") << "CreateDownloadFile from: " << std::min(std::stoul(itStart->second.Get()), std::stoul(itEnd->second.Get())) << " to " << std::max(std::stoul(itStart->second.Get()), std::stoul(itEnd->second.Get()));
 
             auto [baseStart, diffStart] = GetBaseFileName(std::min(std::stoul(itStart->second.Get()), std::stoul(itEnd->second.Get())));
             auto [baseEnd, diffEnd] = GetBaseFileName(std::max(std::stoul(itStart->second.Get()), std::stoul(itEnd->second.Get())));

@@ -25,13 +25,13 @@ static void sig(int signo)
     case SIGINT:
     case SIGQUIT:
         {
-            pmlLog(pml::LOG_WARN) << "User abort";
+            pmlLog(pml::LOG_WARN, "aes67") << "User abort";
             theApp.Exit();
             _exit(0);
         }
         break;
     default:
-        pmlLog(pml::LOG_DEBUG) << "Signal: " <<signo;
+        pmlLog(pml::LOG_DEBUG, "aes67") << "Signal: " <<signo;
     }
 }
 
