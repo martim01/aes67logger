@@ -248,8 +248,6 @@ void LoggerApp::OutputQoSJson(std::shared_ptr<pml::aoip::qosData> pData)
 
 void LoggerApp::SessionCallback(std::shared_ptr<pml::aoip::AoIPSource>,  const pml::aoip::session& theSession)
 {
-    m_pServer->StartTimer(std::chrono::milliseconds(500), std::bind(&LoggerApp::StreamFail, this));
-
     m_session = theSession;
     if(auto itSubsession = theSession.GetCurrentSubsession(); itSubsession !=  theSession.lstSubsession.end())
     {
@@ -378,6 +376,8 @@ void LoggerApp::OutputHeartbeatJson()
 
 void LoggerApp::WriteToSoundFile(std::shared_ptr<pml::aoip::AoIPSource>, std::shared_ptr<pml::aoip::timedbuffer> pBuffer)
 {
+    m_pServer->StartTimer(std::chrono::milliseconds(500), std::bind(&LoggerApp::StreamFail, this));
+
     if(m_subsession.nChannels > 0)
     {
         m_timeSinceLastAudio = std::chrono::microseconds(0);
@@ -435,9 +435,9 @@ void LoggerApp::OutputFileJson()
 
 void LoggerApp::StreamFail()
 {
-    pmlLog(pml::LOG_WARN) << "No data from stream";
     if(m_bReceivingAudio)
     {
+        pmlLog(pml::LOG_WARN) << "No data from stream";
         m_bReceivingAudio = false;
         OutputSessionJson();
     }
