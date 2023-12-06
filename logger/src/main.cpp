@@ -27,7 +27,7 @@ static void sig(int signo)
         }
             break;
         case SIGPIPE:
-            pmlLog(pml::LOG_WARNp, "aes67") << "Broken pipe";
+            pmlLog(pml::LOG_WARN, "aes67") << "Broken pipe";
             break;
         case SIGTERM:
         case SIGINT:

@@ -336,7 +336,7 @@ bool Launcher::CheckForOrphanedLogger()
             {
                 if(kill(nPid, 0) == 0)
                 {
-                    pml::LOG_INFO, "aes67") << "Logger " << m_pathConfig.stem().string() << " is still running on pid " << nPid;
+                    pmlLog(pml::LOG_INFO, "aes67") << "Logger " << m_pathConfig.stem().string() << " is still running on pid " << nPid;
                     m_pid = nPid;
                     m_pathSocket.replace_extension(std::to_string(m_pid));
                     m_pSocket = std::make_shared<asio::local::stream_protocol::socket>(m_context);
@@ -345,7 +345,7 @@ bool Launcher::CheckForOrphanedLogger()
                 }
                 else
                 {
-                    pml::LOG_INFO, "aes67") << "Logger " << m_pathConfig.stem().string() << " was running on pid " << nPid << " and has left socket open. Close it";
+                    pmlLog(pml::LOG_INFO, "aes67") << "Logger " << m_pathConfig.stem().string() << " was running on pid " << nPid << " and has left socket open. Close it";
                     try
                     {
                         std::filesystem::remove(entry.path());

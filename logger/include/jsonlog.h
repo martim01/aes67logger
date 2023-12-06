@@ -16,7 +16,7 @@ class JsonLog : public pml::LogOutput
         *   @param eLogLevel the level of the current message that is being flushed
         *   @param logStream the current message
         **/
-        void Flush(pml::enumLevel eLogLevel, const std::stringstream&  logStream) override;
+        void Flush(pml::enumLevel eLogLevel, const std::stringstream&  logStream, const std::string& sPrefix) override;
 
     private:
 
