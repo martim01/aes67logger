@@ -4,16 +4,16 @@
 #include <sstream>
 #include "inimanager.h"
 #include "inisection.h"
-#include "timedbuffer.h"
 #include "log.h"
 #include "logtofile.h"
+#include "asiosession.h"
 #include "jsonlog.h"
 #include "jsonwriter.h"
-#include "aoipsourcemanager.h"
 #include <fstream>
 #include "jsonconsts.h"
-#include "asiosession.h"
-
+#include "sdpparser.h"
+#include "audioframe.h"
+#include "aes67utils.h"
 
 using namespace std::placeholders;
 
@@ -60,6 +60,8 @@ bool LoggerApp::Init(const std::filesystem::path& config)
         m_pServer->Run();
 
         m_heartbeatGap = std::chrono::milliseconds(m_config.Get(jsonConsts::heartbeat, jsonConsts::gap, 10000L));
+        
+        
 
         return true;
 
@@ -79,7 +81,31 @@ bool LoggerApp::Init(const std::filesystem::path& config)
 int LoggerApp::Run()
 {
     std::this_thread::sleep_for(std::chrono::milliseconds(250));
-    StartRecording();
+    
+
+    if(StartRecording() == false)
+    {
+        return -1;
+    }
+
+    while(true)
+    {
+        auto now = std::chrono::system_clock::now();
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        
+        std::shared_ptr<pml::aoip::AudioFrame> pFrame = nullptr;
+        do
+        {
+            auto pFrame = m_pSession->GetNextFrame();
+            if(pFrame)
+            {
+                WriteToSoundFile(pFrame);
+            }
+        }while(pFrame);
+
+        LoopCallback(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now()-now));
+    }
 
     pmlLog(pml::LOG_INFO, "aes67") << "Application finished";
     return 0;
@@ -88,11 +114,7 @@ int LoggerApp::Run()
 
 void LoggerApp::Exit()
 {
-    if(m_pClient)
-    {
-        m_pClient->Stop();
-        m_pClient = nullptr;
-    }
+    m_scheduler.Stop();
     m_pServer = nullptr;
     
     
@@ -123,7 +145,7 @@ bool LoggerApp::LoadConfig(const std::filesystem::path& config)
             std::filesystem::create_directories(m_pathWav);
             std::filesystem::create_directories(m_pathSockets);
         }
-        catch(std::filesystem::filesystem_error& e)
+        catch(std::filesystem::filesystem_error&)
         {
             pmlLog(pml::LOG_ERROR, "aes67") << "Could not create wav file directory " << m_pathWav;
         }
@@ -173,17 +195,11 @@ void LoggerApp::CreateLogging()
     }
 }
 
-void LoggerApp::StartRecording()
+bool LoggerApp::StartRecording()
 {
     pmlLog(pml::LOG_INFO, "aes67") << "StartRecording";
-    m_pClient = std::make_unique<pml::aoip::AoipClient>(m_config.Get(jsonConsts::aoip, jsonConsts::buffer, 4096L));
-
-    m_pClient->AddAudioCallback(std::bind(&LoggerApp::WriteToSoundFile, this, _1, _2));
-    m_pClient->AddQosCallback(std::bind(&LoggerApp::QoSCallback, this, _1, _2));
-    m_pClient->AddSessionCallback(std::bind(&LoggerApp::SessionCallback, this, _1, _2));
-    m_pClient->AddStreamCallback(std::bind(&LoggerApp::StreamCallback, this, _1, _2));
-    m_pClient->AddLoopCallback(std::bind(&LoggerApp::LoopCallback, this, _1));
-
+    
+    
     std::stringstream ssSdp;
     if(m_config.Get(jsonConsts::source, jsonConsts::sdp,"").empty() == false)
     {
@@ -196,156 +212,84 @@ void LoggerApp::StartRecording()
         }
         else
         {
-            pmlLog(pml::LOG_WARN, "aes67") << "Could not load SDP '" << m_config.Get(jsonConsts::source, jsonConsts::sdp,"") << "'";
+            pmlLog(pml::LOG_CRITICAL, "aes67") << "Could not load SDP '" << m_config.Get(jsonConsts::source, jsonConsts::sdp,"") << "'";
+            return false;
         }
-    }
-    m_sSdp = ssSdp.str();
-
-    auto pSource = std::make_shared<pml::aoip::AoIPSource>(1, m_config.Get(jsonConsts::source, jsonConsts::name, "test"), m_config.Get(jsonConsts::source, jsonConsts::rtsp, ""), m_sSdp);
-
-    OutputStreamJson(false);
-
-    m_pClient->Run();   //does not return until we exit
-    m_pClient->StreamFromSource(pSource);
-
-    while(true)
-    {
-         std::this_thread::sleep_for(std::chrono::seconds(1));
-    };
-}
-
-
-void LoggerApp::QoSCallback(std::shared_ptr<pml::aoip::AoIPSource>, std::shared_ptr<pml::aoip::qosData> pData)
-{
-    //@todo make sure we are getting audio packages and no data loss
-    pmlLog(pml::LOG_DEBUG, "aes67") << "QoS"
-             << "\tbitrate=" << pData->dkbits_per_second_Now << "kbit/s"
-             << "\tloss=" << pData->dPacket_loss_fraction_av*100.0 << "%"
-             << "\tgap=" << pData->dInter_packet_gap_ms_av << "ms"
-             << "\tpackets lost=" << pData->nTotNumPacketsLost
-             << "\tjitter=" << pData->dJitter << "ms"
-             << "\tTS-DF=" << pData->dTSDF << "ms"
-             << "\tTimestamp Errors=" << pData->nTimestampErrors;
-
-    OutputQoSJson(pData);
-}
-
-void LoggerApp::OutputQoSJson(std::shared_ptr<pml::aoip::qosData> pData)
-{
-    m_jsStatus[jsonConsts::id] = m_sName;
-    m_jsStatus[jsonConsts::qos][jsonConsts::bitrate] = pData->dkbits_per_second_Now;
-    m_jsStatus[jsonConsts::qos][jsonConsts::packets][jsonConsts::received] = pData->nTotNumPacketsReceived;
-    m_jsStatus[jsonConsts::qos][jsonConsts::packets][jsonConsts::lost] = pData->nTotNumPacketsLost;
-    m_jsStatus[jsonConsts::qos][jsonConsts::timestamp_errors] = pData->nTimestampErrors;
-    m_jsStatus[jsonConsts::qos][jsonConsts::packet_gap] = pData->dInter_packet_gap_ms_av;
-    m_jsStatus[jsonConsts::qos][jsonConsts::jitter] = pData->dJitter;
-    m_jsStatus[jsonConsts::qos][jsonConsts::tsdf] = pData->dTSDF;
-    m_jsStatus[jsonConsts::qos][jsonConsts::duration] = m_dFrameDuration;
-
-    JsonWriter::Get().writeToSocket(m_jsStatus, m_pServer);
-}
-
-
-void LoggerApp::SessionCallback(std::shared_ptr<pml::aoip::AoIPSource>,  const pml::aoip::session& theSession)
-{
-    m_session = theSession;
-    if(auto itSubsession = theSession.GetCurrentSubsession(); itSubsession !=  theSession.lstSubsession.end())
-    {
-        m_subsession = (*itSubsession);
-
-        m_nFrameSize = m_subsession.nChannels*m_subsession.nSampleRate;
-        if(m_subsession.sCodec == "L24")
-        {
-            m_nFrameSize*=3;
-        }
-        else if(m_subsession.sCodec == "L16")
-        {
-            m_nFrameSize*=2;
-        }
-        else if(m_subsession.sCodec == "F32")
-        {
-            m_nFrameSize*=4;
-        }
-
-        pmlLog(pml::LOG_INFO, "aes67") << "New session: channels=" << m_subsession.nChannels << "\tsampleRate=" << m_subsession.nSampleRate;
     }
     else
     {
-        m_subsession = pml::aoip::subsession();
-        pmlLog(pml::LOG_WARN, "aes67") << "New session but not subsession!";
+        return false;
     }
 
-    OutputSessionJson();
+    
+    pml::aoip::SdpParser parser;
+    m_pSession = parser.CreateSessionFromSdp(ssSdp.str(),100, false);
+    if(m_pSession == nullptr)
+    {
+        pmlLog(pml::LOG_CRITICAL, "aes67") << "Could not create session from SDP";
+        return false;
+    }
+    m_pSession->AssignStatisticsCallback(std::bind(&LoggerApp::StatsCallback, this, _1, _2), std::chrono::milliseconds(1000));
+
+    m_scheduler.AddInputSession(m_config.Get(jsonConsts::source, jsonConsts::name, "test"), m_pSession);
+    m_scheduler.Run();
+
+    return true;
 }
 
-void LoggerApp::OutputSessionJson()
+bool LoggerApp::StatsCallback(const std::string& sGroup, const pml::aoip::rtpStats& stats)
 {
+    OutputStatsJson(sGroup, stats);
+    return false;
+}
 
+void LoggerApp::OutputStatsJson(const std::string& sGroup, const pml::aoip::rtpStats& stats)
+{
     m_jsStatus[jsonConsts::id] = m_sName;
-
-    m_jsStatus[jsonConsts::session][jsonConsts::sdp] = m_session.sRawSDP;
-    m_jsStatus[jsonConsts::session][jsonConsts::name] = m_session.sName;
-    m_jsStatus[jsonConsts::session][jsonConsts::type] = m_session.sType;
-    m_jsStatus[jsonConsts::session][jsonConsts::description] = m_session.sDescription;
-    m_jsStatus[jsonConsts::session][jsonConsts::ref_clock][jsonConsts::domain] = m_session.refClock.nDomain;
-    m_jsStatus[jsonConsts::session][jsonConsts::ref_clock][jsonConsts::id] = m_session.refClock.sId;
-    m_jsStatus[jsonConsts::session][jsonConsts::ref_clock][jsonConsts::type] = m_session.refClock.sType;
-    m_jsStatus[jsonConsts::session][jsonConsts::ref_clock][jsonConsts::version] = m_session.refClock.sVersion;
-    m_jsStatus[jsonConsts::session][jsonConsts::audio] = m_bReceivingAudio;
-
-    m_jsStatus[jsonConsts::session][jsonConsts::subsessions] = Json::Value(Json::arrayValue);
-    for(const auto& theSubsession : m_session.lstSubsession)
+        
+    m_jsStatus["group"] = sGroup;
+    m_jsStatus[jsonConsts::qos]["startedAt"] = ConvertTimeToIsoString(stats.tpStartedRecording);
+    m_jsStatus["streaming"] = stats.bReceiving;
+    m_jsStatus["session"] = m_pSession->GetSessionName();
+     
+    if(stats.lastReceived)
     {
-        m_jsStatus[jsonConsts::session][jsonConsts::subsessions].append(GetSubsessionJson(theSubsession));
+        m_jsStatus[jsonConsts::qos]["now"] = ConvertTimeToIsoString(*stats.lastReceived);
+        
+        m_jsStatus[jsonConsts::qos]["interpacketGap"]["max"] = static_cast<double>(stats.intergap.max.count())/1000000.0;
+        m_jsStatus[jsonConsts::qos]["interpacketGap"]["min"] = static_cast<double>(stats.intergap.min.count())/1000000.0;
+        m_jsStatus[jsonConsts::qos]["interpacketGap"]["average"] = static_cast<double>(stats.intergap.average.count())/1000000.0;
+        
+        m_jsStatus[jsonConsts::qos]["jitter"] = 1000.0*stats.dJitter/48000;
+        m_jsStatus[jsonConsts::qos]["tsdf"] = 1000.0*static_cast<double>(stats.tsdf.nTsdf)/48000;
+        
+        m_jsStatus[jsonConsts::qos]["kbits/s"]["max"] = stats.rate.dKbitsPerSecMax;
+        m_jsStatus[jsonConsts::qos]["kbits/s"]["min"] = stats.rate.dKbitsPerSecMin;
+        m_jsStatus[jsonConsts::qos]["kbits/s"]["average"] = stats.rate.dKbitsPerSecAverage;
+        m_jsStatus[jsonConsts::qos]["kbits/s"]["current"] = stats.rate.dKbitsPerSecCurrent;
+        
+        m_jsStatus[jsonConsts::qos]["buffer"]["depth"]["max"] = stats.buffer.nJitterBufferMax;
+        m_jsStatus[jsonConsts::qos]["buffer"]["depth"]["min"] = stats.buffer.nJitterBufferMin;
+        m_jsStatus[jsonConsts::qos]["buffer"]["depth"]["current"] = stats.buffer.nJitterBufferDepth;
+        m_jsStatus[jsonConsts::qos]["buffer"]["depth"]["empty"] = stats.buffer.nEmpty;
+        m_jsStatus[jsonConsts::qos]["buffer"]["depth"]["overflow"]=stats.buffer.nOverflow;
+
+        m_jsStatus[jsonConsts::qos]["buffer"]["packets"]["out_of_order"] = stats.buffer.nPacketsOutOfOrder;
+        m_jsStatus[jsonConsts::qos]["buffer"]["packets"]["missing"] = stats.buffer.nPacketsMissing;
+        
+        m_jsStatus[jsonConsts::qos]["packets"]["total"]["received"] = static_cast<Json::UInt64>(stats.buffer.nTotalPacketsReceived);
+        m_jsStatus[jsonConsts::qos]["packets"]["total"]["used"] = static_cast<Json::UInt64>(stats.buffer.nTotalFramesUsed);
+        m_jsStatus[jsonConsts::qos]["packets"]["lastCallback"]["received"] = stats.buffer.nPacketsReceivedSinceLastCallback;
+        m_jsStatus[jsonConsts::qos]["packets"]["lastCallback"]["used"] = stats.buffer.nFramesUsedSinceLastCallback;
+
+        m_jsStatus[jsonConsts::qos]["bits"]["total"]["received"] = static_cast<Json::UInt64>(stats.buffer.nTotalBitsReceived);
+        
     }
+    
     JsonWriter::Get().writeToSocket(m_jsStatus, m_pServer);
 }
 
-Json::Value LoggerApp::GetSubsessionJson(const pml::aoip::subsession& theSubSession)
-{
-    Json::Value jsValue;
-    jsValue[jsonConsts::id] = theSubSession.sId;
-    jsValue[jsonConsts::source_address] = theSubSession.sSourceAddress;
-    jsValue[jsonConsts::medium] = theSubSession.sMedium;
-    jsValue[jsonConsts::codec] = theSubSession.sCodec;
-    jsValue[jsonConsts::protocol] = theSubSession.sProtocol;
-    jsValue[jsonConsts::port] = theSubSession.nPort;
-    jsValue[jsonConsts::sample_rate] = theSubSession.nSampleRate;
-    jsValue[jsonConsts::channels] = theSubSession.nChannels;
-    jsValue[jsonConsts::sync_timestamp] = theSubSession.nSyncTimestamp;
-    jsValue[jsonConsts::ref_clock][jsonConsts::domain] = theSubSession.refClock.nDomain;
-    jsValue[jsonConsts::ref_clock][jsonConsts::id] = theSubSession.refClock.sId;
-    jsValue[jsonConsts::ref_clock][jsonConsts::type] = theSubSession.refClock.sType;
-    jsValue[jsonConsts::ref_clock][jsonConsts::version] = theSubSession.refClock.sVersion;
 
-    return jsValue;
-
-}
-
-
-void LoggerApp::StreamCallback(std::shared_ptr<pml::aoip::AoIPSource>, bool bStreaming)
-{
-    pmlLog( bStreaming ? pml::LOG_INFO : pml::LOG_WARN, "aes67") << (bStreaming ? "Stream started" : "Stream stopped");
-    OutputStreamJson(bStreaming);
-}
-
-void LoggerApp::OutputStreamJson(bool bStreaming)
-{
-    m_jsStatus[jsonConsts::id] = m_sName;
-    m_jsStatus[jsonConsts::streaming][jsonConsts::name] = m_config.Get(jsonConsts::source, jsonConsts::name, "test");
-    if(m_config.Get(jsonConsts::source, jsonConsts::rtsp, "").empty() == false)
-    {
-        m_jsStatus[jsonConsts::streaming][jsonConsts::type] = "RTSP";
-        m_jsStatus[jsonConsts::streaming][jsonConsts::source] = m_config.Get(jsonConsts::source, jsonConsts::rtsp, "");
-    }
-    else
-    {
-        m_jsStatus[jsonConsts::streaming][jsonConsts::type] = "SDP";
-        m_jsStatus[jsonConsts::streaming][jsonConsts::source] = m_sSdp;
-    }
-    m_jsStatus[jsonConsts::streaming][jsonConsts::streaming] = bStreaming;
-    JsonWriter::Get().writeToSocket(m_jsStatus, m_pServer);
-}
 
 void LoggerApp::LoopCallback(std::chrono::microseconds duration)
 {
@@ -356,11 +300,6 @@ void LoggerApp::LoopCallback(std::chrono::microseconds duration)
         pmlLog(pml::LOG_TRACE, "aes67") << "Send heartbeat... " << (m_bHeartbeat ? "ON" : "OFF");
 
         OutputHeartbeatJson();
-    }
-    m_timeSinceLastAudio += duration;
-    if(std::chrono::duration_cast<std::chrono::milliseconds>(m_timeSinceLastHeartbeat) >= std::chrono::milliseconds(500))
-    {
-        StreamFail();
     }
 }
 
@@ -374,26 +313,15 @@ void LoggerApp::OutputHeartbeatJson()
     JsonWriter::Get().writeToSocket(m_jsStatus, m_pServer);
 }
 
-void LoggerApp::WriteToSoundFile(std::shared_ptr<pml::aoip::AoIPSource>, std::shared_ptr<pml::aoip::timedbuffer> pBuffer)
+void LoggerApp::WriteToSoundFile(std::shared_ptr<pml::aoip::AudioFrame> pFrame)
 {
-    if(m_subsession.nChannels > 0)
+    if(m_pSession->GetNumberOfChannels() > 0)
     {
-        m_timeSinceLastAudio = std::chrono::microseconds(0);
-
-        if(!m_bReceivingAudio)
-        {
-            m_bReceivingAudio = true;
-            OutputSessionJson();
-        }
-
-        m_dFrameDuration = static_cast<double>(pBuffer->GetDuration())/static_cast<double>(m_nFrameSize)*1e6;
-
-
         auto filePath = m_pathWav;
         unsigned long nFileName = 0;
         if(m_bUseTransmissionTime)
         {
-            nFileName = std::chrono::duration_cast<std::chrono::minutes>(pBuffer->GetTransmissionTime().time_since_epoch()).count();
+            nFileName = std::chrono::duration_cast<std::chrono::minutes>(pFrame->GetTransmittedTime().time_since_epoch()).count();
         }
         else
         {
@@ -405,14 +333,14 @@ void LoggerApp::WriteToSoundFile(std::shared_ptr<pml::aoip::AoIPSource>, std::sh
         if(m_sf.GetFile() != filePath)
         {
             m_sf.Close();
-            m_sf.OpenToWrite(filePath, (unsigned short)m_subsession.nChannels, m_subsession.nSampleRate, 24);   //bit depth =0 implies float
+            m_sf.OpenToWrite(filePath, m_pSession->GetNumberOfChannels(), 48000, 24);
 
             OutputFileJson();
         }
 
         if(m_sf.IsOpen())
         {
-            m_sf.WriteAudio(pBuffer);
+            m_sf.WriteAudio(pFrame->GetAudio());
         }
         else
         {
@@ -429,14 +357,4 @@ void LoggerApp::OutputFileJson()
     m_jsStatus[jsonConsts::file][jsonConsts::open] = m_sf.IsOpen();
     JsonWriter::Get().writeToSocket(m_jsStatus, m_pServer);
 
-}
-
-void LoggerApp::StreamFail()
-{
-    if(m_bReceivingAudio)
-    {
-        pmlLog(pml::LOG_WARN, "aes67") << "No data from stream";
-        m_bReceivingAudio = false;
-        OutputSessionJson();
-    }
 }

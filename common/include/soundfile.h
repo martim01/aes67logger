@@ -5,10 +5,6 @@
 #include <filesystem>
 #include <vector>
 
-namespace pml::aoip
-{
-	class timedbuffer;
-};
 
 class SoundFile
 {
@@ -23,7 +19,6 @@ public:
 	bool OpenToRead(const std::filesystem::path& path);
 
 	bool OpenToWrite(const std::filesystem::path& path, unsigned short nChannels, unsigned long nSampleRate, unsigned short nBitLength);
-	bool WriteAudio(std::shared_ptr<pml::aoip::timedbuffer> pBuffer);
 	bool WriteAudio(const std::vector<float>& vBuffer);
 
 	bool OpenToWriteFlac(const std::filesystem::path& path, unsigned short nChannels, unsigned long nSampleRate, unsigned short nBitLength);
