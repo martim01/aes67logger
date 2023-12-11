@@ -21,7 +21,7 @@ static void sig(int signo)
         case SIGINT:
 	    case SIGQUIT:
             {
-                pmlLog(pml::LOG_WARN) << "User abort";
+                pmlLog(pml::LOG_WARN, "aes67") << "User abort";
                 //g_server.Exit();
                 _exit(0);
             }

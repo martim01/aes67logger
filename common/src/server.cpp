@@ -66,7 +66,6 @@ pml::restgoose::response ConvertPostDataToJson(const postData& vData)
         resp.jsonData.clear();
         for(size_t i = 0; i < vData.size(); i++)
         {
-            pmlLog() << "ConvertPostDataToJson: data " << i <<"=" << vData[i].data.Get();
             if(vData[i].name.Get().empty() == false)
             {
                 if(vData[i].filepath.empty() == true)
@@ -133,13 +132,13 @@ int Server::Run(const std::string& sConfigFile)
     if(m_config.Read(sConfigFile) == false)
     {
         pml::LogStream::AddOutput(std::make_unique<pml::LogOutput>());
-        pmlLog(pml::LOG_CRITICAL) << "Could not open '" << sConfigFile << "' exiting.";
+        pmlLog(pml::LOG_CRITICAL, "aes67") << "Could not open '" << sConfigFile << "' exiting.";
         return -1;
     }
 
     InitLogging();
 
-    pmlLog() << "Core\tStart" ;
+    pmlLog(pml::LOG_INFO, "aes67") << "Core\tStart" ;
 
     
     m_info.SetDiskPath(m_config.Get(jsonConsts::path, jsonConsts::audio, "/var/loggers"));
@@ -166,7 +165,7 @@ int Server::Run(const std::string& sConfigFile)
         //start the server loop
         m_server.Run(false, std::chrono::milliseconds(50));
 
-        pmlLog() << "Core\tStop" ;
+        pmlLog(pml::LOG_INFO, "aes67") << "Core\tStop" ;
         DeleteEndpoints();
 
         return 0;
@@ -178,7 +177,7 @@ int Server::Run(const std::string& sConfigFile)
 bool Server::CreateEndpoints()
 {
 
-    pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "CreateEndpoints" ;
+    pmlLog(pml::LOG_DEBUG, "aes67") << "Endpoints\t" << "CreateEndpoints" ;
 
     m_server.AddEndpoint(pml::restgoose::GET, EP_API, std::bind(&Server::GetApi, this, _1,_2,_3,_4));
 
@@ -211,7 +210,7 @@ bool Server::CreateEndpoints()
 void Server::DeleteEndpoints()
 {
 
-    pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "DeleteEndpoints" ;
+    pmlLog(pml::LOG_DEBUG, "aes67") << "Endpoints\t" << "DeleteEndpoints" ;
 
     m_server.DeleteEndpoint(pml::restgoose::GET, EP_API);
     m_server.DeleteEndpoint(pml::restgoose::GET, EP_STATUS);
@@ -233,7 +232,7 @@ void Server::DeleteEndpoints()
 
 pml::restgoose::response Server::GetRoot(const query&, const postData&, const endpoint&, const userName&) const
 {
-    pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "GetRoot" ;
+    pmlLog(pml::LOG_DEBUG, "aes67") << "Endpoints\t" << "GetRoot" ;
     pml::restgoose::response theResponse;
     theResponse.jsonData = Json::Value(Json::arrayValue);
     theResponse.jsonData.append(API);
@@ -251,7 +250,7 @@ pml::restgoose::response Server::PutUpdate(const query&, const postData&, const 
 
 pml::restgoose::response Server::GetConfig(const query&, const postData&, const endpoint&, const userName&) const
 {
-    pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "GetConfig" ;
+    pmlLog(pml::LOG_DEBUG, "aes67") << "Endpoints\t" << "GetConfig" ;
     pml::restgoose::response theResponse;
 
     char host[256];
@@ -280,7 +279,7 @@ pml::restgoose::response Server::GetConfig(const query&, const postData&, const 
 pml::restgoose::response Server::GetUpdate(const query&, const postData&, const endpoint&, const userName&) const
 {
     //get all the version numbers...
-    pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "GetUpdate" ;
+    pmlLog(pml::LOG_DEBUG, "aes67") << "Endpoints\t" << "GetUpdate" ;
     pml::restgoose::response theResponse;
     theResponse.jsonData = GetVersion();
     
@@ -291,7 +290,7 @@ pml::restgoose::response Server::GetUpdate(const query&, const postData&, const 
 
 pml::restgoose::response Server::GetInfo(const query&, const postData&, const endpoint&, const userName&)
 {
-    pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "GetInfo" ;
+    pmlLog(pml::LOG_DEBUG, "aes67") << "Endpoints\t" << "GetInfo" ;
 
     pml::restgoose::response theResponse;
     theResponse.jsonData = m_info.GetInfo();
@@ -302,7 +301,7 @@ pml::restgoose::response Server::GetInfo(const query&, const postData&, const en
 
 pml::restgoose::response Server::GetPower(const query&, const postData&, const endpoint&, const userName&) const
 {
-    pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "GetPower" ;
+    pmlLog(pml::LOG_DEBUG, "aes67") << "Endpoints\t" << "GetPower" ;
     pml::restgoose::response theResponse;
     theResponse.jsonData[jsonConsts::status] = "On";
 
@@ -312,7 +311,7 @@ pml::restgoose::response Server::GetPower(const query&, const postData&, const e
 
 pml::restgoose::response Server::PutPower(const query& , const postData& vData, const endpoint& , const userName& )
 {
-    pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "PutPower: ";
+    pmlLog(pml::LOG_DEBUG, "aes67") << "Endpoints\t" << "PutPower: ";
 
     auto theResponse = ConvertPostDataToJson(vData);
     if(theResponse.nHttpCode != 200)
@@ -324,24 +323,24 @@ pml::restgoose::response Server::PutPower(const query& , const postData& vData, 
     {
         theResponse.nHttpCode = 400;
         theResponse.jsonData[jsonConsts::reason].append("No command sent");
-        pmlLog(pml::LOG_ERROR) << " no command sent" ;
+        pmlLog(pml::LOG_ERROR, "aes67") << " no command sent" ;
     }
     else if(CmpNoCase(theResponse.jsonData[jsonConsts::command].asString(), "restart server"))
     {
         // send a message to "main" to exit the loop
-        pmlLog(pml::LOG_INFO) << " restart server" ;
+        pmlLog(pml::LOG_INFO, "aes67") << " restart server" ;
         m_server.Stop();
     }
     else if(CmpNoCase(theResponse.jsonData[jsonConsts::command].asString(), "restart os"))
     {
-        pmlLog(pml::LOG_INFO) << " restart os" ;
+        pmlLog(pml::LOG_INFO, "aes67") << " restart os" ;
 
         theResponse = Reboot(LINUX_REBOOT_CMD_RESTART);
 
     }
     else if(CmpNoCase(theResponse.jsonData[jsonConsts::command].asString(), "shutdown"))
     {
-        pmlLog(pml::LOG_INFO) << " shutdown" ;
+        pmlLog(pml::LOG_INFO, "aes67") << " shutdown" ;
 
         theResponse = Reboot(LINUX_REBOOT_CMD_POWER_OFF);
     }
@@ -350,7 +349,7 @@ pml::restgoose::response Server::PutPower(const query& , const postData& vData, 
         theResponse.nHttpCode = 400;
         theResponse.jsonData[jsonConsts::success] = false;
         theResponse.jsonData[jsonConsts::reason].append("Invalid command sent");
-        pmlLog(pml::LOG_ERROR) << "'" << theResponse.jsonData[jsonConsts::command].asString() <<"' is not a valid command" ;
+        pmlLog(pml::LOG_ERROR, "aes67") << "'" << theResponse.jsonData[jsonConsts::command].asString() <<"' is not a valid command" ;
     }
 
     return theResponse;
@@ -358,7 +357,7 @@ pml::restgoose::response Server::PutPower(const query& , const postData& vData, 
 
 pml::restgoose::response Server::PatchConfig(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
 {
-    pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "PatchConfig" ;
+    pmlLog(pml::LOG_DEBUG, "aes67") << "Endpoints\t" << "PatchConfig" ;
 
     auto theResponse = ConvertPostDataToJson(vData);
     if(theResponse.nHttpCode != 200)
@@ -416,7 +415,7 @@ void Server::PatchServerConfig(const Json::Value& jsData) const
     {
         if(sKey == "hostname" && jsData[sKey].isString() && sethostname(jsData[sKey].asString().c_str(), jsData[sKey].asString().length()) != 0)
         {
-            pmlLog(pml::LOG_WARN) << "Failed to set hostname";
+            pmlLog(pml::LOG_WARN, "aes67") << "Failed to set hostname";
         }
     }
 }
@@ -460,7 +459,7 @@ time_t Server::GetDateTime(time_t date, const std::vector<std::string>& vLine) c
         ssDateTime >> std::get_time(&atm, "%Y-%m-%d %H:%M:%S");
         if(ssDateTime.fail())
         {
-            pmlLog(pml::LOG_DEBUG) << "failed to parse date time: " << ssDateTime.str();
+            pmlLog(pml::LOG_DEBUG, "aes67") << "failed to parse date time: " << ssDateTime.str();
         }
         else
         {
@@ -511,7 +510,7 @@ pml::restgoose::response Server::GetLog(const std::string& sLogger, const std::s
             {
                 if(sLogger != m_sApp)
                 {
-                    pmlLog(pml::LOG_DEBUG) << logFile << " opened";
+                    pmlLog(pml::LOG_DEBUG, "aes67") << logFile << " opened";
                 }
 
                 inFile.clear();
@@ -544,7 +543,7 @@ pml::restgoose::response Server::GetLog(const std::string& sLogger, const std::s
     }
     catch(const std::exception& )
     {
-        pmlLog(pml::LOG_WARN) << "Could not convert start and end times " << sStart << " " << sEnd;
+        pmlLog(pml::LOG_WARN, "aes67") << "Could not convert start and end times " << sStart << " " << sEnd;
         return pml::restgoose::response(400, std::string("Could not convert start and end times"));
     }
 
@@ -571,7 +570,7 @@ void Server::LoopCallback(std::chrono::milliseconds durationSince)
         if(m_bLoggedThisHour == false)
         {
             m_bLoggedThisHour = true;
-            pmlLog() << GetCurrentTimeAsIsoString() ;
+            pmlLog(pml::LOG_INFO, "aes67") << GetCurrentTimeAsIsoString() ;
         }
     }
     else
@@ -609,19 +608,19 @@ bool Server::WebsocketAuthenticate(const endpoint& anEndpoint, const query&, con
     {
         theSocket = ipAddress(theSocket.Get().substr(0, nPos));
     }
-    pmlLog() << "Websocket connection request from " << theSocket;
+    pmlLog(pml::LOG_INFO, "aes67") << "Websocket connection request from " << theSocket;
     return DoAuthenticateToken(theUser.Get(), theSocket);
 }
 
 bool Server::WebsocketMessage(const endpoint&, const Json::Value& jsData) const
 {
-    pmlLog() << "Websocket message '" << jsData << "'";
+    pmlLog(pml::LOG_INFO, "aes67") << "Websocket message '" << jsData << "'";
     return true;
 }
 
 void Server::WebsocketClosed(const endpoint&, const ipAddress& peer) const
 {
-    pmlLog() << "Websocket closed from " << peer;
+    pmlLog(pml::LOG_INFO, "aes67") << "Websocket closed from " << peer;
 }
 
 bool Server::AuthenticateToken(const methodpoint& , const std::string& sToken) const
@@ -631,7 +630,7 @@ bool Server::AuthenticateToken(const methodpoint& , const std::string& sToken) c
 
 bool Server::DoAuthenticateToken(const std::string& sToken, const ipAddress& peer) const
 {
-    pmlLog() << "AuthenticateToken " << peer << "=" << sToken;
+    pmlLog(pml::LOG_INFO, "aes67") << "AuthenticateToken " << peer << "=" << sToken;
     
     //If we haven't got a secret then just say ok - only for debugging!!
     if(m_config.Get(jsonConsts::restricted_authentication, jsonConsts::secret, "").empty())
@@ -651,29 +650,29 @@ bool Server::DoAuthenticateToken(const std::string& sToken, const ipAddress& pee
         verifier.verify(decoded_token);
         
         //if from BNCS driver then extra check as should be new token for each message
-        pmlLog(pml::LOG_DEBUG) << "Token verified";
+        pmlLog(pml::LOG_DEBUG, "aes67") << "Token verified";
         bAllowed = true;
     }
     catch(const jwt::error::token_verification_exception& e)
     {
-        pmlLog(pml::LOG_WARN) << "Could not verify token " << e.what();
+        pmlLog(pml::LOG_WARN, "aes67") << "Could not verify token " << e.what();
     }
     catch(const std::invalid_argument& e)
     {
-        pmlLog(pml::LOG_WARN) << "Could not decode token - invalid format " << e.what();
+        pmlLog(pml::LOG_WARN, "aes67") << "Could not decode token - invalid format " << e.what();
     }
     catch(const std::bad_cast& e)
     {
-        pmlLog(pml::LOG_WARN) << "Could not decode token - invalid format " << e.what();
+        pmlLog(pml::LOG_WARN, "aes67") << "Could not decode token - invalid format " << e.what();
     }
     catch(const std::runtime_error& e)
     {
-        pmlLog(pml::LOG_WARN) << "Could not decode token - invalid base64 or json " << e.what();
+        pmlLog(pml::LOG_WARN, "aes67") << "Could not decode token - invalid base64 or json " << e.what();
     }
 
     return bAllowed;
     
-    pmlLog(pml::LOG_WARN) << "AuthenticateToken failed";
+    pmlLog(pml::LOG_WARN, "aes67") << "AuthenticateToken failed";
     return false;
 }
 

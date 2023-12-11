@@ -47,14 +47,14 @@ bool LoggerApp::Init(const std::filesystem::path& config)
     }
     catch(const std::filesystem::filesystem_error& ec)
     {
-        pmlLog(pml::LOG_WARN) << "Failed to remove " << m_pathSockets << "\t" << ec.what();
+        pmlLog(pml::LOG_WARN, "aes67") << "Failed to remove " << m_pathSockets << "\t" << ec.what();
     }
 
-    pmlLog() << "Create socket pipe " << m_pathSockets.string();
+    pmlLog(pml::LOG_INFO, "aes67") << "Create socket pipe " << m_pathSockets.string();
     //make sure the directory exists
     try
     {
-        pmlLog() << "Create socket pipe " << m_pathSockets.string();
+        pmlLog(pml::LOG_INFO, "aes67") << "Create socket pipe " << m_pathSockets.string();
         std::filesystem::create_directories(m_pathSockets.parent_path());
         m_pServer = std::make_shared<AsioServer>(m_pathSockets);
         m_pServer->Run();
@@ -66,12 +66,12 @@ bool LoggerApp::Init(const std::filesystem::path& config)
     }
     catch(const std::filesystem::filesystem_error& ec)
     {
-        pmlLog(pml::LOG_WARN) << "Failed to create " << m_pathSockets.parent_path() << "\t" << ec.what();
+        pmlLog(pml::LOG_WARN, "aes67") << "Failed to create " << m_pathSockets.parent_path() << "\t" << ec.what();
         return false;
     }
     catch(const std::system_error& ec)
     {
-        pmlLog(pml::LOG_WARN) << "Failed to open socket pipe\t" << ec.what();
+        pmlLog(pml::LOG_WARN, "aes67") << "Failed to open socket pipe\t" << ec.what();
         return false;
     }
 }
@@ -81,7 +81,7 @@ int LoggerApp::Run()
     std::this_thread::sleep_for(std::chrono::milliseconds(250));
     StartRecording();
 
-    pmlLog() << "Application finished";
+    pmlLog(pml::LOG_INFO, "aes67") << "Application finished";
     return 0;
 }
 
@@ -107,7 +107,7 @@ bool LoggerApp::LoadConfig(const std::filesystem::path& config)
     {
         m_sName = m_config.Get(jsonConsts::general, jsonConsts::name, "");
         CreateLogging();
-        pmlLog() << "Logging created";
+        pmlLog(pml::LOG_INFO, "aes67") << "Logging created";
         m_pathWav.assign(m_config.Get(jsonConsts::path, jsonConsts::audio, "/var/loggers/audio"));
         m_pathWav /= "wav";
         m_pathWav /= m_sName;
@@ -125,7 +125,7 @@ bool LoggerApp::LoadConfig(const std::filesystem::path& config)
         }
         catch(std::filesystem::filesystem_error& e)
         {
-            pmlLog(pml::LOG_ERROR) << "Could not create wav file directory " << m_pathWav;
+            pmlLog(pml::LOG_ERROR, "aes67") << "Could not create wav file directory " << m_pathWav;
         }
 
         return true;
@@ -162,7 +162,7 @@ void LoggerApp::CreateLogging()
             std::filesystem::path pathLog = m_config.Get(jsonConsts::path,  jsonConsts::logs, "/var/loggers/log");
             pathLog.append(m_sName);
             m_nLogOutputFile = (int)pml::LogStream::AddOutput(std::make_unique<pml::LogToFile>(pathLog));
-	    pmlLog() << "Log to file " << pathLog.string() << " level: " << nFile;
+	    pmlLog(pml::LOG_INFO, "aes67") << "Log to file " << pathLog.string() << " level: " << nFile;
         }
         pml::LogStream::SetOutputLevel(m_nLogOutputFile, (pml::enumLevel)nFile);
     }
@@ -175,7 +175,7 @@ void LoggerApp::CreateLogging()
 
 void LoggerApp::StartRecording()
 {
-    pmlLog() << "StartRecording";
+    pmlLog(pml::LOG_INFO, "aes67") << "StartRecording";
     m_pClient = std::make_unique<pml::aoip::AoipClient>(m_config.Get(jsonConsts::aoip, jsonConsts::buffer, 4096L));
 
     m_pClient->AddAudioCallback(std::bind(&LoggerApp::WriteToSoundFile, this, _1, _2));
@@ -196,7 +196,7 @@ void LoggerApp::StartRecording()
         }
         else
         {
-            pmlLog(pml::LOG_WARN) << "Could not load SDP '" << m_config.Get(jsonConsts::source, jsonConsts::sdp,"") << "'";
+            pmlLog(pml::LOG_WARN, "aes67") << "Could not load SDP '" << m_config.Get(jsonConsts::source, jsonConsts::sdp,"") << "'";
         }
     }
     m_sSdp = ssSdp.str();
@@ -218,7 +218,7 @@ void LoggerApp::StartRecording()
 void LoggerApp::QoSCallback(std::shared_ptr<pml::aoip::AoIPSource>, std::shared_ptr<pml::aoip::qosData> pData)
 {
     //@todo make sure we are getting audio packages and no data loss
-    pmlLog(pml::LOG_DEBUG) << "QoS"
+    pmlLog(pml::LOG_DEBUG, "aes67") << "QoS"
              << "\tbitrate=" << pData->dkbits_per_second_Now << "kbit/s"
              << "\tloss=" << pData->dPacket_loss_fraction_av*100.0 << "%"
              << "\tgap=" << pData->dInter_packet_gap_ms_av << "ms"
@@ -267,12 +267,12 @@ void LoggerApp::SessionCallback(std::shared_ptr<pml::aoip::AoIPSource>,  const p
             m_nFrameSize*=4;
         }
 
-        pmlLog() << "New session: channels=" << m_subsession.nChannels << "\tsampleRate=" << m_subsession.nSampleRate;
+        pmlLog(pml::LOG_INFO, "aes67") << "New session: channels=" << m_subsession.nChannels << "\tsampleRate=" << m_subsession.nSampleRate;
     }
     else
     {
         m_subsession = pml::aoip::subsession();
-        pmlLog(pml::LOG_WARN) << "New session but not subsession!";
+        pmlLog(pml::LOG_WARN, "aes67") << "New session but not subsession!";
     }
 
     OutputSessionJson();
@@ -325,7 +325,7 @@ Json::Value LoggerApp::GetSubsessionJson(const pml::aoip::subsession& theSubSess
 
 void LoggerApp::StreamCallback(std::shared_ptr<pml::aoip::AoIPSource>, bool bStreaming)
 {
-    pmlLog( bStreaming ? pml::LOG_INFO : pml::LOG_WARN) << (bStreaming ? "Stream started" : "Stream stopped");
+    pmlLog( bStreaming ? pml::LOG_INFO : pml::LOG_WARN, "aes67") << (bStreaming ? "Stream started" : "Stream stopped");
     OutputStreamJson(bStreaming);
 }
 
@@ -353,7 +353,7 @@ void LoggerApp::LoopCallback(std::chrono::microseconds duration)
     if(std::chrono::duration_cast<std::chrono::milliseconds>(m_timeSinceLastHeartbeat) >= m_heartbeatGap)
     {
         m_timeSinceLastHeartbeat = std::chrono::microseconds(0);
-        pmlLog(pml::LOG_TRACE) << "Send heartbeat... " << (m_bHeartbeat ? "ON" : "OFF");
+        pmlLog(pml::LOG_TRACE, "aes67") << "Send heartbeat... " << (m_bHeartbeat ? "ON" : "OFF");
 
         OutputHeartbeatJson();
     }
@@ -435,7 +435,7 @@ void LoggerApp::StreamFail()
 {
     if(m_bReceivingAudio)
     {
-        pmlLog(pml::LOG_WARN) << "No data from stream";
+        pmlLog(pml::LOG_WARN, "aes67") << "No data from stream";
         m_bReceivingAudio = false;
         OutputSessionJson();
     }

@@ -39,7 +39,7 @@ std::optional<Json::Value> ConvertPostDataToJson(const postData& vData)
 {
     if(vData.size() == 1)
     {
-        pmlLog(pml::LOG_DEBUG) << "ConvertPostDataToJson " << vData[0].data.Get();
+        pmlLog(pml::LOG_DEBUG, "aes67") << "ConvertPostDataToJson " << vData[0].data.Get();
         return ConvertToJson(vData[0].data.Get());
     }
     else if(vData.size() > 1)
@@ -47,7 +47,6 @@ std::optional<Json::Value> ConvertPostDataToJson(const postData& vData)
         Json::Value jsData;
         for(size_t i = 0; i < vData.size(); i++)
         {
-            pmlLog() << "ConvertPostDataToJson: data " << i <<"=" << vData[i].data.Get();
             if(vData[i].name.Get().empty() == false)
             {
                 if(vData[i].filepath.empty() == true)
@@ -115,13 +114,13 @@ int WebServer::Run(const std::string& sConfigFile)
     if(m_config.Read(sConfigFile) == false)
     {
         pml::LogStream::AddOutput(std::make_unique<pml::LogOutput>());
-        pmlLog(pml::LOG_CRITICAL) << "Could not open '" << sConfigFile << "' exiting.";
+        pmlLog(pml::LOG_CRITICAL, "aes67") << "Could not open '" << sConfigFile << "' exiting.";
         return -1;
     }
 
     InitLogging();
 
-    pmlLog() << "Core\tStart" ;
+    pmlLog(pml::LOG_INFO, "aes67") << "Core\tStart" ;
     
 
     if(auto addr = ipAddress(GetIpAddress(m_config.Get(jsonConsts::api, jsonConsts::interface, "eth0"))); 
@@ -153,7 +152,7 @@ int WebServer::Run(const std::string& sConfigFile)
         //start the server loop
         m_server.Run(false, std::chrono::milliseconds(50));
 
-        pmlLog() << "Core\tStop" ;
+        pmlLog(pml::LOG_INFO, "aes67") << "Core\tStop" ;
         DeleteEndpoints();
 
         return 0;
@@ -165,7 +164,7 @@ int WebServer::Run(const std::string& sConfigFile)
 bool WebServer::CreateEndpoints()
 {
 
-    pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "CreateEndpoints" ;
+    pmlLog(pml::LOG_DEBUG, "aes67") << "Endpoints\t" << "CreateEndpoints" ;
 
     m_server.AddEndpoint(pml::restgoose::GET, EP_API, std::bind(&WebServer::GetApi, this, _1,_2,_3,_4));
     m_server.AddEndpoint(pml::restgoose::POST, EP_LOGIN, std::bind(&WebServer::PostLogin, this, _1,_2,_3,_4));
@@ -181,7 +180,7 @@ bool WebServer::CreateEndpoints()
 void WebServer::DeleteEndpoints()
 {
 
-    pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "DeleteEndpoints" ;
+    pmlLog(pml::LOG_DEBUG, "aes67") << "Endpoints\t" << "DeleteEndpoints" ;
 
     m_server.DeleteEndpoint(pml::restgoose::GET, EP_API);
     
@@ -189,7 +188,7 @@ void WebServer::DeleteEndpoints()
 
 pml::restgoose::response WebServer::GetRoot(const query&, const postData&, const endpoint&, const userName&) const
 {
-    pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "GetRoot" ;
+    pmlLog(pml::LOG_DEBUG, "aes67") << "Endpoints\t" << "GetRoot" ;
     pml::restgoose::response theResponse;
     theResponse.jsonData = Json::Value(Json::arrayValue);
     theResponse.jsonData.append(API);
@@ -198,7 +197,7 @@ pml::restgoose::response WebServer::GetRoot(const query&, const postData&, const
 
 pml::restgoose::response WebServer::GetApi(const query&, const postData&, const endpoint&, const userName&) const
 {
-    pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "GetRoot" ;
+    pmlLog(pml::LOG_DEBUG, "aes67") << "Endpoints\t" << "GetRoot" ;
     pml::restgoose::response theResponse;
     theResponse.jsonData = Json::Value(Json::arrayValue);
     theResponse.jsonData.append(LOGIN);
@@ -208,7 +207,7 @@ pml::restgoose::response WebServer::GetApi(const query&, const postData&, const 
 
 pml::restgoose::response WebServer::PostLogin(const query&, const postData& theData, const endpoint&, const userName&) const
 {
-    pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "PostLogin" ;
+    pmlLog(pml::LOG_DEBUG, "aes67") << "Endpoints\t" << "PostLogin" ;
     auto login = ConvertPostDataToJson(theData);
     if(login)
     {
@@ -236,14 +235,14 @@ pml::restgoose::response WebServer::PostLogin(const query&, const postData& theD
 
 pml::restgoose::response WebServer::DeleteLogin(const query&, const postData&, const endpoint&, const userName&) const
 {
-    pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "DeleteLogin" ;
+    pmlLog(pml::LOG_DEBUG, "aes67") << "Endpoints\t" << "DeleteLogin" ;
     pml::restgoose::response theResponse;
     return theResponse;
 }
 
 pml::restgoose::response WebServer::GetUsers(const query&, const postData&, const endpoint&, const userName&) const
 {
-    pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "GetUsers" ;
+    pmlLog(pml::LOG_DEBUG, "aes67") << "Endpoints\t" << "GetUsers" ;
     pml::restgoose::response theResponse;
     theResponse.jsonData = Json::Value(Json::arrayValue);
 
@@ -269,7 +268,7 @@ pml::restgoose::response WebServer::GetUsers(const query&, const postData&, cons
 
 pml::restgoose::response WebServer::PostUser(const query&, const postData& theData, const endpoint&, const userName&)
 {
-    pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "PostUser" ;
+    pmlLog(pml::LOG_DEBUG, "aes67") << "Endpoints\t" << "PostUser" ;
        
     if(auto user = ConvertPostDataToJson(theData); user)
     {
@@ -316,7 +315,7 @@ void WebServer::SaveUserPermission(const std::string& sSection, const std::strin
 
 pml::restgoose::response WebServer::PatchUsers(const query&, const postData& theData, const endpoint&, const userName&)
 {
-    pmlLog(pml::LOG_DEBUG) << "Endpoints\t" << "PatchUsers" ;
+    pmlLog(pml::LOG_DEBUG, "aes67") << "Endpoints\t" << "PatchUsers" ;
     if(auto user = ConvertPostDataToJson(theData); user && user->isMember(jsonConsts::username))
     {
         //check that user does not already exist
@@ -369,14 +368,14 @@ pml::restgoose::response WebServer::CreateJwt(const std::string& sUsername) cons
 
 bool WebServer::AuthenticateUser(const std::string& sUsername, const std::string& sPassword) const
 {
-    pmlLog() << "AuthenticateUser: " << Hash(HASH_KEY, sPassword);
+    pmlLog(pml::LOG_INFO, "aes67") << "AuthenticateUser: " << Hash(HASH_KEY, sPassword);
     return (Hash(HASH_KEY, sPassword) == m_config.Get("{"+sUsername+"}", jsonConsts::password, ""));
 }
 
 bool WebServer::AuthenticateToken(const methodpoint& aPoint, const std::string& sToken) const
 {
 
-    pmlLog() << "AuthenticateToken " << m_server.GetCurrentPeer() << "=" << sToken;
+    pmlLog(pml::LOG_INFO, "aes67") << "AuthenticateToken " << m_server.GetCurrentPeer() << "=" << sToken;
     
     //If we haven't got a secret then just say ok - only for debugging!!
     if(m_config.Get(jsonConsts::restricted_authentication, jsonConsts::secret, "").empty())
@@ -407,28 +406,28 @@ bool WebServer::AuthenticateToken(const methodpoint& aPoint, const std::string& 
         }
         
         //if from BNCS driver then extra check as should be new token for each message
-        pmlLog(pml::LOG_DEBUG) << "Token verified";
+        pmlLog(pml::LOG_DEBUG, "aes67") << "Token verified";
         bAllowed = true;
     }
     catch(const jwt::error::token_verification_exception& e)
     {
-        pmlLog(pml::LOG_WARN) << "Could not verify token " << e.what();
+        pmlLog(pml::LOG_WARN, "aes67") << "Could not verify token " << e.what();
     }
     catch(const std::invalid_argument& e)
     {
-        pmlLog(pml::LOG_WARN) << "Could not decode token - invalid format " << e.what();
+        pmlLog(pml::LOG_WARN, "aes67") << "Could not decode token - invalid format " << e.what();
     }
     catch(const std::bad_cast& e)
     {
-        pmlLog(pml::LOG_WARN) << "Could not decode token - invalid format " << e.what();
+        pmlLog(pml::LOG_WARN, "aes67") << "Could not decode token - invalid format " << e.what();
     }
     catch(const std::runtime_error& e)
     {
-        pmlLog(pml::LOG_WARN) << "Could not decode token - invalid base64 or json " << e.what();
+        pmlLog(pml::LOG_WARN, "aes67") << "Could not decode token - invalid base64 or json " << e.what();
     }
 
     return bAllowed;
     
-    pmlLog(pml::LOG_WARN) << "AuthenticateToken failed";
+    pmlLog(pml::LOG_WARN, "aes67") << "AuthenticateToken failed";
     return false;
 }

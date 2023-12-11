@@ -130,12 +130,12 @@ std::optional<Json::Value> ConvertToJson(const std::string& str)
     }
     catch(const Json::RuntimeError& e)
     {
-        pmlLog(pml::LOG_ERROR) << "Could not convert '" << str << "' to JSON: " << e.what();
+        pmlLog(pml::LOG_ERROR, "aes67") << "Could not convert '" << str << "' to JSON: " << e.what();
         return {};
     }
     catch(const Json::LogicError& e)
     {
-        pmlLog(pml::LOG_ERROR) << "Could not convert '" << str << "' to JSON: " << e.what();
+        pmlLog(pml::LOG_ERROR, "aes67") << "Could not convert '" << str << "' to JSON: " << e.what();
         return {};
     }
 
