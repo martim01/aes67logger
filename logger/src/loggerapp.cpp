@@ -358,7 +358,7 @@ void LoggerApp::LoopCallback(std::chrono::microseconds duration)
         OutputHeartbeatJson();
     }
     m_timeSinceLastAudio += duration;
-    if(std::chrono::duration_cast<std::chrono::milliseconds>(m_timeSinceLastHeartbeat) >= std::chrono::milliseconds(500))
+    if(std::chrono::duration_cast<std::chrono::milliseconds>(m_timeSinceLastAudio) >= std::chrono::milliseconds(500))
     {
         StreamFail();
     }
@@ -376,8 +376,6 @@ void LoggerApp::OutputHeartbeatJson()
 
 void LoggerApp::WriteToSoundFile(std::shared_ptr<pml::aoip::AoIPSource>, std::shared_ptr<pml::aoip::timedbuffer> pBuffer)
 {
-    m_pServer->StartTimer(std::chrono::milliseconds(500), std::bind(&LoggerApp::StreamFail, this));
-
     if(m_subsession.nChannels > 0)
     {
         m_timeSinceLastAudio = std::chrono::microseconds(0);

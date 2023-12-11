@@ -8,7 +8,7 @@ m_sName(sName)
 
 }
 
-void JsonLog::Flush(pml::enumLevel eLogLevel, const std::stringstream&  logStream)
+void JsonLog::Flush(pml::enumLevel eLogLevel, const std::stringstream&  logStream, const std::string& sPrefix)
 {
     if(eLogLevel >= m_eLevel)
     {
@@ -19,6 +19,7 @@ void JsonLog::Flush(pml::enumLevel eLogLevel, const std::stringstream&  logStrea
         jsValue[jsonConsts::data][jsonConsts::level][jsonConsts::value] = Json::Int(eLogLevel);
         jsValue[jsonConsts::data][jsonConsts::level][jsonConsts::text] = pml::LogStream::STR_LEVEL[eLogLevel];
         jsValue[jsonConsts::data][jsonConsts::message] = logStream.str();
+	jsValue[jsonConsts::data]["prefix"] = sPrefix;
 
         JsonWriter::Get().writeToStdOut(jsValue);
 
