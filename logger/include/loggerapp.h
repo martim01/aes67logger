@@ -4,8 +4,7 @@
 #include "soundfile.h"
 #include <chrono>
 #include "inimanager.h"
-#include "session.h"
-#include "aoipclient.h"
+#include "aoipscheduler.h"
 #include <filesystem>
 #include "json/json.h"
 #include <mutex>
@@ -21,9 +20,9 @@ namespace pml
 {
     namespace aoip
     {
-        class timedbuffer;
-        class AoipClient;
-        class AoIPSource;
+        class AudioFrame;
+        class InputSession;
+        struct rtpStats;
     }
 }
 
@@ -46,26 +45,18 @@ class LoggerApp
 
         void CreateLogging();
 
-        void StartRecording();
+        bool StartRecording();
         bool OpenSoundFile();
 
 
-        void WriteToSoundFile(std::shared_ptr<pml::aoip::AoIPSource> pSource, std::shared_ptr<pml::aoip::timedbuffer> pBuffer);
-        void QoSCallback(std::shared_ptr<pml::aoip::AoIPSource> pSource, std::shared_ptr<pml::aoip::qosData> pData);
-        void SessionCallback(std::shared_ptr<pml::aoip::AoIPSource> pSource,  const pml::aoip::session& theSession);
-        void StreamCallback(std::shared_ptr<pml::aoip::AoIPSource> pSource, bool bStreaming);
+        bool StatsCallback(const std::string& sGroup, const pml::aoip::rtpStats& theStats);
+
+        void WriteToSoundFile(std::shared_ptr<pml::aoip::AudioFrame> pFrame);
         void LoopCallback(std::chrono::microseconds duration);
 
-        void OutputQoSJson(std::shared_ptr<pml::aoip::qosData> pData);
-        void OutputSessionJson();
-        void OutputStreamJson(bool bStreaming);
+        void OutputStatsJson(const std::string& sGroup, const pml::aoip::rtpStats& theStatsa);
         void OutputHeartbeatJson();
         void OutputFileJson();
-
-        Json::Value GetSubsessionJson(const pml::aoip::subsession& theSubSession);
-
-        void StreamFail();
-
 
         std::string m_sName;
         std::filesystem::path m_pathWav;
@@ -86,11 +77,9 @@ class LoggerApp
 
         iniManager m_config;
 
-        pml::aoip::session m_session;
-        pml::aoip::subsession m_subsession;
-
-        std::unique_ptr<pml::aoip::AoipClient> m_pClient = nullptr;
-
+        pml::aoip::Scheduler m_scheduler;
+        std::shared_ptr<pml::aoip::InputSession> m_pSession = nullptr;
+        
         int m_nLogOutputConsole = -1;
         int m_nLogOutputFile = -1;
 

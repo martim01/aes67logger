@@ -1,5 +1,4 @@
 #include "soundfile.h"
-#include "timedbuffer.h"
 #include "log.h"
 
 SoundFile::SoundFile()=default;
@@ -97,10 +96,6 @@ bool SoundFile::OpenToRead(const std::filesystem::path& path)
     return (m_pHandle != nullptr);
 }
 
-bool SoundFile::WriteAudio(std::shared_ptr<pml::aoip::timedbuffer> pBuffer)
-{
-    return WriteAudio(pBuffer->GetBuffer());
-}
 
 bool SoundFile::WriteAudio(const std::vector<float>& vBuffer)
 {

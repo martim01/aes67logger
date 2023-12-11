@@ -4,7 +4,7 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
-                "/home/matt/aoip/include",
+                "/home/matt/pml-aoip/include",
                 "/home/matt/log/include",
                 "/home/matt/Restgoose/include",
                 "/home/matt/jsoncpp/dist",
