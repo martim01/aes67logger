@@ -663,14 +663,14 @@ function handleLoggerInfo(jsonObj)
 	}
 	if("qos" in jsonObj)
 	{
-		document.getElementById('qos-bitrate').innerHTML = jsonObj.qos.bitrate.toFixed(2) + " kbps";
-		document.getElementById('qos-received').innerHTML = jsonObj.qos.packets.received;
-		document.getElementById('qos-lost').innerHTML = jsonObj.qos.packets.lost;
-		document.getElementById('qos-errors').innerHTML = jsonObj.qos.timestamp_errors;
-		document.getElementById('qos-interpacket').innerHTML = (jsonObj.qos.packet_gap).toFixed(4)+" ms";
-		document.getElementById('qos-jitter').innerHTML = (jsonObj.qos.jitter.toFixed(4))+" ms";
+		document.getElementById('qos-bitrate').innerHTML = jsonObj.qos.["kbits/s"]["current"].toFixed(2) + " kbps";
+		document.getElementById('qos-received').innerHTML = jsonObj.qos.["packets"]["total"]["received"];
+		document.getElementById('qos-lost').innerHTML = jsonObj.qos.["buffer"]["packets"]["missing"];
+		document.getElementById('qos-errors').innerHTML = jsonObj.qos.["packets"]["out_of_order"];
+		document.getElementById('qos-interpacket').innerHTML = (jsonObj.qos["interpacketGap"]["average"]).toFixed(4)+" ms";
+		document.getElementById('qos-jitter').innerHTML = (jsonObj.qos['jitter'].toFixed(4))+" ms";
 		document.getElementById('qos-tsdf').innerHTML = (jsonObj.qos['ts-df'].toFixed(4))+" ms";
-		document.getElementById('qos-duration').innerHTML = jsonObj.qos['duration']+" &mu;s";
+		//document.getElementById('qos-duration').innerHTML = jsonObj.qos['duration']+" &mu;s";
 	}
 
 	if("session" in jsonObj)
@@ -745,27 +745,29 @@ function handleLoggerInfo(jsonObj)
 			elm.className = 'uk-text-danger';
 		}
 	}
+
 	if('streaming' in jsonObj)
 	{
-		document.getElementById('source-name').innerHTML = jsonObj.streaming.name;
-		document.getElementById('source-type').innerHTML = jsonObj.streaming.type;
-		if(jsonObj.streaming.type == 'RTSP')
-		{
-			document.getElementById('div_source-sdp').style.display = 'none';
-			document.getElementById('div_source-rtsp').style.display= 'block';
-			document.getElementById('source-rtsp').innerHTML = jsonObj.streaming.source;
-		}
-		else
-		{
-			document.getElementById('div_source-rtsp').style.display = 'none';
-			document.getElementById('div_source-sdp').style.display = 'block';
-			document.getElementById('source-sdp').innerHTML = jsonObj.streaming.source;
-		}
+		document.getElementById('source-name').innerHTML = jsonObj.session;
+		
+		//document.getElementById('source-type').innerHTML = 'jsonObj.streaming.type';
+		//if(jsonObj.streaming.type == 'RTSP')
+		//{
+	//		document.getElementById('div_source-sdp').style.display = 'none';
+//			document.getElementById('div_source-rtsp').style.display= 'block';
+			//document.getElementById('source-rtsp').innerHTML = jsonObj.streaming.source;
+		//}
+		//else
+		//{
+	//		document.getElementById('div_source-rtsp').style.display = 'none';
+//			document.getElementById('div_source-sdp').style.display = 'block';
+//			document.getElementById('source-sdp').innerHTML = jsonObj.streaming.source;
+//		}
 		var elm = document.getElementById('source-connection');
 		elm.className = 'uk-card-badge';
 		elm.classList.add('uk-label');
 
-		if(jsonObj.streaming.streaming)
+		if(jsonObj.streaming)
 		{
 			elm.classList.add('uk-label-success');
 			elm.innerHTML = "Streaming";	
