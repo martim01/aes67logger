@@ -80,31 +80,39 @@ bool LoggerApp::Init(const std::filesystem::path& config)
 
 int LoggerApp::Run()
 {
+    pmlLog(pml::LOG_INFO, "aes67") << "Run";
     std::this_thread::sleep_for(std::chrono::milliseconds(250));
     
 
     if(StartRecording() == false)
     {
+	pmlLog(pml::LOG_CRITICAL, "aes67") << "Could not start recording. Exit";
         return -1;
     }
 
+    pmlLog(pml::LOG_INFO, "aes67") << "Loop";
     while(true)
     {
         auto now = std::chrono::system_clock::now();
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
-        
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+	auto slept = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now()-now);
+
         std::shared_ptr<pml::aoip::AudioFrame> pFrame = nullptr;
-        do
+        unsigned long nFrames = 0;
+	do
         {
-            auto pFrame = m_pSession->GetNextFrame();
+	    
+            pFrame = m_pSession->GetNextFrame();
             if(pFrame)
             {
+		nFrames++;
                 WriteToSoundFile(pFrame);
             }
         }while(pFrame);
 
-        LoopCallback(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now()-now));
+        LoopCallback(slept);
     }
 
     pmlLog(pml::LOG_INFO, "aes67") << "Application finished";
@@ -223,7 +231,7 @@ bool LoggerApp::StartRecording()
 
     
     pml::aoip::SdpParser parser;
-    m_pSession = parser.CreateSessionFromSdp(ssSdp.str(),100, false);
+    m_pSession = parser.CreateSessionFromSdp(ssSdp.str(),100, 1000, false);
     if(m_pSession == nullptr)
     {
         pmlLog(pml::LOG_CRITICAL, "aes67") << "Could not create session from SDP";
@@ -248,12 +256,13 @@ void LoggerApp::OutputStatsJson(const std::string& sGroup, const pml::aoip::rtpS
     m_jsStatus[jsonConsts::id] = m_sName;
         
     m_jsStatus["group"] = sGroup;
-    m_jsStatus[jsonConsts::qos]["startedAt"] = ConvertTimeToIsoString(stats.tpStartedRecording);
     m_jsStatus["streaming"] = stats.bReceiving;
     m_jsStatus["session"] = m_pSession->GetSessionName();
      
     if(stats.lastReceived)
     {
+        m_jsStatus[jsonConsts::qos]["duration"] = std::chrono::duration_cast<std::chrono::seconds>(*stats.lastReceived-stats.tpStartedRecording).count();
+
         m_jsStatus[jsonConsts::qos]["now"] = ConvertTimeToIsoString(*stats.lastReceived);
         
         m_jsStatus[jsonConsts::qos]["interpacketGap"]["max"] = static_cast<double>(stats.intergap.max.count())/1000000.0;
@@ -276,6 +285,8 @@ void LoggerApp::OutputStatsJson(const std::string& sGroup, const pml::aoip::rtpS
 
         m_jsStatus[jsonConsts::qos]["buffer"]["packets"]["out_of_order"] = stats.buffer.nPacketsOutOfOrder;
         m_jsStatus[jsonConsts::qos]["buffer"]["packets"]["missing"] = stats.buffer.nPacketsMissing;
+        m_jsStatus[jsonConsts::qos]["buffer"]["packets"]["stale"] = static_cast<Json::UInt64>(stats.buffer.nStale);
+
         
         m_jsStatus[jsonConsts::qos]["packets"]["total"]["received"] = static_cast<Json::UInt64>(stats.buffer.nTotalPacketsReceived);
         m_jsStatus[jsonConsts::qos]["packets"]["total"]["used"] = static_cast<Json::UInt64>(stats.buffer.nTotalFramesUsed);
@@ -286,6 +297,7 @@ void LoggerApp::OutputStatsJson(const std::string& sGroup, const pml::aoip::rtpS
         
     }
     
+    pmlLog() << m_jsStatus;
     JsonWriter::Get().writeToSocket(m_jsStatus, m_pServer);
 }
 

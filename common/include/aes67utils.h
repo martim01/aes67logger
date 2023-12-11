@@ -21,7 +21,6 @@ extern std::string GetCurrentTimeAsIsoString();
 extern std::string ConvertTimeToIsoString(const std::chrono::time_point<std::chrono::system_clock>& tp);
 extern std::string ConvertTimeToString(const std::chrono::time_point<std::chrono::system_clock>& tp, const std::string& sFormat);
 extern std::string GetCurrentTimeAsString(bool bIncludeNano);
-extern std::string ConvertTimeToString(std::chrono::time_point<std::chrono::system_clock> tp, bool bIncludeNano);
 
 extern std::string GetIpAddress(const std::string& sInterface);
 extern std::string Exec(const std::string& sCmd);

@@ -253,14 +253,3 @@ std::string GetCurrentTimeAsString(bool bIncludeNano)
     return ConvertTimeToString(tp, bIncludeNano);
 }
 
-std::string ConvertTimeToString(std::chrono::time_point<std::chrono::system_clock> tp, bool bIncludeNano)
-{
-    std::stringstream sstr;
-    auto seconds = std::chrono::duration_cast<std::chrono::seconds>(tp.time_since_epoch());
-    sstr << seconds.count();
-    if(bIncludeNano)
-    {
-        sstr << ":" << (std::chrono::duration_cast<std::chrono::nanoseconds>(tp.time_since_epoch()).count()%1000000000);
-    }
-    return sstr.str();
-}
