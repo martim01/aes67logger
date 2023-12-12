@@ -232,20 +232,16 @@ void Launcher::HandleRead(std::error_code ec, std::size_t nLength)
     else if(ec != asio::error::operation_aborted)
     {
         pmlLog(pml::LOG_ERROR, "aes67") << m_pathConfig << "\tEOF or Read Error: " << ec.message();
-        CloseAndLaunchOrRemove(SIGKILL);
+        //CloseAndLaunchOrRemove(SIGKILL); //@TODO Close or keep running ?
     }
 }
 std::vector<std::string> Launcher::ExtractReadBuffer(size_t nLength)
 {
-    //std::lock_guard<std::mutex> lg(m_mutex);
-
     m_sOut.append(m_data.begin(), m_data.begin()+nLength);
 
     std::vector<std::string> vLines;
-
     //do we have at least \n
-    size_t nLastLineBreak = m_sOut.find_last_of('\n');
-    if(nLastLineBreak != std::string::npos)
+    if(size_t nLastLineBreak = m_sOut.find_last_of('\n'); nLastLineBreak != std::string::npos)
     {
         std::string sComplete = m_sOut.substr(0, nLastLineBreak);
         vLines = SplitString(sComplete, '\n');
@@ -281,26 +277,46 @@ void Launcher::HandleConnect(const asio::error_code& e)
 void Launcher::CreateSummary()
 {
     std::scoped_lock lg(m_mutex);
-    m_jsStatusSummary.clear();
-    m_jsStatusSummary[jsonConsts::name] = m_pathConfig.stem().string();
-    m_jsStatusSummary[jsonConsts::running] = IsRunning();
-
-    if(m_jsStatus.isMember(jsonConsts::streaming))
+    try
     {
-        m_jsStatusSummary[jsonConsts::streaming] = m_jsStatus[jsonConsts::streaming];
+        m_jsStatusSummary.clear();
+        m_jsStatusSummary[jsonConsts::name] = m_pathConfig.stem().string();
+        m_jsStatusSummary[jsonConsts::running] = IsRunning();
+
+        if(m_jsStatus.isMember(jsonConsts::streaming))
+        {
+            m_jsStatusSummary[jsonConsts::streaming] = m_jsStatus[jsonConsts::streaming];
+        }
+        if(m_jsStatus.isMember(jsonConsts::session))
+        {
+            m_jsStatusSummary[jsonConsts::session] = m_jsStatus[jsonConsts::session][jsonConsts::name];
+        }
+
+        if(m_jsStatus.isMember(jsonConsts::heartbeat))
+        {
+            m_jsStatusSummary[jsonConsts::timestamp] = m_jsStatus[jsonConsts::heartbeat][jsonConsts::timestamp];
+            m_jsStatusSummary[jsonConsts::up_time] = m_jsStatus[jsonConsts::heartbeat][jsonConsts::up_time];
+        }
+
+        if(m_jsStatus.isMember(jsonConsts::file) && m_jsStatus[jsonConsts::file].isMember(jsonConsts::filename))
+        {
+            m_jsStatusSummary[jsonConsts::filename] = m_jsStatus[jsonConsts::file][jsonConsts::filename];
+        }
     }
+<<<<<<< Updated upstream
 
     if(m_jsStatus.isMember(jsonConsts::heartbeat))
+=======
+    catch(const Json::RuntimeError& e)
     {
-        m_jsStatusSummary[jsonConsts::timestamp] = m_jsStatus[jsonConsts::heartbeat][jsonConsts::timestamp];
-        m_jsStatusSummary[jsonConsts::up_time] = m_jsStatus[jsonConsts::heartbeat][jsonConsts::up_time];
+        pmlLog(pml::LOG_ERROR, "aes67") << "could not create summary " << e.what();
     }
-
-    if(m_jsStatus.isMember(jsonConsts::file) && m_jsStatus[jsonConsts::file].isMember(jsonConsts::filename))
+    catch(const Json::LogicError& e)
+>>>>>>> Stashed changes
     {
-        m_jsStatusSummary[jsonConsts::filename] = m_jsStatus[jsonConsts::file][jsonConsts::filename];
-    }
+        pmlLog(pml::LOG_ERROR, "aes67") << "could not create summary " << e.what();
 
+    }
 }
 Json::Value Launcher::GetStatusSummary() const
 {
