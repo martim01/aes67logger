@@ -287,11 +287,6 @@ void Launcher::CreateSummary()
         {
             m_jsStatusSummary[jsonConsts::streaming] = m_jsStatus[jsonConsts::streaming];
         }
-        if(m_jsStatus.isMember(jsonConsts::session))
-        {
-            m_jsStatusSummary[jsonConsts::session] = m_jsStatus[jsonConsts::session][jsonConsts::name];
-        }
-
         if(m_jsStatus.isMember(jsonConsts::heartbeat))
         {
             m_jsStatusSummary[jsonConsts::timestamp] = m_jsStatus[jsonConsts::heartbeat][jsonConsts::timestamp];
@@ -303,16 +298,11 @@ void Launcher::CreateSummary()
             m_jsStatusSummary[jsonConsts::filename] = m_jsStatus[jsonConsts::file][jsonConsts::filename];
         }
     }
-<<<<<<< Updated upstream
-
-    if(m_jsStatus.isMember(jsonConsts::heartbeat))
-=======
     catch(const Json::RuntimeError& e)
     {
         pmlLog(pml::LOG_ERROR, "aes67") << "could not create summary " << e.what();
     }
     catch(const Json::LogicError& e)
->>>>>>> Stashed changes
     {
         pmlLog(pml::LOG_ERROR, "aes67") << "could not create summary " << e.what();
 
