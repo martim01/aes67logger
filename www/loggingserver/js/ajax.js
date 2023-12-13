@@ -657,19 +657,20 @@ function connectToLogger(status, jsonObj)
 
 function handleLoggerInfo(jsonObj)
 {
+console.log(jsonObj);
 	if("id" in jsonObj)
 	{
 		document.getElementById('logger').innerHTML = jsonObj.id;
 	}
 	if("qos" in jsonObj)
 	{
-		document.getElementById('qos-bitrate').innerHTML = jsonObj.qos.["kbits/s"]["current"].toFixed(2) + " kbps";
-		document.getElementById('qos-received').innerHTML = jsonObj.qos.["packets"]["total"]["received"];
-		document.getElementById('qos-lost').innerHTML = jsonObj.qos.["buffer"]["packets"]["missing"];
-		document.getElementById('qos-errors').innerHTML = jsonObj.qos.["packets"]["out_of_order"];
+		document.getElementById('qos-bitrate').innerHTML = jsonObj.qos["kbits/s"]["current"].toFixed(2) + " kbps";
+		document.getElementById('qos-received').innerHTML = jsonObj.qos["packets"]["total"]["received"];
+		document.getElementById('qos-lost').innerHTML = jsonObj.qos["buffer"]["packets"]["missing"];
+		document.getElementById('qos-errors').innerHTML = jsonObj.qos["packets"]["out_of_order"];
 		document.getElementById('qos-interpacket').innerHTML = (jsonObj.qos["interpacketGap"]["average"]).toFixed(4)+" ms";
 		document.getElementById('qos-jitter').innerHTML = (jsonObj.qos['jitter'].toFixed(4))+" ms";
-		document.getElementById('qos-tsdf').innerHTML = (jsonObj.qos['ts-df'].toFixed(4))+" ms";
+		document.getElementById('qos-tsdf').innerHTML = (jsonObj.qos['tsdf'].toFixed(4))+" ms";
 		//document.getElementById('qos-duration').innerHTML = jsonObj.qos['duration']+" &mu;s";
 	}
 
@@ -697,20 +698,20 @@ function handleLoggerInfo(jsonObj)
 			elm.innerHTML = "No Audio";	
 		}
 
-		if('subsessions' in jsonObj.session && jsonObj.session.subsessions.length > 0)
-		{
-			document.getElementById('subsession-id').innerHTML = jsonObj.session.subsessions[0].id;
-			document.getElementById('subsession-source_address').innerHTML = jsonObj.session.subsessions[0].source_address;
-			document.getElementById('subsession-medium').innerHTML = jsonObj.session.subsessions[0].medium;
-			document.getElementById('subsession-codec').innerHTML = jsonObj.session.subsessions[0].codec;
-			document.getElementById('subsession-protocol').innerHTML = jsonObj.session.subsessions[0].protocol;
-			document.getElementById('subsession-port').innerHTML = jsonObj.session.subsessions[0].port;
-			document.getElementById('subsession-sample_rate').innerHTML = jsonObj.session.subsessions[0].sample_rate;
-			document.getElementById('subsession-channels').innerHTML = jsonObj.session.subsessions[0].channels;
-			document.getElementById('subsession-sync_timestamp').innerHTML = jsonObj.session.subsessions[0].sync_timestamp;
+//		if('subsessions' in jsonObj.session && jsonObj.session.subsessions.length > 0)
+//		{
+//			document.getElementById('subsession-id').innerHTML = jsonObj.session.subsessions[0].id;
+//			document.getElementById('subsession-source_address').innerHTML = jsonObj.session.subsessions[0].source_address;
+//			document.getElementById('subsession-medium').innerHTML = jsonObj.session.subsessions[0].medium;
+//			document.getElementById('subsession-codec').innerHTML = jsonObj.session.subsessions[0].codec;
+//			document.getElementById('subsession-protocol').innerHTML = jsonObj.session.subsessions[0].protocol;
+//			document.getElementById('subsession-port').innerHTML = jsonObj.session.subsessions[0].port;
+//			document.getElementById('subsession-sample_rate').innerHTML = jsonObj.session.subsessions[0].sample_rate;
+//			document.getElementById('subsession-channels').innerHTML = jsonObj.session.subsessions[0].channels;
+//			document.getElementById('subsession-sync_timestamp').innerHTML = jsonObj.session.subsessions[0].sync_timestamp;
 
-			ShowClock(jsonObj.session.subsessions[0]);
-		}
+//			ShowClock(jsonObj.session.subsessions[0]);
+//		}
 	}
 
 	if('heartbeat' in jsonObj)
@@ -782,6 +783,7 @@ function handleLoggerInfo(jsonObj)
 
 function ShowClock(jsonObj)
 {
+return;
 	if('ref_clock' in jsonObj)
 	{
 		document.getElementById('ref-domain').innerHTML = jsonObj.ref_clock.domain;

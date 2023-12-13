@@ -51,7 +51,7 @@ class LoggerApp
 
         bool StatsCallback(const std::string& sGroup, const pml::aoip::rtpStats& theStats);
 
-        void WriteToSoundFile(std::shared_ptr<pml::aoip::AudioFrame> pFrame);
+        void WriteToSoundFile();
         void LoopCallback(std::chrono::microseconds duration);
 
         void OutputStatsJson(const std::string& sGroup, const pml::aoip::rtpStats& theStatsa);
@@ -88,6 +88,7 @@ class LoggerApp
         unsigned long m_nFileLength = 1;
 
         std::shared_ptr<AsioServer> m_pServer = nullptr;
+	std::vector<float> m_vBuffer;
 
         unsigned int m_nFrameSize = 0;
         double m_dFrameDuration = 0.0;

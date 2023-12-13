@@ -91,11 +91,13 @@ int LoggerApp::Run()
     }
 
     pmlLog(pml::LOG_INFO, "aes67") << "Loop";
+    m_vBuffer.reserve(3000);
     while(true)
     {
+	m_vBuffer.clear();
         auto now = std::chrono::system_clock::now();
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
 	auto slept = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now()-now);
 
@@ -108,9 +110,10 @@ int LoggerApp::Run()
             if(pFrame)
             {
 		nFrames++;
-                WriteToSoundFile(pFrame);
+		m_vBuffer.insert(m_vBuffer.end(), pFrame->GetAudio().begin(), pFrame->GetAudio().end());
             }
         }while(pFrame);
+        WriteToSoundFile();
 
         LoopCallback(slept);
     }
@@ -231,7 +234,7 @@ bool LoggerApp::StartRecording()
 
     
     pml::aoip::SdpParser parser;
-    m_pSession = parser.CreateSessionFromSdp(ssSdp.str(),100, 1000, false);
+    m_pSession = parser.CreateSessionFromSdp(ssSdp.str(),250, 10000, false);
     if(m_pSession == nullptr)
     {
         pmlLog(pml::LOG_CRITICAL, "aes67") << "Could not create session from SDP";
@@ -297,7 +300,6 @@ void LoggerApp::OutputStatsJson(const std::string& sGroup, const pml::aoip::rtpS
         
     }
     
-    pmlLog() << m_jsStatus;
     JsonWriter::Get().writeToSocket(m_jsStatus, m_pServer);
 }
 
@@ -325,20 +327,14 @@ void LoggerApp::OutputHeartbeatJson()
     JsonWriter::Get().writeToSocket(m_jsStatus, m_pServer);
 }
 
-void LoggerApp::WriteToSoundFile(std::shared_ptr<pml::aoip::AudioFrame> pFrame)
+void LoggerApp::WriteToSoundFile()
 {
     if(m_pSession->GetNumberOfChannels() > 0)
     {
         auto filePath = m_pathWav;
         unsigned long nFileName = 0;
-        if(m_bUseTransmissionTime)
-        {
-            nFileName = std::chrono::duration_cast<std::chrono::minutes>(pFrame->GetTransmittedTime().time_since_epoch()).count();
-        }
-        else
-        {
-            nFileName = std::chrono::duration_cast<std::chrono::minutes>(std::chrono::system_clock::now().time_since_epoch()).count();
-        }
+        nFileName = std::chrono::duration_cast<std::chrono::minutes>(std::chrono::system_clock::now().time_since_epoch()).count();
+
         nFileName -= (nFileName % m_nFileLength);   //round so files are the correct length
         filePath /= std::to_string(nFileName)+".wav";
 
@@ -352,7 +348,7 @@ void LoggerApp::WriteToSoundFile(std::shared_ptr<pml::aoip::AudioFrame> pFrame)
 
         if(m_sf.IsOpen())
         {
-            m_sf.WriteAudio(pFrame->GetAudio());
+            m_sf.WriteAudio(m_vBuffer);
         }
         else
         {

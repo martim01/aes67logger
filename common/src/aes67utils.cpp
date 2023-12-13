@@ -250,6 +250,6 @@ std::optional<std::chrono::time_point<std::chrono::system_clock>> ConvertStringT
 std::string GetCurrentTimeAsString(bool bIncludeNano)
 {
     std::chrono::time_point<std::chrono::system_clock> tp(std::chrono::system_clock::now());
-    return ConvertTimeToString(tp, bIncludeNano);
+    return std::to_string(tp.time_since_epoch().count());
 }
 

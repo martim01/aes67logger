@@ -289,10 +289,6 @@ void Launcher::CreateSummary()
     {
         m_jsStatusSummary[jsonConsts::streaming] = m_jsStatus[jsonConsts::streaming];
     }
-    if(m_jsStatus.isMember(jsonConsts::session))
-    {
-        m_jsStatusSummary[jsonConsts::session] = m_jsStatus[jsonConsts::session][jsonConsts::name];
-    }
 
     if(m_jsStatus.isMember(jsonConsts::heartbeat))
     {
