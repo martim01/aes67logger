@@ -97,6 +97,7 @@ function ajaxGet(host, endpoint, callback, bJson=true)
 		callback(this.status, null);
 	}
 	ajax.open("GET", location.protocol+"//"+host+"/"+endpoint, true);
+	ajax.setRequestHeader('Authorization', 'Bearer ' + g_access_token);
 	ajax.send();
 }
 
@@ -114,7 +115,8 @@ function ajaxPostPutPatch(host, method, endpoint, jsonData, callback)
 	}
 	
 	ajax.open(method, location.protocol+"//"+host+"/"+endpoint, true);
-	ajax.setRequestHeader("Content-type", "application/json");
+	ajax.setRequestHeader("Content-type", "application/json");	
+	ajax.setRequestHeader('Authorization', 'Bearer ' + g_access_token);
 	ajax.send(jsonData);
 }
 
@@ -136,6 +138,7 @@ function ajaxDelete(host, endpoint, callback)
 	}
 	
 	ajax.open("DELETE", location.protocol+"//"+host+"/"+endpoint, true);
+	ajax.setRequestHeader('Authorization', 'Bearer ' + g_access_token);
 	ajax.send(null);
 }
 

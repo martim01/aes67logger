@@ -4,7 +4,7 @@ var g_ws = null;
 var g_logger = null;
 var g_action = '';
 
-var g_logger_host = location.host+":4431";
+var g_logger_host = location.hostname+":4431";
 
 
 const CLR_PLAYING = "#92d14f";
@@ -107,7 +107,7 @@ function showLogger(logger)
 
 function dashboard()
 {
-	getLoggers(handleLoggers);
+	loggers();
 }
 
 function config()
@@ -633,6 +633,8 @@ function handleGetLogs(status, log)
 
 function loggers()
 {
+	console.log("loggers");
+	getCookies();
 	ajaxGet(g_logger_host, "x-api/plugins/destinations", handleDestinations);
 }
 
