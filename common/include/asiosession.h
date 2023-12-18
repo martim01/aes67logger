@@ -26,7 +26,7 @@ private:
   asio::local::stream_protocol::socket m_socket;
 
   // Buffer used to store data received from the client.
-  std::array<char, 1024> data_;
+  std::array<char, 4096> data_;
 };
 
 class AsioServer

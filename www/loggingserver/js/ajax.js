@@ -1,4 +1,5 @@
 var g_loggerArray = new Array();
+var g_count = 0;
 var g_ws = null;
 var g_logger = null;
 var g_action = '';
@@ -32,8 +33,6 @@ function showLogger(logger)
     aLogger.href = 'loggers/index.html?logger='+logger;
     
     
-
-
     var divHeader = document.createElement('div');
     divHeader.className='uk-card-header';
     var titleH3 = document.createElement('h3');
@@ -634,12 +633,44 @@ function handleGetLogs(status, log)
 
 function loggers()
 {
-	const params = new Proxy(new URLSearchParams(window.location.search), { get: (searchParams, prop) => searchParams.get(prop)});
-	
-	g_logger = params.logger;
-
-	ajaxGet(g_logger_host, "x-api/loggers/"+g_logger+"/status", connectToLogger)
+	ajaxGet(g_logger_host, "x-api/plugins/destinations", handleDestinations);
 }
+
+function handleDestinations(status, jsonObj)
+{
+	if(status == 200)
+	{
+		g_loggerArray = jsonObj;
+		g_count = 0;
+		if(g_loggerArray.length > 0)
+		{
+			getLogger();
+		}
+	}
+}
+
+function getLogger()
+{
+	ajaxGet(g_logger_host, "x-api/plugins/destinations/"+g_loggerArray[g_count], handleGotLogger);
+}
+
+function handleGotLogger(status, jsonObj)
+{
+	if(status == 200)
+	{
+		if(jsonObj.plugin && jsonObj.plugin == "Recorder" && jsonObj.name)
+		{
+			showLogger(jsonObj.name);
+		}
+
+		++g_count;
+		if(g_count < g_loggerArray.length)
+		{
+			getLogger();
+		}
+	}
+}
+
 
 function connectToLogger(status, jsonObj)
 {
@@ -657,7 +688,6 @@ function connectToLogger(status, jsonObj)
 
 function handleLoggerInfo(jsonObj)
 {
-console.log(jsonObj);
 	if("id" in jsonObj)
 	{
 		document.getElementById('logger').innerHTML = jsonObj.id;
