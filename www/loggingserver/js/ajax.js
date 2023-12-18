@@ -1,9 +1,10 @@
 var g_loggerArray = new Array();
+var g_sourceArray = new Array();
 var g_count = 0;
 var g_ws = null;
 var g_logger = null;
 var g_action = '';
-
+var g_sourceRouting = {};
 var g_logger_host = location.hostname+":4431";
 
 
@@ -17,9 +18,20 @@ const CLR_WARNING = "#ffa000"
 const CLR_CONNECTING = "#ffff00";
 const CLR_SYNC = "#008000";
 
+function msToTime(duration) {
+  var milliseconds = Math.floor((duration % 1000) / 100),
+    seconds = Math.floor((duration / 1000) % 60),
+    minutes = Math.floor((duration / (1000 * 60)) % 60),
+    hours = Math.floor((duration / (1000 * 60 * 60)) % 24);
 
+  hours = (hours < 10) ? "0" + hours : hours;
+  minutes = (minutes < 10) ? "0" + minutes : minutes;
+  seconds = (seconds < 10) ? "0" + seconds : seconds;
 
-function showLogger(logger)
+  return hours + ":" + minutes + ":" + seconds + "." + milliseconds;
+}
+
+function showLogger(jsonObj)
 {
     var grid = document.getElementById('logger_grid');
 
@@ -29,8 +41,8 @@ function showLogger(logger)
     var aLogger = document.createElement('a');
     aLogger.classList.add('uk-link-reset', 'uk-display-block', 'uk-width-large@l', 'uk-width-medium@m', 'uk-card', 'uk-card-default', 'uk-card-body',
                             'uk-card-hover', 'uk-card-small');
-    aLogger.id = logger;
-    aLogger.href = 'loggers/index.html?logger='+logger;
+    aLogger.id = jsonObj.name;
+    aLogger.href = 'loggers/index.html?logger='+jsonObj.name;
     
     
     var divHeader = document.createElement('div');
@@ -38,15 +50,32 @@ function showLogger(logger)
     var titleH3 = document.createElement('h3');
     titleH3.className='uk-card-title';
     var titleSpan = document.createElement('span');
-    titleSpan.id = "host_"+logger;
-    titleSpan.innerHTML = logger;
+    titleSpan.id = "host_"+jsonObj.name;
+    titleSpan.innerHTML = jsonObj.name;
     titleH3.appendChild(titleSpan);
     divHeader.appendChild(titleH3);
     
     var divBadge = document.createElement('div');
-    divBadge.classList.add('uk-card-badge', 'uk-label', 'uk-label-warning');
-    divBadge.innerHTML = "Unknown";
-    divBadge.id = 'running_'+logger; 
+    
+    if(jsonObj.settings && jsonObj.settings.enable && jsonObj.settings.enable.current !== undefined)
+    {
+	if(jsonObj.settings.enable.current === true)
+        {
+           divBadge.innerHTML = "Enabled";
+           divBadge.classList.add('uk-card-badge', 'uk-label', 'uk-label-success');
+        }
+        else
+        {
+             divBadge.innerHTML = "Disabled";
+             divBadge.classList.add('uk-card-badge', 'uk-label', 'uk-label-warning');
+        }
+    }
+    else
+    {
+    	divBadge.innerHTML = "Unknown";
+        divBadge.classList.add('uk-card-badge', 'uk-label', 'uk-label-danger');
+    }
+    divBadge.id = 'running_'+jsonObj.name; 
     divHeader.appendChild(divBadge);
     
     
@@ -56,47 +85,77 @@ function showLogger(logger)
     var divBody = document.createElement('div');
     divBody.classList.add('uk-card-body', 'uk-card-small');
     
-    var divUpTimeGrid = document.createElement('div');
-    divUpTimeGrid.classList.add('uk-child-width-expand', 'uk-grid-small', 'uk-text-left', 'uk-grid');
-    var divUpTimeTitle = document.createElement('div');
-    divUpTimeTitle.classList.add('uk-width-1-2', 'uk-text-primary')
-    divUpTimeTitle.innerHTML = 'Up Time:'
-    var divUpTime  = document.createElement('div');
+    var divSourceGrid = document.createElement('div');
+    divSourceGrid.classList.add('uk-child-width-expand', 'uk-grid-small', 'uk-text-left', 'uk-grid');
+    var divSourceTitle = document.createElement('div');
+    divSourceTitle.classList.add('uk-width-1-2', 'uk-text-primary')
+    divSourceTitle.innerHTML = 'Source:'
+    divSourceTitle.id = 'sourceTitle_'+jsonObj.name;
+    var divSource  = document.createElement('div');
+    if(jsonObj.mixer)
+    {
+	divSourceTitle.channels = jsonObj.mixer.length;
+        for(var i = 0; i < jsonObj.mixer.length; i++)
+	{
+	  var divSourceBadge = document.createElement('div');
+          divSourceBadge.classList.add('uk-label', 'uk-label-danger');
+	  divSourceBadge.innerHTML = jsonObj.mixer[i].source.name+ "-"+jsonObj.mixer[i].source.channel;
+          divSourceBadge.id = 'source_'+jsonObj.name+'_'+i;
+          divSource.appendChild(divSourceBadge);
+
+	  if(g_sourceRouting[jsonObj.mixer[i].source.name] === undefined)
+	  {
+	      g_sourceRouting[jsonObj.mixer[i].source.name] = new Array();
+	  }
+	  g_sourceRouting[jsonObj.mixer[i].source.name].push(jsonObj.name);
+	}
+    }
     //divUpTime.classList.add('uk-label');
-    divUpTime.id = 'up_time_'+logger; 
-    divUpTimeGrid.appendChild(divUpTimeTitle);
-    divUpTimeGrid.appendChild(divUpTime);
-    divBody.appendChild(divUpTimeGrid);
+    divSource.id = 'up_time_'+jsonObj.name; 
+    divSourceGrid.appendChild(divSourceTitle);
+    divSourceGrid.appendChild(divSource);
+    divBody.appendChild(divSourceGrid);
 
     
-    var divSessionGrid = document.createElement('div');
-    divSessionGrid.classList.add('uk-child-width-expand', 'uk-grid-small', 'uk-text-left', 'uk-grid');
-    var divSessionTitle = document.createElement('div');
-    divSessionTitle.classList.add('uk-width-1-2', 'uk-text-primary')
-    divSessionTitle.innerHTML = 'Session:'
-    var divSession  = document.createElement('div');
-    //divSession.classList.add('uk-label');
-    divSession.id = 'session_'+logger; 
-    divSessionGrid.appendChild(divSessionTitle);
-    divSessionGrid.appendChild(divSession);
-    divBody.appendChild(divSessionGrid);
 
     var divFileGrid = document.createElement('div');
     divFileGrid.classList.add('uk-child-width-expand', 'uk-grid-small', 'uk-text-left', 'uk-grid');
+
     var divFileTitle = document.createElement('div');
     divFileTitle.classList.add('uk-width-1-2', 'uk-text-primary')
     divFileTitle.innerHTML = 'File:'
     var divFile  = document.createElement('div');
-    divFile.id = 'file_'+logger; 
+    divFile.id = 'file_'+jsonObj.name; 
+    if(jsonObj.advanced && jsonObj.advanced.filename)
+    {
+        divFile.innerHTML = jsonObj.advanced.filename;
+    }
+
+
+    var divFileLengthTitle = document.createElement('div');
+    divFileLengthTitle.classList.add('uk-width-1-2', 'uk-text-primary')
+    divFileLengthTitle.innerHTML = 'Length:'
+    var divFileLength  = document.createElement('div');
+    divFileLength.id = 'filelength_'+jsonObj.name;
+    if(jsonObj.advanced && jsonObj.advanced.length)
+    {
+	var length = new Date(jsonObj.advanced.length)
+    }
+
     divFileGrid.appendChild(divFileTitle);
     divFileGrid.appendChild(divFile);
+    divFileGrid.appendChild(divFileLengthTitle);
+    divFileGrid.appendChild(divFileLength);
+
+
+
     divBody.appendChild(divFileGrid)
     aLogger.appendChild(divBody);
 
     var divFooter = document.createElement('div');
     divFooter.className = 'uk-card-footer';
     var spanTimestamp  = document.createElement('span');
-    spanTimestamp.id = 'timestamp_'+logger; 
+    spanTimestamp.id = 'timestamp_'+jsonObj.name; 
     divFooter.appendChild(spanTimestamp);
     aLogger.appendChild(divFooter);
 
@@ -648,6 +707,10 @@ function handleDestinations(status, jsonObj)
 		{
 			getLogger();
 		}
+		else
+		{
+			ajaxGet(g_logger_host, "x-api/plugins/sources", handleSources);
+                }
 	}
 }
 
@@ -662,7 +725,7 @@ function handleGotLogger(status, jsonObj)
 	{
 		if(jsonObj.plugin && jsonObj.plugin == "Recorder" && jsonObj.name)
 		{
-			showLogger(jsonObj.name);
+			showLogger(jsonObj);
 		}
 
 		++g_count;
@@ -670,7 +733,114 @@ function handleGotLogger(status, jsonObj)
 		{
 			getLogger();
 		}
+		 else
+                {
+                        ajaxGet(g_logger_host, "x-api/plugins/sources", handleSources);
+                }
+         }
+}
+
+function handleSources(status, jsonObj)
+{
+	 if(status == 200)
+        {
+                g_sourceArray = jsonObj;
+                g_count = 0;
+                if(g_sourceArray.length > 0)
+                {
+                        getSource();
+                }
+        }
+
+}
+
+function getSource()
+{
+        ajaxGet(g_logger_host, "x-api/plugins/sources/"+g_sourceArray[g_count], handleGotSource);
+}
+
+
+function handleGotSource(status, jsonObj)
+{
+    if(status == 200)
+    {
+        if(jsonObj.plugin && jsonObj.plugin == "AoIp")
+        {
+	    handleGotAoIp(jsonObj);
+        }
+        ++g_count;
+        if(g_count < g_sourceArray.length)
+        {
+            getSource();
+        }
+	else
+	{
+	    ws_connect('plugins', handleRecorderInfo);
 	}
+    }
+}
+
+function handleGotAoIp(jsonObj)
+{
+    if(g_sourceRouting[jsonObj.name] !== undefined)
+    {
+        for(var i = 0; i < g_sourceRouting[jsonObj.name].length; i++)
+        {
+            var elmChannels = document.getElementById('sourceTitle_'+g_sourceRouting[jsonObj.name][i]);
+            if(elmChannels)
+            {
+               for(var n = 0; n < elmChannels.channels; n++)
+               {
+                   var elm = document.getElementById('source_'+g_sourceRouting[jsonObj.name][i]+'_'+n);
+		   console.log("==== '"+elm.innerHTML.split('-')[0]+"' ==== '"+jsonObj.name+"'");
+                   if(elm && elm.innerHTML.split('-')[0] == jsonObj.name)
+                   {
+                        elm.classList.remove('uk-label-warning');
+                        elm.classList.remove('uk-label-danger');
+                        elm.classList.remove('uk-label-success');
+                        if(jsonObj.settings.enable.current === undefined)
+                        {
+                            elm.classList.add('uk-label-danger');
+                        }
+                        else if(jsonObj.settings.enable.current === true)
+                        {
+                             elm.classList.add('uk-label-success');
+                        }
+                        else
+                        {
+                            elm.classList.add('uk-label-warning');
+                        }
+                    }
+               }
+            }
+        }
+    }
+}
+
+
+function handleRecorderInfo(jsonObj)
+{
+    if(jsonObj.plugin !== undefined && jsonObj.plugin === "Recorder" && jsonObj.name !== undefined)
+    {
+         if(jsonObj.filename !== undefined)
+	 {
+	     var file = document.getElementById('file_'+jsonObj.name);
+	     if(file)
+	     {
+	         file.innerHTML = jsonObj.filename;
+	     }
+         }
+         if(jsonObj.length !== undefined)
+         {
+	         
+             var length= document.getElementById('filelength_'+jsonObj.name);
+             if(length)
+             {
+                length.innerHTML = msToTime(jsonObj.length);
+             }
+        }
+	
+    }
 }
 
 
@@ -888,16 +1058,6 @@ function addSources(which, jsonObj)
 	}
 }
 
-function handleSources(status, jsonObj)
-{
-	if(status == 200)
-	{
-		addSources('rtsp', jsonObj);
-		addSources('sdp', jsonObj);
-		UIkit.modal(document.getElementById('update_session_modal')).show();	
-	}
-}
-
 
 
 function showAdminPassword(action)
@@ -975,11 +1135,6 @@ function handleUpdateSession(status, jsonObj)
 		UIkit.notification({message: jsonObj["reason"], status: 'danger', timeout: 3000})
 	}	
 	UIkit.modal(document.getElementById('update_session_modal')).hide();	
-}
-
-function showAddLogger()
-{
-	ajaxGet(g_logger_host, "x-api/sources", handleSourcesAddLogger)
 }
 
 function handleSourcesAddLogger(status, jsonObj)
