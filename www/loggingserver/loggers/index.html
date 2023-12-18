@@ -12,7 +12,7 @@
         <script type="text/javascript">            
         </script>
     </head>
-    <body onload="loggers()">
+    <body onload="logger()">
         <nav class="uk-navbar-container" uk-navbar style="background: #ffffff; border-bottom: 1px solid #a8a8d8;">
 		<div class="uk-navbar-left">
 			<ul class="uk-navbar-nav">
@@ -22,7 +22,7 @@
 		</div>
 		<div class="uk-navbar-center">
 			<ul class="uk-navbar-nav">
-				<li><span class="uk-h3" id="current_time"></span></li>
+				<li><span class="uk-h3" id="current-time"></span></li>
 			</ul>
 		</div>
 		<div class="uk-navbar-right">
@@ -40,23 +40,22 @@
 			<div class="uk-grid-small uk-child-width-1-4 uk-text-center uk-grid-match" uk-grid>
 				<div>
 					<div class="uk-card uk-card-default">
-						<div class="uk-card-header"> <h3 class="uk-card-title">Application</h3></div>
+						<div class="uk-card-header"> <h3 class="uk-card-title">Recorder</h3></div>
 						<div class="uk-card-body">
 							<div class="uk-grid-small uk-text-left uk-child-width-1-3" uk-grid>
-								<div><span class='uk-text-bold'>Start Time:</span></div>
-								<div class="uk-width-2-3"><span id="application-start_time"></span></div>
-								<div><span class='uk-text-bold'>Up Time:</span></div>
-								<div class="uk-width-2-3"><span id="application-up_time"></span></div>
-                                <div><span class='uk-text-bold'>Timestamp:</span></div>
-								<div class="uk-width-2-3"><span id="application-timestamp"></span></div>
-                                <div><span class='uk-text-bold'>&nbsp;</span></div>
-								<div class="uk-width-2-3"><span>&nbsp;</span></div>
                                 <div><span class='uk-text-bold'>File:</span></div>
-								<div class="uk-width-2-3"><span id="file-filename"></span></div>
+								<div class="uk-width-2-3"><span id="file-name"></span></div>
+								<div><span class='uk-text-bold'>Channels:</span></div>
+								<div class="uk-width-2-3"><span id="file-channels"></span></div>
+								<div><span class='uk-text-bold'>Bits:</span></div>
+								<div class="uk-width-2-3"><span id="file-bits"></span></div>
+								<div><span class='uk-text-bold'>Sample Rate:</span></div>
+								<div class="uk-width-2-3"><span id="file-samplerate"></span></div>
+								<div><span class='uk-text-bold'>Length:</span></div>
+								<div class="uk-width-2-3"><span id="file-length"></span></div>
 							</div>
 						</div>
 						<div class="uk-card-footer">
-							<button class="uk-button uk-button-primary" onclick="showAdminPassword('restart')">Restart</button>
 							<button class="uk-button uk-button-danger" onclick="showAdminPassword('remove')">Delete</button>
 						</div>
 					</div>
@@ -72,11 +71,11 @@
 								<div class="uk-width-2-3"><span id="source-name"></span></div>
 								<div><span class='uk-text-bold'>Type:</span></div>
 								<div class="uk-width-2-3"><span id="source-type"></span></div>
-								<div id="div_source-rtsp">
+								<div id="div-source-rtsp">
 									<div><span class='uk-text-bold'>RTSP:</span></div>
 									<div class="uk-width-2-3"><span id="source-rtsp"></span></div>
 								</div>
-                                <div class="uk-width-3-3" id="div_source-sdp">
+                                <div class="uk-width-3-3" id="div-source-sdp">
                                     <ul uk-accordion>
                                         <li>
                                             <a class="uk-accordion-title uk-text-default" href="#"><span class='uk-text-bold'>SDP:</span></a>
@@ -127,7 +126,7 @@
 								<div><span class='uk-text-bold'>Id:</span></div>
 								<div class="uk-width-2-3"><span id="subsession-id"></span></div>
 								<div><span class='uk-text-bold'>Source:</span></div>
-								<div class="uk-width-2-3"><span id="subsession-source_address"></span></div>
+								<div class="uk-width-2-3"><span id="subsession-source-address"></span></div>
 								<div><span class='uk-text-bold'>Medium:</span></div>
 								<div class="uk-width-2-3"><span id="subsession-medium"></span></div>
                                 <div><span class='uk-text-bold'>Protocol:</span></div>
@@ -137,11 +136,11 @@
                                 <div><span class='uk-text-bold'>Port:</span></div>
 								<div class="uk-width-2-3"><span id="subsession-port"></span></div>
                                 <div><span class='uk-text-bold'>Sample Rate:</span></div>
-								<div class="uk-width-2-3"><span id="subsession-sample_rate"></span></div>
+								<div class="uk-width-2-3"><span id="subsession-sample-rate"></span></div>
                                 <div><span class='uk-text-bold'>Channels:</span></div>
 								<div class="uk-width-2-3"><span id="subsession-channels"></span></div>
                                 <div><span class='uk-text-bold'>Sync Timestamp:</span></div>
-								<div class="uk-width-2-3"><span id="subsession-sync_timestamp"></span></div>
+								<div class="uk-width-2-3"><span id="subsession-sync-timestamp"></span></div>
 							</div>
 						</div>
 					</div>
@@ -193,7 +192,7 @@
         </div>  
 	</div>
 
-    <div id="update_session_modal" uk-modal>
+    <div id="update-session-modal" uk-modal>
 		<div class="uk-modal-dialog">
 			<button class="uk-modal-close-default" type="button" uk-close></button>
 			<div class="uk-modal-header">
@@ -203,23 +202,23 @@
                 <div class="uk-form-controls">
                     <div>
                         <div class="uk-margin-small">
-                            <input class="uk-input" type="text" placeholder="Source Name" id="config_name">
+                            <input class="uk-input" type="text" placeholder="Source Name" id="config-name">
                         </div>
                         <div class="uk-margin uk-grid-small uk-child-width-auto uk-grid">
                             <label><input class="uk-radio" type="radio" name="method" id="rtsp" checked onclick="showrtsp()"> RTSP</label>
                             <label><input class="uk-radio" type="radio" name="method" id="sdp" onclick="showsdp()"> SDP</label>
                         </div>
-                        <div class="uk-margin-small" id="div_rtsp">
-							<select id="select_rtsp" class="uk-select">
+                        <div class="uk-margin-small" id="div-rtsp">
+							<select id="select-rtsp" class="uk-select">
 
 							</select>
-                            <input class="uk-input" type="text" placeholder="RTSP Address" id="config_rtsp" style="display:none">
+                            <input class="uk-input" type="text" placeholder="RTSP Address" id="config-rtsp" style="display:none">
                         </div>
-                        <div class="uk-margin-small" style="display:none" id="div_sdp">
-							<select id="select_sdp" class="uk-select">
+                        <div class="uk-margin-small" style="display:none" id="div-sdp">
+							<select id="select-sdp" class="uk-select">
 
 							</select>
-                            <textarea class="uk-textarea" rows="20" cols="50" placeholder="SDP" id="config_sdp"></textarea>
+                            <textarea class="uk-textarea" rows="20" cols="50" placeholder="SDP" id="config-sdp"></textarea>
                         </div>
                     </div>
                 </div>
@@ -230,7 +229,7 @@
 			</div>
 		</div>
 	</div>
-	<div id="password_modal" uk-modal>
+	<div id="password-modal" uk-modal>
 		<div class="uk-modal-dialog">
 			<button class="uk-modal-close-default" type="button" uk-close></button>
 			<div class="uk-modal-header">
@@ -240,14 +239,14 @@
                 <div class="uk-form-controls">
                     <div uk-form-custom="target: true">
                         <div class="uk-margin-small">
-                            <input class="uk-input" type="password" placeholder="Password" id="admin_password">
+                            <input class="uk-input" type="password" placeholder="Password" id="admin-password">
                         </div>
                     </div>
                 </div>
 			</div>
 			<div class="uk-modal-footer uk-text-right">
 				<button class="uk-button uk-button-default uk-modal-close" type="button">Cancel</button>
-				<button class="uk-button uk-button-primary" type="button" onclick="loggerAdmin()" id="logger_admin">Restart</button>
+				<button class="uk-button uk-button-primary" type="button" onclick="loggerAdmin()" id="logger-admin">Restart</button>
 			</div>
 		</div>
 	</div>

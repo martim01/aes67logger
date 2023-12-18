@@ -6,7 +6,8 @@ var g_logger = null;
 var g_action = '';
 var g_sourceRouting = {};
 var g_logger_host = location.hostname+":4431";
-
+var g_loggerDetails = {};
+var g_loadedSources = {};
 
 const CLR_PLAYING = "#92d14f";
 const CLR_IDLE = "#8db4e2";
@@ -792,7 +793,6 @@ function handleGotAoIp(jsonObj)
                for(var n = 0; n < elmChannels.channels; n++)
                {
                    var elm = document.getElementById('source_'+g_sourceRouting[jsonObj.name][i]+'_'+n);
-		   console.log("==== '"+elm.innerHTML.split('-')[0]+"' ==== '"+jsonObj.name+"'");
                    if(elm && elm.innerHTML.split('-')[0] == jsonObj.name)
                    {
                         elm.classList.remove('uk-label-warning');
@@ -1303,4 +1303,58 @@ function createKeyValue(key, value, parentElement)
 	divSectionGrid.appendChild(divKey);
 	divSectionGrid.appendChild(divValue);
 	parentElement.appendChild(divSectionGrid);
+}
+
+
+function logger()
+{
+	const params = new Proxy(new URLSearchParams(window.location.search), { get: (searchParams, prop) => searchParams.get(prop)});
+	g_logger = params.logger;
+
+	ajaxGet(g_logger_host, "x-api/plugins/destinations/"+g_logger, handleRecorder);
+}
+
+
+
+function handleRecorder(status, jsonObj)
+{
+	if(status == 200)
+	{
+		g_loggerDetails = jsonObj;
+
+		if(jsonObj.advanced !== undefined)
+		{
+			document.getElementById('file-name').innerHTML = jsonObj.advanced.filename;
+			document.getElementById('file-length').innerHTML = msToTime(jsonObj.advanced.length);
+			document.getElementById('file-channels').innerHTML = jsonObj.advanced.channels;
+			document.getElementById('file-bits').innerHTML = jsonObj.advanced.bits;
+			document.getElementById('file-samplerate').innerHTML = jsonObj.advanced.sample_rate;
+		}
+		g_count = 0;
+		getRecorderSources();
+	}
+}
+
+function getRecorderSources()
+{
+	if(g_loggerDetails.mixer !== undefined && g_count < g_loggerDetails.mixer.length)
+	{
+		if(g_loadedSources[g_loggerDetails[g_count]] === undefined)
+		{
+			ajaxGet(g_logger_host, "x-api/plugins/sources/"+g_loggerDetails[g_count], handleRecorderSource);
+		}
+		++g_count;
+	}
+	else
+	{
+
+	}
+}
+
+function handleRecorderSource(status, jsonObj)
+{
+	if(status == 200)
+	{
+		g_loadedSources[jsonObj.name] = jsonObj;
+	}
 }
