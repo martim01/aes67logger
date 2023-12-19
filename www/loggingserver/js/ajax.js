@@ -1401,8 +1401,66 @@ function handleRecorderSource(status, jsonObj)
 		addSourceDetail(divBodyGrid, 'Name:', jsonObj.name);
 		addSourceDetail(divBodyGrid, 'Type:', jsonObj.settings.use_sdp.current == true ? 'SDP' : 'RTSP');
 		addSourceDetail(divBodyGrid, 'Source:', jsonObj.settings.use_sdp.current == true ? jsonObj.settings.sdp.current+'.sdp' : jsonObj.settings.rtsp.current);
+		
+		if(jsonObj.advanced)
+		{
+			addSourceDetail(divBodyGrid, 'Session Id:', jsonObj.advanced.session);
+			addSourceDetail(divBodyGrid, 'Description:', jsonObj.advanced.description);
+			addSourceDetail(divBodyGrid, 'Source:', jsonObj.advanced.source);
+			//@todo add SDP in accordian
+			//@todo add PTP clock info if at session level
+		}
+		
+		
 		divBody.appendChild(divBodyGrid);
 		divCard.appendChild(divBody);
+		
+
+		var divFooter = document.createElement('div');
+		divFooter.className = 'uk-card-footer';
+
+		var divFooterGrid = document.createElement('div');
+		divFooterGrid.setAttribute('uk-grid', true);
+		divFooterGrid.classList.add('uk-grid-small', 'uk-text-left', 'uk-child-width-1-3');
+
+		if(jsonObj.advanced && jsonObj.advanced.groups)
+		{
+			jsonObj.advanced.groups.forEach( group => 
+			{
+				var divGroup = document.createElement('div');
+				var divGroupCard = document.createElement('div');
+				divGroupCard.classList.add('uk-card', 'uk-card-default');
+				var divGroupHeader = document.createElement('div');
+				divGroupHeader.className = 'uk-card-header';
+				var Grouph3 = document.createElement('h3');
+				Grouph3.className = 'uk-card-title';
+				Grouph3.innerHTML = "Stream";
+				divGroupHeader.appendChild(h3);
+			
+				var divGroupBadge = document.createElement('div');
+				divGroupBadge.classList.add("uk-card-badge", "uk-label");
+				divGroupBadge.innerHTML = "No Audio";
+				divGroupBadge.classList.add("uk-label-danger");
+				divGroupBadge.id = jsonObj.name+"-stream-"+group.group;
+				divGroupHeader.appendChild(divGroupBadge);
+				divGroupCard.appendChild(divGroupHeader);
+
+				var divGroupBody = document.createElement('div');
+				divGroupBody.className = 'uk-card-body';
+
+				var divGroupBodyGrid = document.createElement('div');
+				divGroupBodyGrid.setAttribute('uk-grid', true);
+				divGroupBodyGrid.classList.add('uk-grid-small', 'uk-text-left', 'uk-child-width-1-3');
+				addSourceDetail(divGroupBodyGrid, 'Group:', group.group);
+				addSourceDetail(divGroupBodyGrid, 'Source:', group.ip_address);
+
+				divFooterGrid.appendChild(divGroup);
+			});
+		}
+
+		divFooter.appendChild(divFooterGrid);
+		divCard.appendChild(divFooter);
+
 		div1.appendChild(divCard);
 		grid.appendChild(div1);
 	}
