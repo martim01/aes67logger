@@ -1352,7 +1352,7 @@ function getRecorderSources()
 	}
 	else
 	{
-
+		//connect websocket
 	}
 }
 
@@ -1361,5 +1361,61 @@ function handleRecorderSource(status, jsonObj)
 	if(status == 200)
 	{
 		g_loadedSources[jsonObj.name] = jsonObj;
+
+		var grid = document.getElementById('grid');
+		var div1 = document.createElement('div');
+		var divCard = document.createElement('div');
+		divCard.classList.add('uk-card', 'uk-card-default');
+		
+		var divHeader = document.createElement('div');
+		divHeader.className = 'uk-card-header';
+		var h3 = document.createElement('h3');
+		h3.className = 'uk-card-title';
+		h3.innerHTML = "Source";
+		divHeader.appendChild(h3);
+		
+		var divBadge = document.createElement('div');
+		divBadge.classList.add("uk-card-badge", "uk-label");
+		if(jsonObj.settings.enable.current === true)
+		{
+			divBadge.innerHTML = "Enabled";
+			divBadge.classList.add("uk-label-success");
+		}
+		else
+		{
+			divBadge.innerHTML = "Disabled";
+			divBadge.classList.add("uk-label-danger");
+		}
+		divBadge.id = jsonObj.name+"-connection";
+		divHeader.appendChild(divBadge);
+
+		divCard.appendChild(divHeader);
+
+		var divBody = document.createElement('div');
+		divBody.className = 'uk-card-body';
+
+		var divBodyGrid = document.createElement('div');
+		divBodyGrid.classList.add('uk-grid-small', 'uk-text-left', 'uk-child-width-1-3');
+		
+		addSourceDetail(divBodyGrid, 'Name:', jsonObj.name);
+		addSourceDetail(divBodyGrid, 'Type:', jsonObj.settings.use_sdp.current == true ? 'SDP' : 'RTSP');
+		addSourceDetail(divBodyGrid, 'Source:', jsonObj.settings.use_sdp.current == true ? jsonObj.settings.sdp.current : jsonObj.settings.rtsp.current);
+
+		div1.appendChild(divCard);
+		grid.appendChild(div1);
 	}
+	getRecorderSources();
+}
+
+function addSourceDetail(divBodyGrid, title, value)
+{
+	var divTitle = document.createElement('div');
+	divTitle.className = 'uk-text-bold';
+	divTitle.innerHTML = title;
+	divBodyGrid.appendChild(divTitle);
+
+	var divValue = document.createElement('div');
+	divValue.className = 'uk-width-2-3';
+	divValue.innerHTML = value;
+	divBodyGrid.appendChild(divValue);
 }

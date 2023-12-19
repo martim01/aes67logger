@@ -37,7 +37,7 @@
 
 	<div class="uk-section uk-section-xsmall uk-section-muted">
 		<div class="uk-container uk-container-expand" >
-			<div class="uk-grid-small uk-child-width-1-4 uk-text-center uk-grid-match" uk-grid>
+			<div class="uk-grid-small uk-child-width-1-4 uk-text-center uk-grid-match" uk-grid id="grid">
 				<div>
 					<div class="uk-card uk-card-default">
 						<div class="uk-card-header"> <h3 class="uk-card-title">Recorder</h3></div>
@@ -57,36 +57,6 @@
 						</div>
 						<div class="uk-card-footer">
 							<button class="uk-button uk-button-danger" onclick="showAdminPassword('remove')">Delete</button>
-						</div>
-					</div>
-				</div>
-                <div>
-					<div class="uk-card uk-card-default">
-						<div class="uk-card-header"> <h3 class="uk-card-title">Source</h3>
-                            <div class="uk-card-badge uk-label uk-label-error" id="source-connection">No Connection</div>
-                        </div>
-						<div class="uk-card-body">
-							<div class="uk-grid-small uk-text-left uk-child-width-1-3" uk-grid>
-								<div><span class='uk-text-bold'>Name:</span></div>
-								<div class="uk-width-2-3"><span id="source-name"></span></div>
-								<div><span class='uk-text-bold'>Type:</span></div>
-								<div class="uk-width-2-3"><span id="source-type"></span></div>
-								<div id="div-source-rtsp">
-									<div><span class='uk-text-bold'>RTSP:</span></div>
-									<div class="uk-width-2-3"><span id="source-rtsp"></span></div>
-								</div>
-                                <div class="uk-width-3-3" id="div-source-sdp">
-                                    <ul uk-accordion>
-                                        <li>
-                                            <a class="uk-accordion-title uk-text-default" href="#"><span class='uk-text-bold'>SDP:</span></a>
-                                            <div class="uk-accordion-content"><span id="source-sdp" style="white-space: pre-line"></span></div>
-                                        </li>
-                                    </ul>
-                                </div>
-							</div>
-                        </div>
-						<div class="uk-card-footer">
-							<button class="uk-button loopi_button_warning" onclick="changeSession()">Change Source</button>
 						</div>
 					</div>
 				</div>
