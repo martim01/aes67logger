@@ -1448,7 +1448,7 @@ function handleRecorderSource(status, jsonObj)
 			
 				var divGroupBadge = document.createElement('div');
 				divGroupBadge.classList.add("uk-card-badge", "uk-label");
-				divGroupBadge.innerHTML = "No Audio";
+				divGroupBadge.innerHTML = "Unknown";
 				divGroupBadge.classList.add("uk-label-danger");
 				divGroupBadge.id = jsonObj.name+"-stream-"+group.group;
 				divGroupHeader.appendChild(divGroupBadge);
@@ -1551,10 +1551,24 @@ function handlePluginStreamMessage(jsonObj)
 	{
 		document.getElementById(jsonObj.name+"-PacketsReceived-"+jsonObj.qos.group).innerHTML = jsonObj.qos.packets.total.received;
                 document.getElementById(jsonObj.name+"-PacketsLost-"+jsonObj.qos.group).innerHTML = jsonObj.qos.buffer.packets.missing;
-                document.getElementById(jsonObj.name+"-BufferDepth-"+jsonObj.qos.group).innerHTML = jsonObj.qos.buffer.depth.current;
-                document.getElementById(jsonObj.name+"-Bitrate-"+jsonObj.qos.group).innerHTML = jsonObj.qos["kbits/s"].average;
-                document.getElementById(jsonObj.name+"-Gap-"+jsonObj.qos.group).innerHTML = jsonObj.qos.interpacketGap.average;
-                document.getElementById(jsonObj.name+"-Jitter-"+jsonObj.qos.group).innerHTML = jsonObj.qos.jitter;
-                document.getElementById(jsonObj.name+"-TSDF-"+jsonObj.qos.group).innerHTML = jsonObj.qos.tsdf
+                document.getElementById(jsonObj.name+"-BufferDepth-"+jsonObj.qos.group).innerHTML = '['+jsonObj.qos.buffer.depth.min+'] '+ jsonObj.qos.buffer.depth.current+' ['+jsonObj.qos.buffer.depth.max+']';
+                document.getElementById(jsonObj.name+"-Bitrate-"+jsonObj.qos.group).innerHTML = jsonObj.qos["kbits/s"].average.toFixed(3);
+                document.getElementById(jsonObj.name+"-Gap-"+jsonObj.qos.group).innerHTML = '['+jsonObj.qos.interpacketGap.min.toFixed(4)+'] '+jsonObj.qos.interpacketGap.average.toFixed(4)+' ['+jsonObj.qos.interpacketGap.max.toFixed(4)+']';
+                document.getElementById(jsonObj.name+"-Jitter-"+jsonObj.qos.group).innerHTML = jsonObj.qos.jitter.toFixed(4);
+                document.getElementById(jsonObj.name+"-TSDF-"+jsonObj.qos.group).innerHTML = jsonObj.qos.tsdf.toFixed(4);
+		if(jsonObj.qos.streaming !== undefined && jsonObj.qos.streaming === true)
+		{
+			var elm = document.getElementById(jsonObj.name+"-stream-"+jsonObj.qos.group);
+			elm.classList.remove('uk-label-danger');
+			elm.classList.add('uk-label-success');
+			elm.innerHTML = "Receiving";
+		}
+		else
+		{
+                       var elm = document.getElementById(jsonObj.name+"-stream-"+jsonObj.qos.group);
+                        elm.classList.add('uk-label-danger');
+                        elm.classList.remove('uk-label-success');
+			elm.innerHTML = "Not Receiving";
+                }
 	}
 }
