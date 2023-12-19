@@ -1395,12 +1395,14 @@ function handleRecorderSource(status, jsonObj)
 		divBody.className = 'uk-card-body';
 
 		var divBodyGrid = document.createElement('div');
+		divBodyGrid.setAttribute('uk-grid', true);
 		divBodyGrid.classList.add('uk-grid-small', 'uk-text-left', 'uk-child-width-1-3');
 		
 		addSourceDetail(divBodyGrid, 'Name:', jsonObj.name);
 		addSourceDetail(divBodyGrid, 'Type:', jsonObj.settings.use_sdp.current == true ? 'SDP' : 'RTSP');
-		addSourceDetail(divBodyGrid, 'Source:', jsonObj.settings.use_sdp.current == true ? jsonObj.settings.sdp.current : jsonObj.settings.rtsp.current);
-
+		addSourceDetail(divBodyGrid, 'Source:', jsonObj.settings.use_sdp.current == true ? jsonObj.settings.sdp.current+'.sdp' : jsonObj.settings.rtsp.current);
+		divBody.appendChild(divBodyGrid);
+		divCard.appendChild(divBody);
 		div1.appendChild(divCard);
 		grid.appendChild(div1);
 	}
