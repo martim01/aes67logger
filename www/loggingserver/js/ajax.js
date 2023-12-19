@@ -34,7 +34,7 @@ function msToTime(duration) {
 
 function showLogger(jsonObj)
 {
-    var grid = document.getElementById('logger_grid');
+    var grid = document.getElementById('logger-grid');
 
     var divMain = document.createElement('div');
     divMain.classList.add('uk-width-1-3@s', 'uk-width-1-6@xl');
@@ -162,7 +162,11 @@ function showLogger(jsonObj)
 
     divMain.appendChild(aLogger);
     
-    grid.insertBefore(divMain, document.getElementById('logger_add'));
+    var elmB = document.getElementById('logger-add');
+    if(elmB)
+    {
+        grid.insertBefore(divMain,elmB);
+    }
 }
 
 function dashboard()
@@ -345,7 +349,7 @@ function ws_connect(endpoint, callbackMessage)
 			this.tm = setTimeout(serverOffline, 4000);
 		}
         var dt = new Date();
-        var elm = document.getElementById('current_time');
+        var elm = document.getElementById('current-time');
         elm.innerHTML = dt.toISOString();
         elm.className = 'uk-h3';
         elm.classList.add('uk-text-success');
@@ -1308,6 +1312,7 @@ function createKeyValue(key, value, parentElement)
 
 function logger()
 {
+	getCookies();
 	const params = new Proxy(new URLSearchParams(window.location.search), { get: (searchParams, prop) => searchParams.get(prop)});
 	g_logger = params.logger;
 
@@ -1339,9 +1344,9 @@ function getRecorderSources()
 {
 	if(g_loggerDetails.mixer !== undefined && g_count < g_loggerDetails.mixer.length)
 	{
-		if(g_loadedSources[g_loggerDetails[g_count]] === undefined)
+		if(g_loadedSources[g_loggerDetails.mixer[g_count].source.name] === undefined)
 		{
-			ajaxGet(g_logger_host, "x-api/plugins/sources/"+g_loggerDetails[g_count], handleRecorderSource);
+			ajaxGet(g_logger_host, "x-api/plugins/sources/"+g_loggerDetails.mixer[g_count].source.name, handleRecorderSource);
 		}
 		++g_count;
 	}
