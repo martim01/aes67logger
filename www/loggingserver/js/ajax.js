@@ -1342,17 +1342,25 @@ function handleRecorder(status, jsonObj)
 
 function getRecorderSources()
 {
+	console.log('getRecorderSources: '+g_count);
 	if(g_loggerDetails.mixer !== undefined && g_count < g_loggerDetails.mixer.length)
 	{
 		if(g_loadedSources[g_loggerDetails.mixer[g_count].source.name] === undefined)
 		{
 			ajaxGet(g_logger_host, "x-api/plugins/sources/"+g_loggerDetails.mixer[g_count].source.name, handleRecorderSource);
+			++g_count;
+
 		}
-		++g_count;
+		else
+		{
+			++g_count;
+			getRecorderSources();
+		}
+
 	}
 	else
 	{
-		//connect websocket
+		ws_connect('plugins', handlePluginMessage);
 	}
 }
 
@@ -1364,6 +1372,7 @@ function handleRecorderSource(status, jsonObj)
 
 		var grid = document.getElementById('grid');
 		var div1 = document.createElement('div');
+		div1.className = 'uk-width-3-4';
 		var divCard = document.createElement('div');
 		divCard.classList.add('uk-card', 'uk-card-default');
 		
@@ -1419,10 +1428,10 @@ function handleRecorderSource(status, jsonObj)
 		var divFooter = document.createElement('div');
 		divFooter.className = 'uk-card-footer';
 
+
 		var divFooterGrid = document.createElement('div');
 		divFooterGrid.setAttribute('uk-grid', true);
-		divFooterGrid.classList.add('uk-grid-small', 'uk-text-left', 'uk-child-width-1-3');
-
+		divFooterGrid.classList.add('uk-grid-small', 'uk-text-left', 'uk-child-width-1-2');
 		if(jsonObj.advanced && jsonObj.advanced.groups)
 		{
 			jsonObj.advanced.groups.forEach( group => 
@@ -1434,8 +1443,8 @@ function handleRecorderSource(status, jsonObj)
 				divGroupHeader.className = 'uk-card-header';
 				var Grouph3 = document.createElement('h3');
 				Grouph3.className = 'uk-card-title';
-				Grouph3.innerHTML = "Stream";
-				divGroupHeader.appendChild(h3);
+				Grouph3.innerHTML = "Stream: "+group.group;
+				divGroupHeader.appendChild(Grouph3);
 			
 				var divGroupBadge = document.createElement('div');
 				divGroupBadge.classList.add("uk-card-badge", "uk-label");
@@ -1451,9 +1460,25 @@ function handleRecorderSource(status, jsonObj)
 				var divGroupBodyGrid = document.createElement('div');
 				divGroupBodyGrid.setAttribute('uk-grid', true);
 				divGroupBodyGrid.classList.add('uk-grid-small', 'uk-text-left', 'uk-child-width-1-3');
-				addSourceDetail(divGroupBodyGrid, 'Group:', group.group);
 				addSourceDetail(divGroupBodyGrid, 'Source:', group.ip_address);
 
+				addSourceDetail(divGroupBodyGrid, 'Packets Received:', '', jsonObj.name+"-PacketsReceived-"+group.group);
+				addSourceDetail(divGroupBodyGrid, 'Packets Lost:', '', jsonObj.name+"-PacketsLost-"+group.group);
+				addSourceDetail(divGroupBodyGrid, 'Buffer Depth:', '', jsonObj.name+"-BufferDepth-"+group.group);
+				addSourceDetail(divGroupBodyGrid, 'Bitrate:', '', jsonObj.name+"-Bitrate-"+group.group);
+				addSourceDetail(divGroupBodyGrid, 'Interpacket Gap:', '',jsonObj.name+"-Gap-"+group.group);
+				addSourceDetail(divGroupBodyGrid, 'Jitter:', '',jsonObj.name+"-Jitter-"+group.group);
+				addSourceDetail(divGroupBodyGrid, 'TS-DF:', '',jsonObj.name+"-TSDF-"+group.group);
+
+
+				divGroupBody.appendChild(divGroupBodyGrid);
+
+
+				divGroupCard.appendChild(divGroupHeader);
+				divGroupCard.appendChild(divGroupBody);
+
+
+				divGroup.appendChild(divGroupCard);
 				divFooterGrid.appendChild(divGroup);
 			});
 		}
@@ -1467,7 +1492,7 @@ function handleRecorderSource(status, jsonObj)
 	getRecorderSources();
 }
 
-function addSourceDetail(divBodyGrid, title, value)
+function addSourceDetail(divBodyGrid, title, value, id='')
 {
 	var divTitle = document.createElement('div');
 	divTitle.className = 'uk-text-bold';
@@ -1477,5 +1502,59 @@ function addSourceDetail(divBodyGrid, title, value)
 	var divValue = document.createElement('div');
 	divValue.className = 'uk-width-2-3';
 	divValue.innerHTML = value;
+	if(id !== '')
+	{
+	    divValue.id=id;
+	}
 	divBodyGrid.appendChild(divValue);
+}
+
+function handlePluginMessage(jsonObj)
+{
+	if(jsonObj.type !== undefined)
+	{
+		if(jsonObj.type == 'Destination' && jsonObj.name == g_logger)
+		{
+			handlePluginRecorderMessage(jsonObj);
+		}
+		else if(jsonObj.type == 'Source' && g_loadedSources[jsonObj.name] !== undefined)
+		{
+			handlePluginStreamMessage(jsonObj);
+		}
+	}
+}
+
+function handlePluginRecorderMessage(jsonObj)
+{
+	 if(jsonObj.filename !== undefined)
+         {
+             var file = document.getElementById('file-name');
+             if(file)
+             {
+                 file.innerHTML = jsonObj.filename;
+             }
+         }
+         if(jsonObj.length !== undefined)
+         {
+
+             var length= document.getElementById('file-length');
+             if(length)
+             {
+                length.innerHTML = msToTime(jsonObj.length);
+             }
+        }
+}
+
+function handlePluginStreamMessage(jsonObj)
+{
+	if(jsonObj.qos !== undefined)
+	{
+		document.getElementById(jsonObj.name+"-PacketsReceived-"+jsonObj.qos.group).innerHTML = jsonObj.qos.packets.total.received;
+                document.getElementById(jsonObj.name+"-PacketsLost-"+jsonObj.qos.group).innerHTML = jsonObj.qos.buffer.packets.missing;
+                document.getElementById(jsonObj.name+"-BufferDepth-"+jsonObj.qos.group).innerHTML = jsonObj.qos.buffer.depth.current;
+                document.getElementById(jsonObj.name+"-Bitrate-"+jsonObj.qos.group).innerHTML = jsonObj.qos["kbits/s"].average;
+                document.getElementById(jsonObj.name+"-Gap-"+jsonObj.qos.group).innerHTML = jsonObj.qos.interpacketGap.average;
+                document.getElementById(jsonObj.name+"-Jitter-"+jsonObj.qos.group).innerHTML = jsonObj.qos.jitter;
+                document.getElementById(jsonObj.name+"-TSDF-"+jsonObj.qos.group).innerHTML = jsonObj.qos.tsdf
+	}
 }
