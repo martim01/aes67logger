@@ -402,6 +402,7 @@ function getUpdate(callback)
 
 function system()
 {
+	getCookies();
 	getUpdate(handleSystemGetUpdate);
 }
 
@@ -1326,6 +1327,7 @@ function handleRecorder(status, jsonObj)
 	if(status == 200)
 	{
 		g_loggerDetails = jsonObj;
+		document.getElementById('recorder').innerHTML = jsonObj.name;
 
 		if(jsonObj.advanced !== undefined)
 		{
@@ -1380,7 +1382,7 @@ function handleRecorderSource(status, jsonObj)
 		divHeader.className = 'uk-card-header';
 		var h3 = document.createElement('h3');
 		h3.className = 'uk-card-title';
-		h3.innerHTML = "Source";
+		h3.innerHTML = "Source: <b>"+jsonObj.name+"</b>";
 		divHeader.appendChild(h3);
 		
 		var divBadge = document.createElement('div');
@@ -1407,15 +1409,24 @@ function handleRecorderSource(status, jsonObj)
 		divBodyGrid.setAttribute('uk-grid', true);
 		divBodyGrid.classList.add('uk-grid-small', 'uk-text-left', 'uk-child-width-1-3');
 		
-		addSourceDetail(divBodyGrid, 'Name:', jsonObj.name);
 		addSourceDetail(divBodyGrid, 'Type:', jsonObj.settings.use_sdp.current == true ? 'SDP' : 'RTSP');
-		addSourceDetail(divBodyGrid, 'Source:', jsonObj.settings.use_sdp.current == true ? jsonObj.settings.sdp.current+'.sdp' : jsonObj.settings.rtsp.current);
+		if( jsonObj.settings.use_sdp.current)
+		{
+			addSourceDetail(divBodyGrid, 'SDP File:', jsonObj.settings.sdp.current+'.sdp');
+		}
+		else
+		{
+			addSourceDetail(divBodyGrid, 'RTSP URL:', jsonObj.settings.rtsp.current);
+                }
+
 		
 		if(jsonObj.advanced)
 		{
 			addSourceDetail(divBodyGrid, 'Session Id:', jsonObj.advanced.session);
 			addSourceDetail(divBodyGrid, 'Description:', jsonObj.advanced.description);
 			addSourceDetail(divBodyGrid, 'Source:', jsonObj.advanced.source);
+		
+			addSourceSDP(divBodyGrid, jsonObj.advanced.sdp);
 			//@todo add SDP in accordian
 			//@todo add PTP clock info if at session level
 		}
@@ -1507,6 +1518,25 @@ function addSourceDetail(divBodyGrid, title, value, id='')
 	    divValue.id=id;
 	}
 	divBodyGrid.appendChild(divValue);
+}
+
+function addSourceSDP(divBodyGrid, sdp)
+{
+	 var divTitle = document.createElement('div');
+        divTitle.className = 'uk-text-bold';
+        divTitle.innerHTML = 'SDP';
+        divBodyGrid.appendChild(divTitle);
+
+	var divContent = document.createElement('div');
+	divContent.className = 'uk-accordian-content';
+	var span = document.createElement('span');
+	span.style.whiteSpace = 'pre-line';
+	span.innerHTML = sdp;
+
+	divContent.appendChild(span);
+
+	divBodyGrid.appendChild(divTitle);
+	divBodyGrid.appendChild(divContent);
 }
 
 function handlePluginMessage(jsonObj)
