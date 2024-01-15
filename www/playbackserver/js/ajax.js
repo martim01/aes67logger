@@ -43,15 +43,15 @@ function ws_connect(endpoint, callbackMessage)
 		{
 			this.tm = setTimeout(serverOffline, 4000);
 		}
-	        var dt = new Date();
-        	var elm = document.getElementById('current_time');
-	        elm.innerHTML = dt.toISOString();
-      		elm.className = 'uk-h3';
-        	elm.classList.add('uk-text-success');
+        var dt = new Date();
+        var elm = document.getElementById('current_time');
+        elm.innerHTML = dt.toISOString();
+        elm.className = 'uk-h3';
+        elm.classList.add('uk-text-success');
         
 		
 		var jsonObj = JSON.parse(ev.data);
-        	callbackMessage(jsonObj);
+        callbackMessage(jsonObj);
 	}	
 }
 
@@ -350,7 +350,6 @@ function lastFile(dtEnd)
 
 function requestDownload(event)
 {
-	console.log(g_downloadEndpoint);
 	ajaxGet(g_playback_host, g_downloadEndpoint, handleDownloadRequest);
 }
 
@@ -359,8 +358,15 @@ function handleDownloadRequest(status, jsonObj)
 	if(status == 200)
 	{
 		g_downloadId = jsonObj.id;
-		console.log(g_downloadId);
-		//@todo show modal with progress
+
+		document.getElementById('download-button').style.visibility='hidden';
+		var ul = document.getElementById('messages');
+		while(ul.firstChild)
+		{
+			ul.removeChild(ul.lastChild);
+		}
+		
+		UIkit.modal(document.getElementById('download_modal')).show();
 	}
 	else if(jsonObj)
 	{
@@ -1006,5 +1012,26 @@ function createKeyValue(key, value, parentElement)
 
 function downloadUpdate(jsonObj)
 {
-	console.log(jsonObj);
+	if(jsonObj.id === g_downloadId)
+	{
+		if(jsonObj.action == "message")
+		{
+			var li = document.createElement('li');
+			li.textContent = jsonObj.message;
+			document.getElementById('messages').appendChild(li);
+		}
+		else if(jsonObj.action == "progress")
+		{
+			document.getElementById('time-processed').textContent = jsonObj.out_time;
+			document.getElementById('file-size').textContent = jsonObj.total_size;
+		}
+		else if(jsonObj.action == "finished")
+		{
+			var li = document.createElement('li');
+			li.textContent = "Finished";
+			document.getElementById('messages').appendChild(li);
+
+			document.getElementById('download-button').style.visibility='visible';
+		}
+	}
 }
