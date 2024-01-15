@@ -43,14 +43,14 @@ function ws_connect(endpoint, callbackMessage)
 		{
 			this.tm = setTimeout(serverOffline, 4000);
 		}
-        var dt = new Date();
-        var elm = document.getElementById('current_time');
+        let dt = new Date();
+        let elm = document.getElementById('current_time');
         elm.innerHTML = dt.toISOString();
         elm.className = 'uk-h3';
         elm.classList.add('uk-text-success');
         
 		
-		var jsonObj = JSON.parse(ev.data);
+		let jsonObj = JSON.parse(ev.data);
         callbackMessage(jsonObj);
 	}	
 }
@@ -68,7 +68,7 @@ function dashboard()
 
 function logs()
 {
-	var now = new Date();
+	let now = new Date();
 	now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
 	document.getElementById('end_time').value = now.toISOString().slice(0, 16);
 	now.setMinutes(now.getMinutes() - 60);
@@ -83,9 +83,9 @@ function populateSelectPlaybacks(status, jsData)
         g_playbackArray = jsData;
         if(g_playbackArray !== null)
         {
-			var select = document.getElementById('select_log');
+			let select = document.getElementById('select_log');
             g_playbackArray.forEach(function(el){
-				var opt = document.createElement('option');
+				let opt = document.createElement('option');
 				opt.id = el;
 				opt.value = el;
 				opt.innerHTML = el;
@@ -102,14 +102,14 @@ function handlePlaybacks(status, jsData)
         g_playbackArray = jsData;
         if(g_playbackArray !== null)
         {
-			var select = document.getElementById('select_channel');
+			let select = document.getElementById('select_channel');
 			while(select.firstChild)
 			{
 				select.removeChild(select.lastChild);
 			}
-            for(var i = 0; i < g_playbackArray.length; i++)
+            for(let i = 0; i < g_playbackArray.length; i++)
 			{
-				var opt = document.createElement('option');
+				let opt = document.createElement('option');
 				opt.value=g_playbackArray[i];
 				opt.innerHTML = g_playbackArray[i];
 				select.append(opt);
@@ -154,7 +154,7 @@ function statusUpdatePlayback(jsonObj)
     console.log(jsonObj);
     if('id' in jsonObj)
     {
-        var card = document.getElementById(jsonObj['id']);
+        let card = document.getElementById(jsonObj['id']);
 		if(card === null)
 		{		//card not created yet
 	    	return;
@@ -162,7 +162,7 @@ function statusUpdatePlayback(jsonObj)
 
         if('heartbeat' in jsonObj)
         {
-            var span = document.getElementById('running_'+jsonObj['id']);
+            let span = document.getElementById('running_'+jsonObj['id']);
             span.className = 'uk-label';
             span.classList.add('uk-card-badge');
             span.classList.add('uk-label-success');
@@ -170,42 +170,42 @@ function statusUpdatePlayback(jsonObj)
 
 			if('timestamp' in jsonObj['heartbeat'])
 			{
-				var span = document.getElementById('timestamp_'+jsonObj['id']);
-				var dt = new Date(jsonObj['heartbeat']['timestamp']*1000);
+				let span = document.getElementById('timestamp_'+jsonObj['id']);
+				let dt = new Date(jsonObj['heartbeat']['timestamp']*1000);
 				span.innerHTML = dt.toISOString();
 			}
 			if('up_time' in jsonObj.heartbeat)
 			{
-				var up_time = jsonObj.heartbeat['up_time'];
-				var span = document.getElementById('up_time_'+jsonObj['id']);
-				var days = Math.floor(up_time / 86400);
+				let up_time = jsonObj.heartbeat['up_time'];
+				let span = document.getElementById('up_time_'+jsonObj['id']);
+				let days = Math.floor(up_time / 86400);
 				up_time = up_time % 86400;
-				var hours = Math.floor(up_time / 3600);
+				let hours = Math.floor(up_time / 3600);
 				up_time = up_time % 3600;
-				var minutes = Math.floor(up_time / 60);
+				let minutes = Math.floor(up_time / 60);
 				up_time = up_time % 60;
 				span.innerHTML = zeroPad(days,4)+" "+zeroPad(hours,2)+":"+zeroPad(minutes,2)+":"+zeroPad(up_time,2);
 			}
 			
 			if('queue' in jsonObj)
 			{
-				var span = document.getElementById('queue_'+jsonObj['id']);
+				let span = document.getElementById('queue_'+jsonObj['id']);
 				span.innerHTML = jsonObj['queue'];
 			}
 			if('last_encoded' in jsonObj)
 			{
-					var span = document.getElementById('last_file_'+jsonObj['id']);
+				let span = document.getElementById('last_file_'+jsonObj['id']);
 					span.innerHTML = jsonObj['last_encoded'];
 			}
 			if('files_encoded' in jsonObj)
 			{
-				var span = document.getElementById('files_encoded_'+jsonObj['id']);
+				let span = document.getElementById('files_encoded_'+jsonObj['id']);
 				span.innerHTML = jsonObj['files_encoded'];
 			}
 
 			if('encoded' in jsonObj)
 			{
-				var span = document.getElementById('percent_'+jsonObj['id']);
+				let span = document.getElementById('percent_'+jsonObj['id']);
 				if(span !== null)
 				{
 					span.innerHTML = Math.round(jsonObj['encoded']*100.0)+"%";
@@ -214,12 +214,12 @@ function statusUpdatePlayback(jsonObj)
 
 			if('filename' in jsonObj)
 			{
-				var span = document.getElementById('file_'+jsonObj['id']);
+				let span = document.getElementById('file_'+jsonObj['id']);
 				span.innerHTML = jsonObj['filename'];
 			}
 			else
 			{
-				var span = document.getElementById('file_'+jsonObj['id']);
+				let span = document.getElementById('file_'+jsonObj['id']);
 				span.innerHTML = "Not Encoding";
 			}
 		}
@@ -229,7 +229,7 @@ function statusUpdatePlayback(jsonObj)
 
 function serverOffline()
 {
-    var elm = document.getElementById('current_time');
+    let elm = document.getElementById('current_time');
     elm.className = 'uk-h3';
     elm.classList.add('uk-text-danger');
 }
@@ -238,7 +238,7 @@ function serverOffline()
 function getTypes()
 {
 	console.log('getTypes');
-	var channel = document.getElementById('select_channel').value;
+	let channel = document.getElementById('select_channel').value;
 	ajaxGet(g_playback_host, "x-api/loggers/"+channel, handleFileTypes);
 }
 
@@ -246,14 +246,14 @@ function handleFileTypes(status, jsonObj)
 {
 	if(status == 200)
 	{
-		var select = document.getElementById('select_type');
+		let select = document.getElementById('select_type');
 		while(select.firstChild)
 		{
 			select.removeChild(select.lastChild);
 		}
-		for(var i = 0; i < jsonObj.length; i++)
+		for(let i = 0; i < jsonObj.length; i++)
 		{
-			var opt = document.createElement('option');
+			let opt = document.createElement('option');
 			opt.value = jsonObj[i];
 			opt.innerHTML = jsonObj[i];
 			select.appendChild(opt);
@@ -279,8 +279,8 @@ function handleFileTypes(status, jsonObj)
 
 function getTimes()
 {
-	var channel = document.getElementById('select_channel').value;
-	var type = document.getElementById('select_type').value;
+	let channel = document.getElementById('select_channel').value;
+	let type = document.getElementById('select_type').value;
 	ajaxGet(g_playback_host, "x-api/loggers/"+channel+"/"+type, handleTimes);
 }
 
@@ -291,10 +291,10 @@ function handleTimes(status, jsonObj)
 		if(jsonObj.length > 0)
 		{
 			jsonObj.sort();
-			var start = parseInt(jsonObj[0]);
-			var end = parseInt(jsonObj.slice(-1));
-			var startDate = new Date(start*60*1000);
-			var endDate = new Date(end*60*1000);
+			let start = parseInt(jsonObj[0]);
+			let end = parseInt(jsonObj.slice(-1));
+			let startDate = new Date(start*60*1000);
+			let endDate = new Date(end*60*1000);
 
 			document.getElementById('start_time').value = startDate.toISOString().slice(0, 16);
 			document.getElementById('end_time').value = endDate.toISOString().slice(0, 16)
@@ -325,13 +325,13 @@ function handleTimes(status, jsonObj)
 
 function timechange()
 {
-	var channel = document.getElementById('select_channel').value;
-	var type = document.getElementById('select_type').value;
+	let channel = document.getElementById('select_channel').value;
+	let type = document.getElementById('select_type').value;
 	
-	var dtStart = new Date(document.getElementById('start_time').value);
-	var dtEnd = new Date(document.getElementById('end_time').value);
+	let dtStart = new Date(document.getElementById('start_time').value);
+	let dtEnd = new Date(document.getElementById('end_time').value);
 
-	var endpoint = location.protocol+"//"+g_playback_host+"/x-api/loggers/"+channel+"/"+type+"/download?"+"start_time="+dtStart.getTime()/1000+"&end_time="+dtEnd.getTime()/1000;
+	let endpoint = location.protocol+"//"+g_playback_host+"/x-api/loggers/"+channel+"/"+type+"/download?"+"start_time="+dtStart.getTime()/1000+"&end_time="+dtEnd.getTime()/1000;
 	
 	g_downloadEndpoint = "/x-api/loggers/"+channel+"/"+type+"/download?"+"start_time="+dtStart.getTime()/1000+"&end_time="+dtEnd.getTime()/1000;
 	//document.getElementById('playback').setAttribute("src", endpoint);
@@ -339,10 +339,10 @@ function timechange()
 
 function lastFile(dtEnd)
 {
-	var channel = document.getElementById('select_channel').value;
-        var type = document.getElementById('select_type').value;
+	let channel = document.getElementById('select_channel').value;
+	let type = document.getElementById('select_type').value;
 
-	var endpoint = location.protocol+"//"+g_playback_host+"/x-api/loggers/"+channel+"/"+type+"/download?"+"start_time="+dtEnd.getTime()/1000+"&end_time="+dtEnd.getTime()/1000;
+	let endpoint = location.protocol+"//"+g_playback_host+"/x-api/loggers/"+channel+"/"+type+"/download?"+"start_time="+dtEnd.getTime()/1000+"&end_time="+dtEnd.getTime()/1000;
 
         //document.getElementById('last_file').setAttribute("src", endpoint);
 
@@ -360,12 +360,12 @@ function handleDownloadRequest(status, jsonObj)
 		g_downloadId = jsonObj.id;
 
 		document.getElementById('download-button').style.visibility='hidden';
-		var ul = document.getElementById('messages');
+		let ul = document.getElementById('messages');
 		while(ul.firstChild)
 		{
 			ul.removeChild(ul.lastChild);
 		}
-		
+
 		UIkit.modal(document.getElementById('download_modal')).show();
 	}
 	else if(jsonObj)
@@ -385,10 +385,10 @@ function handleRecording(status, jsonObj)
 		if(jsonObj.length > 0)
 		{
 			jsonObj.sort();
-			var start = parseInt(jsonObj[0]);
-			var end = parseInt(jsonObj.slice(-1));
-			var startDate = new Date(start*60*1000);
-			var endDate = new Date(end*60*1000);
+			let start = parseInt(jsonObj[0]);
+			let end = parseInt(jsonObj.slice(-1));
+			let startDate = new Date(start*60*1000);
+			let endDate = new Date(end*60*1000);
 
 			document.getElementById('start_time').value = startDate.toISOString().slice(0, 16);
 			document.getElementById('end_time').value = endDate.toISOString().slice(0, 16)
@@ -444,7 +444,7 @@ function getUpdate(callback)
 /*
 function createBodyGrid(name, id)
 {
-	var body_grid = document.createElement('div');
+	let body_grid = document.createElement('div');
 	body_grid.classList.add('uk-child-width-expand');
 	body_grid.classList.add('uk-grid-small');
 	body_grid.classList.add('uk-text-left');
@@ -454,17 +454,17 @@ function createBodyGrid(name, id)
 	
 	
 	
-	var div_title = document.createElement('div');
+	let div_title = document.createElement('div');
 	div_title.className = 'uk-width-1-4';
 	
-	var span = document.createElement('span');
+	let span = document.createElement('span');
 	span.className = 'uk-text-bold';
 	span.innerHTML = name+':';
 	
 	div_title.appendChild(span);
 	body_grid.appendChild(div_title);
 	
-	var div_value = document.createElement('div');
+	let div_value = document.createElement('div');
 	div_value.id = id+'_'+g_loopi_array.length;
 	div_value.innerHTML = '?';
 	
@@ -552,24 +552,24 @@ function updateInfo_System(jsonObj)
 			jsonObj.cpu.forEach(function(el){
 				if(el.id != 'cpu')
 				{
-					var cpuElm = document.getElementById(el.id);
+					let cpuElm = document.getElementById(el.id);
 					if(cpuElm === null)
 					{
-						var divId = document.createElement('div');
+						let divId = document.createElement('div');
 						divId.className = "uk-width-1-4";
 						divId.id = 'div_'+el.id;
-						var spanId = document.createElement('span');
+						let spanId = document.createElement('span');
 						spanId.className = 'uk-text-bold'
 						spanId.innerHTML = el.id+':';
 						divId.appendChild(spanId);
 
-						var divUsage = document.createElement('div');
+						let divUsage = document.createElement('div');
 						divUsage.className = "uk-width-1-4";
 						cpuElm = document.createElement('span');
 						cpuElm.id = el.id;
 						divUsage.appendChild(cpuElm);
 
-						var grid = document.getElementById('grid_cpu');
+						let grid = document.getElementById('grid_cpu');
 						grid.appendChild(divId);
 						grid.appendChild(divUsage);
 					}
@@ -656,7 +656,7 @@ function restart(command)
 {
 	UIkit.modal.confirm('Are you sure?').then(function() 
 	{
-		var play = { "command" : command};
+		let play = { "command" : command};
 		ajaxPostPutPatch("PUT", "x-api/power", JSON.stringify(play), handleRestartPut);
 	}, function () {});	
 }
@@ -697,9 +697,9 @@ function updateApp()
 
 function doUpdate()
 {
-	var fd = new FormData(document.getElementById('update_form'));
+	let fd = new FormData(document.getElementById('update_form'));
 	
-	var ajax = new XMLHttpRequest();
+	let ajax = new XMLHttpRequest();
 
 		
 	ajax.onreadystatechange = function()
@@ -707,7 +707,7 @@ function doUpdate()
 		
 		if(this.readyState == 4)
 		{
-			var jsonObj = JSON.parse(this.responseText);
+			let jsonObj = JSON.parse(this.responseText);
 			
 			
 			if(this.status != 200)
@@ -738,10 +738,10 @@ function doUpdate()
 
 function getLogs()
 {
-	var dtStart = new Date(document.getElementById('start_time').value);
-	var dtEnd = new Date(document.getElementById('end_time').value);
+	let dtStart = new Date(document.getElementById('start_time').value);
+	let dtEnd = new Date(document.getElementById('end_time').value);
 
-	var endpoint = "x-api/logs?logger="+document.getElementById('select_log').value+"&start_time="+dtStart.getTime()/1000+
+	let endpoint = "x-api/logs?logger="+document.getElementById('select_log').value+"&start_time="+dtStart.getTime()/1000+
 	"&end_time="+dtEnd.getTime()/1000;
 
 	ajaxGet(g_playback_host, endpoint, handleGetLogs);
@@ -792,18 +792,18 @@ function handlePlaybackInfo(jsonObj)
 	
 	if('heartbeat' in jsonObj)
 	{
-		var dtT = new Date(jsonObj.heartbeat.timestamp*1000);
+		let dtT = new Date(jsonObj.heartbeat.timestamp*1000);
 		document.getElementById('application-timestamp').innerHTML = dtT.toISOString();
         
-		var dtS = new Date(jsonObj.heartbeat.start_time*1000);
+		let dtS = new Date(jsonObj.heartbeat.start_time*1000);
 		document.getElementById('application-start_time').innerHTML = dtS.toISOString();
 
-		var up_time = jsonObj.heartbeat.up_time;
-		var days = Math.floor(up_time / 86400);
+		let up_time = jsonObj.heartbeat.up_time;
+		let days = Math.floor(up_time / 86400);
 		up_time = up_time % 86400;
-		var hours = Math.floor(up_time / 3600);
+		let hours = Math.floor(up_time / 3600);
 		up_time = up_time % 3600;
-		var minutes = Math.floor(up_time / 60);
+		let minutes = Math.floor(up_time / 60);
 		up_time = up_time % 60;
 
 		document.getElementById('application-up_time').innerHTML =  zeroPad(days,4)+" "+zeroPad(hours,2)+":"+zeroPad(minutes,2)+":"+zeroPad(up_time,2);
@@ -811,13 +811,13 @@ function handlePlaybackInfo(jsonObj)
 	}
 	if('filename' in jsonObj)
 	{
-		var elm = document.getElementById('file-filename');
+		let elm = document.getElementById('file-filename');
 		elm.innerHTML = jsonObj.filename;
 		elm.className = 'uk-text-success';
 	}
 	if('queue' in jsonObj)
 	{
-		var elm = document.getElementById('queue');
+		let elm = document.getElementById('queue');
 		elm.innerHTML = jsonObj.queue;
 		elm.className = 'uk-text-success';
 	}
@@ -839,12 +839,12 @@ function playbackAdmin()
 {
 	if(g_action == 'restart')
 	{
-		var play = { "command" : "restart", "password" : document.getElementById('admin_password').value};
+		let play = { "command" : "restart", "password" : document.getElementById('admin_password').value};
 		ajaxPostPutPatch("PUT", "x-api/playbacks/"+g_playback, JSON.stringify(play), handleRestartPlayback);
 	}
 	else if(g_action == 'remove')
 	{
-		var play = {"password" : document.getElementById('admin_password').value};
+		let play = {"password" : document.getElementById('admin_password').value};
 		ajaxPostPutPatch("DELETE", "x-api/playbacks/"+g_playback, JSON.stringify(play), handleDeletePlayback);
 	}
 }
@@ -883,14 +883,14 @@ function changeSession()
 
 function addSources(which, jsonObj)
 {
-	var sel = document.getElementById('select_'+which);
+	let sel = document.getElementById('select_'+which);
 	while(sel.options.length) sel.remove(0);
 	
 	if(which in jsonObj)
 	{
 		jsonObj[which].sort();
 		jsonObj[which].forEach(function(el){
-			var opt = document.createElement('option');
+			let opt = document.createElement('option');
 			opt.value=el;
 			opt.innerHTML = el;
 			sel.appendChild(opt);
@@ -939,22 +939,21 @@ function showConfigSection(section, jsonObj)
 	console.log("showConfigSection "+section);
 	console.log(jsonObj);
 
-    var grid = document.getElementById('config_grid');
+    let grid = document.getElementById('config_grid');
 
-    var divMain = document.createElement('div');
+    let divMain = document.createElement('div');
     divMain.classList.add('uk-width-1-3@s', 'uk-width-1-5@xl');
     
-	var aSection = document.createElement('a');
-    var aSection = document.createElement('a');
+    let aSection = document.createElement('a');
     aSection.classList.add('uk-link-reset', 'uk-display-block', 'uk-card', 'uk-card-default', 'uk-card-body');
 	aSection.id = section;
     
 
-    var divHeader = document.createElement('div');
+    let divHeader = document.createElement('div');
     divHeader.className='uk-card-header';
-    var titleH3 = document.createElement('h3');
+    let titleH3 = document.createElement('h3');
     titleH3.className='uk-card-title';
-    var titleSpan = document.createElement('span');
+    let titleSpan = document.createElement('span');
     titleSpan.id = "section_"+section;
     titleSpan.innerHTML = section;
     titleH3.appendChild(titleSpan);
@@ -964,7 +963,7 @@ function showConfigSection(section, jsonObj)
     aSection.appendChild(divHeader);
     
 
-    var divBody = document.createElement('div');
+    let divBody = document.createElement('div');
     divBody.classList.add('uk-card-body', 'uk-card-small');
     
 	
@@ -995,13 +994,13 @@ function showConfigSection(section, jsonObj)
 
 function createKeyValue(key, value, parentElement)
 {
-	var divSectionGrid = document.createElement('div');
+	let divSectionGrid = document.createElement('div');
     divSectionGrid.classList.add('uk-child-width-expand', 'uk-grid-small', 'uk-text-left', 'uk-grid');
 
-	var divKey = document.createElement('div');
+	let divKey = document.createElement('div');
 	divKey.classList.add('uk-width-1-3', 'uk-text-primary')
 	divKey.innerHTML = key+":";
-	var divValue  = document.createElement('div');
+	let divValue  = document.createElement('div');
 	divValue.classList.add('uk-width-2-3')
 	divValue.innerHTML = value;
 	divSectionGrid.appendChild(divKey);
@@ -1016,18 +1015,32 @@ function downloadUpdate(jsonObj)
 	{
 		if(jsonObj.action == "message")
 		{
-			var li = document.createElement('li');
+			let li = document.createElement('li');
 			li.textContent = jsonObj.message;
 			document.getElementById('messages').appendChild(li);
 		}
 		else if(jsonObj.action == "progress")
 		{
-			document.getElementById('time-processed').textContent = jsonObj.out_time;
-			document.getElementById('file-size').textContent = jsonObj.total_size;
+			let spanValue = document.getElementById('time-processed');
+			if(spanValue === undefined)
+			{
+				let li = document.createElement('li');
+				let spanLabel = document.createElement('span');
+				spanLabel.className = 'uk-text-bold';
+				spanLabel.textContent = "File Length:"
+
+				spanValue = document.createElement('span');
+				spanValue.id = 'time-processed';
+
+				li.appendChild(spanLabel);
+				li.appendChild(spanValue);
+				document.getElementById('messages').appendChild(li);
+			}
+			spanValue.textContent = jsonObj.out_time;
 		}
 		else if(jsonObj.action == "finished")
 		{
-			var li = document.createElement('li');
+			let li = document.createElement('li');
 			li.textContent = "Finished";
 			document.getElementById('messages').appendChild(li);
 
