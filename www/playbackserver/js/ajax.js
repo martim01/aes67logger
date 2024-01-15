@@ -9,6 +9,7 @@ var g_action = '';
 var g_playback_host = location.host+":8082";
 var g_downloadId = "";
 var g_downloadEndpoint="";
+
 const CLR_PLAYING = "#92d14f";
 const CLR_IDLE = "#8db4e2";
 const CLR_ERROR =  "#ff7777";
@@ -1020,6 +1021,11 @@ function downloadUpdate(jsonObj)
 			let li = document.createElement('li');
 			li.textContent = jsonObj.message;
 			document.getElementById('messages').appendChild(li);
+
+			if(jsonObj.status !== 200)
+			{
+				document.getElementById('close-button').style.visibility='visible';
+			}
 		}
 		else if(jsonObj.action == "progress")
 		{
@@ -1051,8 +1057,13 @@ function downloadUpdate(jsonObj)
 			let li = document.createElement('li');
 			li.textContent = "Finished";
 			document.getElementById('messages').appendChild(li);
-
+			g_downloadEndpoint = jsonObj.location;
 			document.getElementById('download-button').style.visibility='visible';
 		}
 	}
+}
+
+function doDownload()
+{
+	ajaxGet(g_playback_host, )
 }

@@ -16,11 +16,13 @@ using namespace pml;
 const std::string PlaybackServer::LOGGERS     = "loggers";
 const std::string PlaybackServer::DOWNLOAD    = "download";
 const std::string PlaybackServer::DASHBOARD   = "dashboard";
+const std::string PlaybackServer::FILES       = "files";
 
 const endpoint PlaybackServer::EP_LOGGERS     = endpoint("/x-api/"+LOGGERS);
 const endpoint PlaybackServer::EP_WS_LOGGERS  = endpoint("/x-api/ws/"+LOGGERS);
-const endpoint PlaybackServer::EP_WS_DOWNLOAD  = endpoint("/x-api/ws/"+DOWNLOAD);
-const endpoint PlaybackServer::EP_DASHBOARD     = endpoint("/x-api/"+DASHBOARD);
+const endpoint PlaybackServer::EP_WS_DOWNLOAD = endpoint("/x-api/ws/"+DOWNLOAD);
+const endpoint PlaybackServer::EP_DASHBOARD   = endpoint("/x-api/"+DASHBOARD);
+const endpoint PlaybackServer::EP_FILES       = endpoint("/x-api/"+FILES);
 
 
 
@@ -45,6 +47,9 @@ void PlaybackServer::AddCustomEndpoints()
 
     GetServer().AddEndpoint(pml::restgoose::GET, EP_DASHBOARD, std::bind(&PlaybackServer::GetDashboard, this, _1,_2,_3,_4));
     AddLoggerEndpoints();
+
+    GetServer().AddEndpoint(pml::restgoose::GET, EP_FILES, std::bind(&PlaybackServer::GetFile, this, _1,_2,_3,_4));
+
 
     GetServer().AddWebsocketEndpoint(EP_WS_LOGGERS, std::bind(&Server::WebsocketAuthenticate, this, _1,_2, _3, _4), std::bind(&Server::WebsocketMessage, this, _1, _2), std::bind(&Server::WebsocketClosed, this, _1, _2));
     GetServer().AddWebsocketEndpoint(EP_WS_DOWNLOAD, std::bind(&Server::WebsocketAuthenticate, this, _1,_2, _3, _4), std::bind(&Server::WebsocketMessage, this, _1, _2), std::bind(&Server::WebsocketClosed, this, _1, _2));
@@ -212,6 +217,35 @@ pml::restgoose::response PlaybackServer::DownloadLoggerFile(const query& theQuer
     {
         return pml::restgoose::response(404, std::string("Logger was not found"));
     }
+}
+
+pml::restgoose::response PlaybackServer::GetFile(const query& theQuery, const postData&, const endpoint&, const userName&) const
+{
+    if(auto itFile = theQuery.find(queryKey("file")); itFile != theQuery.end() && std::filesystem::exists("/tmp/"+itFile->second.Get()))
+    {
+        auto path = std::filesystem::path("/tmp/"+itFile->second.Get());
+        pml::restgoose::response resp;
+        resp.bFile = true;
+        resp.data = textData(path.string());
+        if(path.extension().string().substr(1) == jsonConsts::opus)
+        {
+            resp.contentType = headerValue("audio/ogg");
+        }
+        else if(path.extension().string().substr(1) == jsonConsts::flac)
+        {
+            resp.contentType = headerValue("audio/x-flac");
+        }
+        else if(path.extension().string().substr(1) == jsonConsts::wav)
+        {
+            resp.contentType = headerValue("audio/wav");
+        }
+        else
+        {
+            resp.contentType = headerValue("application/octet-stream");
+        }
+    }
+    return pml::restgoose::response(404, std::string("File not found"));
+
 }
 
 

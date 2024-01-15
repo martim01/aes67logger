@@ -280,6 +280,6 @@ bool LoggerObserver::ConcatFiles(const std::string& sType, const std::filesystem
     }
     auto nCode = pclose(pipe);
 
-    m_server.DownloadFileDone(sId, pathOut.string());
+    m_server.DownloadFileDone(sId, sId+"."+sType);
     return true;
 }
