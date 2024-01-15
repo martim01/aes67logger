@@ -144,7 +144,7 @@ std::pair<std::chrono::minutes, std::chrono::seconds> LoggerObserver::GetBaseFil
 pml::restgoose::response LoggerObserver::CreateDownloadFile(const std::string& sType, const query& theQuery) const
 {
     auto id = m_sName+"_"+GetCurrentTimeAsString(false);
-    pml::restgoose::ThreadPool::Get().Submit([this, &sType, &theQuery, &id]()
+    pml::restgoose::ThreadPool::Get().Submit([this, sType, theQuery, id]()
     {
         DownloadFileThread(sType, theQuery, id);
     });
@@ -158,7 +158,7 @@ void LoggerObserver::DownloadFileThread(const std::string& sType, const query& t
 {
     if(auto itFiles = GetEncodedFiles().find(sType); itFiles != GetEncodedFiles().end() && itFiles->second.empty() == false)
     {
-        m_server.DownloadFileMessage(m_sName, 200, std::string("Check start and end times"));
+        m_server.DownloadFileMessage(sId, 200, std::string("Check start and end times"));
         auto itStart = theQuery.find(queryKey("start_time"));
         auto itEnd = theQuery.find(queryKey("end_time"));
         if(itStart == theQuery.end() || itEnd == theQuery.end())
