@@ -31,9 +31,9 @@ function ws_connect(endpoint, callbackMessage)
 
 	g_ws = new WebSocket(ws_protocol+"//"+g_playback_host+"/x-api/ws/"+endpoint+"?access_token="+g_access_token);
     g_ws.timeout = true;
-	g_ws.onopen = function(ev)  { this.tm = setTimeout(serverOffline, 4000) };
-	g_ws.onerror = function(ev) { serverOffline(); };
-	g_ws.onclose = function(ev) { serverOffline(); };
+	g_ws.onopen = function(ev)  { console.log(ev); };
+	g_ws.onerror = function(ev) { console.log(ev); };
+	g_ws.onclose = function(ev) { console.log(ev); };
 	
 	
 	g_ws.onmessage = function(ev) 
@@ -43,15 +43,15 @@ function ws_connect(endpoint, callbackMessage)
 		{
 			this.tm = setTimeout(serverOffline, 4000);
 		}
-        var dt = new Date();
-        var elm = document.getElementById('current_time');
-        elm.innerHTML = dt.toISOString();
-        elm.className = 'uk-h3';
-        elm.classList.add('uk-text-success');
+	        var dt = new Date();
+        	var elm = document.getElementById('current_time');
+	        elm.innerHTML = dt.toISOString();
+      		elm.className = 'uk-h3';
+        	elm.classList.add('uk-text-success');
         
 		
 		var jsonObj = JSON.parse(ev.data);
-        callbackMessage(jsonObj);
+        	callbackMessage(jsonObj);
 	}	
 }
 
@@ -334,7 +334,7 @@ function timechange()
 	var endpoint = location.protocol+"//"+g_playback_host+"/x-api/loggers/"+channel+"/"+type+"/download?"+"start_time="+dtStart.getTime()/1000+"&end_time="+dtEnd.getTime()/1000;
 	
 	g_downloadEndpoint = "/x-api/loggers/"+channel+"/"+type+"/download?"+"start_time="+dtStart.getTime()/1000+"&end_time="+dtEnd.getTime()/1000;
-	document.getElementById('playback').setAttribute("src", endpoint);
+	//document.getElementById('playback').setAttribute("src", endpoint);
 }
 
 function lastFile(dtEnd)
@@ -344,7 +344,7 @@ function lastFile(dtEnd)
 
 	var endpoint = location.protocol+"//"+g_playback_host+"/x-api/loggers/"+channel+"/"+type+"/download?"+"start_time="+dtEnd.getTime()/1000+"&end_time="+dtEnd.getTime()/1000;
 
-        document.getElementById('last_file').setAttribute("src", endpoint);
+        //document.getElementById('last_file').setAttribute("src", endpoint);
 
 }
 

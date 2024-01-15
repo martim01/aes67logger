@@ -264,7 +264,7 @@ void PlaybackServer::FileDeleted(const std::string& sLogger, const std::filesyst
 
 void PlaybackServer::DownloadFileProgress(const Json::Value& jsProgress)
 {
-
+    pmlLog() << jsProgress;
     GetServer().SendWebsocketMessage({EP_WS_DOWNLOAD}, jsProgress);   
 }
 
@@ -276,6 +276,7 @@ void PlaybackServer::DownloadFileMessage(const std::string& sId, unsigned int nH
     jsValue["status"] = nHttpCode;
     jsValue["message"] = sMessage;
 
+    pmlLog() << jsValue;
     GetServer().SendWebsocketMessage({EP_WS_DOWNLOAD}, jsValue);
 }
 
@@ -285,6 +286,7 @@ void PlaybackServer::DownloadFileDone(const std::string& sId, const std::string&
     jsValue["action"] = "finished";
     jsValue["id"] = sId;
     jsValue["location"] = sLocation;
+    pmlLog() << jsValue;
 
     GetServer().SendWebsocketMessage({EP_WS_DOWNLOAD}, jsValue);
 }
