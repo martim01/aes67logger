@@ -366,7 +366,7 @@ function handleDownloadRequest(status, jsonObj)
 			ul.removeChild(ul.lastChild);
 		}
 
-		UIkit.modal(document.getElementById('download_modal')).show();
+		UIkit.modal(document.getElementById('download-modal')).show();
 	}
 	else if(jsonObj)
 	{
@@ -1013,8 +1013,10 @@ function downloadUpdate(jsonObj)
 {
 	if(jsonObj.id === g_downloadId)
 	{
+		console.log(jsonObj);
 		if(jsonObj.action == "message")
 		{
+			console.log('append '+jsonObj.message);
 			let li = document.createElement('li');
 			li.textContent = jsonObj.message;
 			document.getElementById('messages').appendChild(li);
@@ -1022,21 +1024,27 @@ function downloadUpdate(jsonObj)
 		else if(jsonObj.action == "progress")
 		{
 			let spanValue = document.getElementById('time-processed');
-			if(spanValue === undefined)
+			if(spanValue)
 			{
+				spanValue.textContent = jsonObj.out_time;
+			}
+			else
+			{
+				console.log('create spanValue');
 				let li = document.createElement('li');
 				let spanLabel = document.createElement('span');
 				spanLabel.className = 'uk-text-bold';
-				spanLabel.textContent = "File Length:"
+				spanLabel.textContent = "File Length:  "
 
 				spanValue = document.createElement('span');
 				spanValue.id = 'time-processed';
+				spanValue.textContent = jsonObj.out_time;
 
 				li.appendChild(spanLabel);
 				li.appendChild(spanValue);
 				document.getElementById('messages').appendChild(li);
+			
 			}
-			spanValue.textContent = jsonObj.out_time;
 		}
 		else if(jsonObj.action == "finished")
 		{
