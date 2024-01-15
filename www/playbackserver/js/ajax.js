@@ -1068,3 +1068,9 @@ function downloadUpdate(jsonObj)
 	}
 }
 
+
+function closeDownload()
+{
+	UIkit.modal(document.getElementById('download-modal')).hide();	
+	return true;
+}
