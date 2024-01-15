@@ -7,6 +7,7 @@ var g_playback = null;
 var g_access_token_playbackserver = null;
 var g_action = '';
 var g_playback_host = location.host+":8082";
+var g_downloadId = "";
 
 const CLR_PLAYING = "#92d14f";
 const CLR_IDLE = "#8db4e2";
@@ -79,7 +80,7 @@ function handlePlaybacks(status, jsData)
 				opt.innerHTML = g_playbackArray[i];
 				select.append(opt);
 			}
-		getTypes();
+			getTypes();
         }
 
 		ajaxGet(g_playback_host, 'x-api/status', handlePlaybacksStatus);
@@ -96,7 +97,7 @@ function handlePlaybacksStatus(status, jsonObj)
 	{
 		statusUpdate(jsonObj)
 	}
-	//ws_connect('status',statusUpdate)
+	ws_connect('download',downloadUpdate)
 }
 
 function statusUpdate(jsonObj)
@@ -119,10 +120,10 @@ function statusUpdatePlayback(jsonObj)
     if('id' in jsonObj)
     {
         var card = document.getElementById(jsonObj['id']);
-	if(card === null)
-	{	//card not created yet
-	    return;
-	}
+		if(card === null)
+		{		//card not created yet
+	    	return;
+		}
 
         if('heartbeat' in jsonObj)
         {
@@ -132,62 +133,62 @@ function statusUpdatePlayback(jsonObj)
             span.classList.add('uk-label-success');
             span.innerHTML = 'running';
 
-   	    if('timestamp' in jsonObj['heartbeat'])
-            {
-                var span = document.getElementById('timestamp_'+jsonObj['id']);
-                var dt = new Date(jsonObj['heartbeat']['timestamp']*1000);
-                span.innerHTML = dt.toISOString();
-            }
-            if('up_time' in jsonObj.heartbeat)
-            {
-                var up_time = jsonObj.heartbeat['up_time'];
-                var span = document.getElementById('up_time_'+jsonObj['id']);
-                var days = Math.floor(up_time / 86400);
-                up_time = up_time % 86400;
-                var hours = Math.floor(up_time / 3600);
-                up_time = up_time % 3600;
-                var minutes = Math.floor(up_time / 60);
-                up_time = up_time % 60;
-                span.innerHTML = zeroPad(days,4)+" "+zeroPad(hours,2)+":"+zeroPad(minutes,2)+":"+zeroPad(up_time,2);
-           }
-     	   
-           if('queue' in jsonObj)
-	   {
-               var span = document.getElementById('queue_'+jsonObj['id']);
-               span.innerHTML = jsonObj['queue'];
-	   }
-	   if('last_encoded' in jsonObj)
-	   {
-               var span = document.getElementById('last_file_'+jsonObj['id']);
-               span.innerHTML = jsonObj['last_encoded'];
-	   }
-           if('files_encoded' in jsonObj)
-           {
-               var span = document.getElementById('files_encoded_'+jsonObj['id']);
-               span.innerHTML = jsonObj['files_encoded'];
-           }
+			if('timestamp' in jsonObj['heartbeat'])
+			{
+				var span = document.getElementById('timestamp_'+jsonObj['id']);
+				var dt = new Date(jsonObj['heartbeat']['timestamp']*1000);
+				span.innerHTML = dt.toISOString();
+			}
+			if('up_time' in jsonObj.heartbeat)
+			{
+				var up_time = jsonObj.heartbeat['up_time'];
+				var span = document.getElementById('up_time_'+jsonObj['id']);
+				var days = Math.floor(up_time / 86400);
+				up_time = up_time % 86400;
+				var hours = Math.floor(up_time / 3600);
+				up_time = up_time % 3600;
+				var minutes = Math.floor(up_time / 60);
+				up_time = up_time % 60;
+				span.innerHTML = zeroPad(days,4)+" "+zeroPad(hours,2)+":"+zeroPad(minutes,2)+":"+zeroPad(up_time,2);
+			}
+			
+			if('queue' in jsonObj)
+			{
+				var span = document.getElementById('queue_'+jsonObj['id']);
+				span.innerHTML = jsonObj['queue'];
+			}
+			if('last_encoded' in jsonObj)
+			{
+					var span = document.getElementById('last_file_'+jsonObj['id']);
+					span.innerHTML = jsonObj['last_encoded'];
+			}
+			if('files_encoded' in jsonObj)
+			{
+				var span = document.getElementById('files_encoded_'+jsonObj['id']);
+				span.innerHTML = jsonObj['files_encoded'];
+			}
 
-	   if('encoded' in jsonObj)
-	   {
-               var span = document.getElementById('percent_'+jsonObj['id']);
-	       if(span !== null)
-               {
-	           span.innerHTML = Math.round(jsonObj['encoded']*100.0)+"%";
-	       }
-	   }
+			if('encoded' in jsonObj)
+			{
+				var span = document.getElementById('percent_'+jsonObj['id']);
+				if(span !== null)
+				{
+					span.innerHTML = Math.round(jsonObj['encoded']*100.0)+"%";
+				}
+			}
 
-           if('filename' in jsonObj)
-           {
-               var span = document.getElementById('file_'+jsonObj['id']);
-               span.innerHTML = jsonObj['filename'];
-           }
-           else
-           {
-               var span = document.getElementById('file_'+jsonObj['id']);
-               span.innerHTML = "Not Encoding";
-           }
-        }
-    }
+			if('filename' in jsonObj)
+			{
+				var span = document.getElementById('file_'+jsonObj['id']);
+				span.innerHTML = jsonObj['filename'];
+			}
+			else
+			{
+				var span = document.getElementById('file_'+jsonObj['id']);
+				span.innerHTML = "Not Encoding";
+			}
+		}
+	}
 }
 
 
@@ -297,7 +298,7 @@ function timechange()
 
 	var endpoint = location.protocol+"//"+g_playback_host+"/x-api/loggers/"+channel+"/"+type+"/download?"+"start_time="+dtStart.getTime()/1000+"&end_time="+dtEnd.getTime()/1000;
 
-	document.getElementById('download').setAttribute("href", endpoint);
+	document.getElementById('download').setAttribute("endpoint", endpoint);
 	document.getElementById('playback').setAttribute("src", endpoint);
 }
 
@@ -312,6 +313,28 @@ function lastFile(dtEnd)
 
 }
 
+function requestDownload(event)
+{
+	endpoint = event.target.endpoint;
+	ajaxGet(endpoint, handleDownloadRequest);
+}
+
+function handleDownloadRequest(status, jsonObj)
+{
+	if(status == 200)
+	{
+		g_downloadId = jsonObj.id;
+		//@todo show modal with progress
+	}
+	else if(jsonObj)
+	{
+		UIkit.notification({message: jsonObj["reason"], status: 'danger', timeout: 3000})
+	}
+	else
+	{
+		console.log(status);
+	}
+}
 
 function handleRecording(status, jsonObj)
 {
@@ -746,15 +769,15 @@ function handlePlaybackInfo(jsonObj)
 	}
 	if('filename' in jsonObj)
 	{
-var elm = document.getElementById('file-filename');
-                elm.innerHTML = jsonObj.filename;
-                elm.className = 'uk-text-success';
+		var elm = document.getElementById('file-filename');
+		elm.innerHTML = jsonObj.filename;
+		elm.className = 'uk-text-success';
 	}
 	if('queue' in jsonObj)
 	{
 		var elm = document.getElementById('queue');
-                elm.innerHTML = jsonObj.queue;
-                elm.className = 'uk-text-success';
+		elm.innerHTML = jsonObj.queue;
+		elm.className = 'uk-text-success';
 	}
 
 }
@@ -942,4 +965,13 @@ function createKeyValue(key, value, parentElement)
 	divSectionGrid.appendChild(divKey);
 	divSectionGrid.appendChild(divValue);
 	parentElement.appendChild(divSectionGrid);
+}
+
+
+function downloadUpdate(jsonObj)
+{
+	if(jsonObj.id === g_downloadId)
+	{
+		console.log(jsonObj);
+	}
 }

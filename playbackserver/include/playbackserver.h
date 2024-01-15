@@ -29,9 +29,9 @@ class PlaybackServer : public Server
         void FileCreated(const std::string& sLogger, const std::filesystem::path& path);
         void FileDeleted(const std::string& sLogger, const std::filesystem::path& path);
 
-        void DownloadFileMessage(const std::string& sLogger, unsigned int nHttpCode, const std::string& sMessage);
+        void DownloadFileMessage(const std::string& sId, unsigned int nHttpCode, const std::string& sMessage);
         void DownloadFileProgress(const Json::Value& jsProgress);
-        void DownloadFileDone(const std::string& sLogger, const std::string& sLocation);
+        void DownloadFileDone(const std::string& sId, const std::string& sLocation);
 
 
     private:

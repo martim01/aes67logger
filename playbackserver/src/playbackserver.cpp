@@ -264,6 +264,7 @@ void PlaybackServer::FileDeleted(const std::string& sLogger, const std::filesyst
 
 void PlaybackServer::DownloadFileProgress(const Json::Value& jsProgress)
 {
+
     GetServer().SendWebsocketMessage({EP_WS_DOWNLOAD}, jsProgress);   
 }
 
