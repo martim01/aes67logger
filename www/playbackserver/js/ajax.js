@@ -19,7 +19,41 @@ const CLR_WARNING = "#ffa000"
 const CLR_CONNECTING = "#ffff00";
 const CLR_SYNC = "#008000";
 
+function ws_connect(endpoint, callbackMessage)
+{
+	getCookies();
+	
+	ws_protocol = "ws:";
+	if(location.protocol == 'https:')
+	{
+		ws_protocol = "wss:";
+	}
 
+	g_ws = new WebSocket(ws_protocol+"//"+g_encoder_host+"/x-api/ws/"+endpoint+"?access_token="+g_access_token);
+    g_ws.timeout = true;
+	g_ws.onopen = function(ev)  { this.tm = setTimeout(serverOffline, 4000) };
+	g_ws.onerror = function(ev) { serverOffline(); };
+	g_ws.onclose = function(ev) { serverOffline(); };
+	
+	
+	g_ws.onmessage = function(ev) 
+	{
+		clearTimeout(this.tm);
+		if(this.timeout)
+		{
+			this.tm = setTimeout(serverOffline, 4000);
+		}
+        var dt = new Date();
+        var elm = document.getElementById('current_time');
+        elm.innerHTML = dt.toISOString();
+        elm.className = 'uk-h3';
+        elm.classList.add('uk-text-success');
+        
+		
+		var jsonObj = JSON.parse(ev.data);
+        callbackMessage(jsonObj);
+	}	
+}
 
 function config()
 {
