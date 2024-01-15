@@ -227,12 +227,11 @@ pml::restgoose::response PlaybackServer::GetFile(const query& theQuery, const po
         pml::restgoose::response resp;
         resp.bFile = true;
         resp.data = textData(path.string());
-	if(auto itForce = theQuery.find(queryKey("force")); itForce != theQuery.end() && itForce->second.Get()=="download")
-	{
-	
-            resp.contentType = headerValue("application/octet-stream");
-	}
-	else if(path.extension().string().substr(1) == jsonConsts::opus)
+        if(auto itForce = theQuery.find(queryKey("force")); itForce != theQuery.end() && itForce->second.Get()=="download")
+        {
+            resp.mExtraHeaders.try_emplace(headerName("content-disposition"), headerValue("attachment; filename=\""+itFile->second.Get()+"\""));
+        }
+        if(path.extension().string().substr(1) == jsonConsts::opus)
         {
             resp.contentType = headerValue("audio/ogg");
         }
@@ -248,7 +247,7 @@ pml::restgoose::response PlaybackServer::GetFile(const query& theQuery, const po
         {
             resp.contentType = headerValue("application/octet-stream");
         }
-	return resp;
+        return resp;
     }
     return pml::restgoose::response(404, std::string("File not found"));
 

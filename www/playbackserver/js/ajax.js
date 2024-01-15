@@ -1057,8 +1057,12 @@ function downloadUpdate(jsonObj)
 			document.getElementById('messages').appendChild(li);
 			g_downloadEndpoint = jsonObj.location;
 			let btn = document.getElementById('download-button');
-			btn.style.visibility='visible';
+			btn.style.visibility='visible';			
 			btn.setAttribute("href", location.protocol+"//"+g_playback_host+"/x-api/files?file="+jsonObj.location+"&force=download");
+
+			let playback = document.getElementById('playback');
+			playback.style.visibility = "visible";
+			playback.setAttribute("src", location.protocol+"//"+g_playback_host+"/x-api/files?file="+jsonObj.location);
 
 		}
 	}
