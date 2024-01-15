@@ -24,7 +24,6 @@ function getCookies()
 	}
 	});
 
-	console.log(g_cookie_array);
 }
 
 
@@ -49,13 +48,11 @@ function handleLogin(status, jsonObj)
     }
     else 
     {
-		console.log(jsonObj);
 		g_access_token = jsonObj.access_token;
 		
 
 		document.cookie = "access_token="+g_access_token+"; path=/";
 		window.location.pathname = "dashboard";
-		console.log(window.location);
     }
 }
 
@@ -69,7 +66,6 @@ function handleLogout(status, jsonObj)
 
 function ajaxGet(host, endpoint, callback, bJson=true)
 {
-	console.log("ajaxGet "+host+" "+endpoint);
 	var ajax = new XMLHttpRequest();
 	ajax.timeout = 2000;
 	
@@ -77,7 +73,6 @@ function ajaxGet(host, endpoint, callback, bJson=true)
 	{
 		if(this.readyState == 4)
 		{
-			console.log(this.responseText);
 			if(bJson)
             {
 				callback(this.status, JSON.parse(this.responseText));

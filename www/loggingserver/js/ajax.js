@@ -8,6 +8,8 @@ var g_sourceRouting = {};
 var g_logger_host = location.hostname+":4431";
 var g_loggerDetails = {};
 var g_loadedSources = {};
+var g_builderRecorder = {};
+var g_builderAoIp = {};
 
 const CLR_PLAYING = "#92d14f";
 const CLR_IDLE = "#8db4e2";
@@ -220,10 +222,6 @@ function handleLoggers(status, jsData)
 
 		ajaxGet(g_logger_host,  'x-api/status', handleLoggersStatus);
     }
-    else
-    {
-        console.log(status);
-    }
 }
 
 function handleLoggersStatus(status, jsonObj)
@@ -333,7 +331,6 @@ function ws_connect(endpoint, callbackMessage)
 	}
 
 	 
-	console.log(ws_protocol+"//"+g_logger_host+"/x-api/ws/"+endpoint);
 	g_ws = new WebSocket(ws_protocol+"//"+g_logger_host+"/x-api/ws/"+endpoint+"?access_token="+g_access_token);
     g_ws.timeout = true;
 	g_ws.onopen = function(ev)  { console.log("Ws_open"); this.tm = setTimeout(serverOffline, 4000) };
@@ -698,8 +695,28 @@ function handleGetLogs(status, log)
 
 function loggers()
 {
-	console.log("loggers");
 	getCookies();
+
+	ajaxGet(g_logger_host, "x-api/builders/destinations/Recorder", handleRecorderBuilder);
+}
+
+function handleRecorderBuilder(status, jsonObj)
+{
+	if(status == 200)
+	{
+		g_builderRecorder = jsonObj;
+	}
+	ajaxGet(g_logger_host, "x-api/builders/sources/AoIP", handleAoIpBuilder);
+
+}
+
+function handleAoIpBuilder(status, jsonObj)
+{
+        if(status == 200)
+        {
+                g_builderAoIp = jsonObj;
+        }
+
 	ajaxGet(g_logger_host, "x-api/plugins/destinations", handleDestinations);
 }
 
@@ -1034,8 +1051,6 @@ function handleDeleteLogger(status, jsonObj)
 	}
 	else
 	{
-		//console.log(status);
-		//console.log(jsonObj);
 		window.location.pathname = "../dashboard";
 	}
 }
@@ -1085,15 +1100,15 @@ var g_method = 'rtsp';
 function showrtsp()
 {
 	g_method = 'rtsp';
-	document.getElementById('div_rtsp').style.display = 'block';
-	document.getElementById('div_sdp').style.display = 'none';
+	document.getElementById('div-rtsp').style.display = 'block';
+	document.getElementById('div-sdp').style.display = 'none';
 }
 
 function showsdp()
 {
 	g_method = 'sdp';
-	document.getElementById('div_rtsp').style.display = 'none';
-	document.getElementById('div_sdp').style.display = 'block';
+	document.getElementById('div-rtsp').style.display = 'none';
+	document.getElementById('div-sdp').style.display = 'block';
 }
 
 function updateLoggerSession()
@@ -1106,7 +1121,6 @@ function updateLoggerSession()
 	}
 	var rtsp = '';
 	var sdp = '';
-	console.log(g_method);
 	if(g_method == 'rtsp')
 	{
 		rtsp = document.getElementById('select_rtsp').value;
@@ -1152,11 +1166,52 @@ function handleSourcesAddLogger(status, jsonObj)
 	}
 }
 
-function showAddLogger()
-{
-	UIkit.modal(document.getElementById('add_logger_modal')).show();
+function addOptions(selId, jsonArray)
+{ 
+	var select = document.getElementById(selId)
+	if(select)
+        {
+		while(select.firstChild)
+		{
+			select.removeChild(select.lastChild);
+		}
+                jsonArray.forEach(source => {
+                        var opt = document.createElement('option');
+                        opt.value = source;
+                        opt.innerHTML = source;
+                        select.appendChild(opt);
+                });
+        }
 }
 
+function showAddLogger()
+{
+	var arr = g_sourceArray;
+	arr.push('-- New Source --');
+	addOptions('source-select', arr);
+	
+	if(g_builderAoIp.plugin !== undefined)
+	{
+		addOptions('select-rtsp', g_builderAoIp.plugin.rtsp.options);
+		addOptions('select-sdp', g_builderAoIp.plugin.sdp.options);
+	}
+
+	
+
+	UIkit.modal(document.getElementById('add-logger-modal')).show();
+}
+function sourceSelected()
+{
+ 	var select = document.getElementById('source-select');
+	if(select.value == "-- New Source --")
+	{
+		document.getElementById('new-source').style.display = 'block';
+	}
+	else
+	{
+	          document.getElementById('new-source').style.display = 'none';
+	}
+}
 
 function addLogger()
 {
@@ -1230,8 +1285,6 @@ function handleAddLogger(status, jsonObj)
 
 function handleConfig(result, jsonObj)
 {
-	console.log("handleConfig");
-	console.log(jsonObj);
 	if(result == 200)
 	{
 		for(let section in jsonObj)
@@ -1243,8 +1296,6 @@ function handleConfig(result, jsonObj)
 
 function showConfigSection(section, jsonObj)
 {
-	console.log("showConfigSection "+section);
-	console.log(jsonObj);
 
     var grid = document.getElementById('config_grid');
 
@@ -1349,7 +1400,6 @@ function handleRecorder(status, jsonObj)
 
 function getRecorderSources()
 {
-	console.log('getRecorderSources: '+g_count);
 	if(g_loggerDetails.mixer !== undefined && g_count < g_loggerDetails.mixer.length)
 	{
 		if(g_loadedSources[g_loggerDetails.mixer[g_count].source.name] === undefined)

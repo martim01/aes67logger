@@ -36,6 +36,7 @@ AsioServer::AsioServer(const std::filesystem::path& file) :
     m_acceptor(m_context, asio::local::stream_protocol::endpoint(file.string())),
     m_timer(m_context)
 {
+    pmlLog(pml::LOG_INFO, "asio") << "Socket at " << file.string();
     do_accept();
 }
 

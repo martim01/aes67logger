@@ -60,24 +60,28 @@
                                 <input class="uk-input" type="text" placeholder="Logger Name" id="logger-name">
                             </div>
                             <div class="uk-margin-small">
-                                <input class="uk-input" type="text" placeholder="Source Name" id="config-name">
+				<select class="uk-select" id="source-select" onchange="sourceSelected()"></select>
                             </div>
-                            <div class="uk-margin uk-grid-small uk-child-width-auto uk-grid">
-                                <label><input class="uk-radio" type="radio" name="method" id="rtsp" checked onclick="showrtsp()"> RTSP</label>
-                                <label><input class="uk-radio" type="radio" name="method" id="sdp" onclick="showsdp()"> SDP</label>
-                            </div>
-                            <div class="uk-margin-small" id="div-rtsp">
-                                <select id="select-rtsp" class="uk-select">
-    
-                                </select>
-                                <input class="uk-input" type="text" placeholder="RTSP Address" id="config-rtsp" style="display:none">
-                            </div>
-                            <div class="uk-margin-small" style="display:none" id="div-sdp">
-                                <select id="select-sdp" class="uk-select">
-        
-                                </select>
-                                <textarea class="uk-textarea" rows="20" cols="50" placeholder="SDP" id="config-sdp" style="display:none"></textarea>
-                            </div>
+			    <div id="new-source" style="display: none">
+				<div class="uk-margin-small">
+                                	<input class="uk-input" type="text" placeholder="Source Name" id="source-name">
+                            	</div>
+
+                            	<div class="uk-margin uk-grid-small uk-child-width-auto uk-grid">
+                                	<label><input class="uk-radio" type="radio" name="method" id="rtsp" checked onclick="showrtsp()"> RTSP</label>
+	                                <label><input class="uk-radio" type="radio" name="method" id="sdp" onclick="showsdp()"> SDP</label>
+        	                    </div>
+                	            <div class="uk-margin-small" id="div-rtsp">
+                        	        <select id="select-rtsp" class="uk-select">
+	                                </select>
+        	                        <input class="uk-input" type="text" placeholder="RTSP Address" id="config-rtsp" style="display:none">
+                	            </div>
+                        	    <div class="uk-margin-small" style="display:none" id="div-sdp">
+                                	<select id="select-sdp" class="uk-select">       
+	                                </select>
+        	                        <textarea class="uk-textarea" rows="20" cols="50" placeholder="SDP" id="config-sdp" style="display:none"></textarea>
+                	            </div>
+			    </div>
                             <div>
                                 <fieldset><legend>Encoding</legend>
                                     <div  class="uk-text-meta">Enter the time to keep the encoded files for, or 0 to disable the encoding</div>
