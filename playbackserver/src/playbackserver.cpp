@@ -53,7 +53,6 @@ void PlaybackServer::AddCustomEndpoints()
 
 pml::restgoose::response PlaybackServer::GetDashboard(const query& theQuery, const postData& vData, const endpoint& theEndpoint, const userName& theUser)
 {
-{
     pml::restgoose::response resp;
     resp.jsonData["loggingserver"] = GetIniManager().Get(jsonConsts::server, jsonConsts::logger_server, "");
     resp.jsonData["encodingserver"] = GetIniManager().Get(jsonConsts::server, jsonConsts::encoder_server, "");
@@ -265,7 +264,7 @@ void PlaybackServer::FileDeleted(const std::string& sLogger, const std::filesyst
 
 void PlaybackServer::DownloadFileProgress(const Json::Value& jsProgress)
 {
-    GetServer().SendWebsocketMessage({endpoint(EP_WS_DOWNLOAD.Get()}, jsProgress);   
+    GetServer().SendWebsocketMessage({EP_WS_DOWNLOAD}, jsProgress);   
 }
 
 void PlaybackServer::DownloadFileMessage(const std::string& sId, unsigned int nHttpCode, const std::string& sMessage)
@@ -276,7 +275,7 @@ void PlaybackServer::DownloadFileMessage(const std::string& sId, unsigned int nH
     jsValue["status"] = nHttpCode;
     jsValue["message"] = sMessage;
 
-    GetServer().SendWebsocketMessage({endpoint(EP_WS_DOWNLOAD.Get()}, jsValue);
+    GetServer().SendWebsocketMessage({EP_WS_DOWNLOAD}, jsValue);
 }
 
 void PlaybackServer::DownloadFileDone(const std::string& sId, const std::string& sLocation)
@@ -286,7 +285,7 @@ void PlaybackServer::DownloadFileDone(const std::string& sId, const std::string&
     jsValue["id"] = sId;
     jsValue["location"] = sLocation;
 
-    GetServer().SendWebsocketMessage({endpoint(EP_WS_DOWNLOAD.Get()}, jsValue);
+    GetServer().SendWebsocketMessage({EP_WS_DOWNLOAD}, jsValue);
 }
 
 pml::restgoose::response PlaybackServer::GetStatus(const query&, const postData&, const endpoint&, const userName&) const

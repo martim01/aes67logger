@@ -144,7 +144,7 @@ std::pair<std::chrono::minutes, std::chrono::seconds> LoggerObserver::GetBaseFil
 pml::restgoose::response LoggerObserver::CreateDownloadFile(const std::string& sType, const query& theQuery) const
 {
     auto id = m_sName+"_"+GetCurrentTimeAsString(false);
-    pml::restgoose::ThreadPool::Get().Submit([this](sType, theQuery)
+    pml::restgoose::ThreadPool::Get().Submit([this, &sType, &theQuery, &id]()
     {
         DownloadFileThread(sType, theQuery, id);
     });
@@ -154,7 +154,7 @@ pml::restgoose::response LoggerObserver::CreateDownloadFile(const std::string& s
     return resp;
 }
 
-bool LoggerObserver::DownloadFileThread(const std::string& sType, const query& theQuery, const std::string& sId)
+void LoggerObserver::DownloadFileThread(const std::string& sType, const query& theQuery, const std::string& sId) const
 {
     if(auto itFiles = GetEncodedFiles().find(sType); itFiles != GetEncodedFiles().end() && itFiles->second.empty() == false)
     {
@@ -198,7 +198,7 @@ bool LoggerObserver::DownloadFileThread(const std::string& sType, const query& t
                 }
 
                 ofs.close();
-                return ConcatFiles(sType, pathIn, sId);
+                ConcatFiles(sType, pathIn, sId);
             }
             else
             {
@@ -245,7 +245,7 @@ bool LoggerObserver::ConcatFiles(const std::string& sType, const std::filesystem
     {
         sResult += buffer.data();
         //find the last '\n'
-        auto nLast = sResult.rfind('/n');
+        auto nLast = sResult.rfind('\n');
         if(nLast != std::string::npos)
         {
             auto vSplit = SplitString(sResult.substr(0, nLast+1), '\n');

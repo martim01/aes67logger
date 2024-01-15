@@ -25,7 +25,7 @@ class LoggerObserver
 
     private:
 
-        bool DownloadFileThread(const std::string& sType, const query& theQuery, const std::string& sId) const;
+        void DownloadFileThread(const std::string& sType, const query& theQuery, const std::string& sId) const;
         std::set<std::filesystem::path> EnumFiles(const std::filesystem::path& path, const std::string& sExt) const;
         void OnFileCreated(int nWd, const std::filesystem::path& path, uint32_t mask, bool bDirectory);
         void OnFileDeleted(int nWd, const std::filesystem::path& path, uint32_t mask, bool bDirectory);
