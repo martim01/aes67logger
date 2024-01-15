@@ -8,7 +8,7 @@ var g_access_token_playbackserver = null;
 var g_action = '';
 var g_playback_host = location.host+":8082";
 var g_downloadId = "";
-
+var g_downloadEndpoint="";
 const CLR_PLAYING = "#92d14f";
 const CLR_IDLE = "#8db4e2";
 const CLR_ERROR =  "#ff7777";
@@ -97,6 +97,7 @@ function handlePlaybacksStatus(status, jsonObj)
 	{
 		statusUpdate(jsonObj)
 	}
+
 	ws_connect('download',downloadUpdate)
 }
 
@@ -297,8 +298,8 @@ function timechange()
 	var dtEnd = new Date(document.getElementById('end_time').value);
 
 	var endpoint = location.protocol+"//"+g_playback_host+"/x-api/loggers/"+channel+"/"+type+"/download?"+"start_time="+dtStart.getTime()/1000+"&end_time="+dtEnd.getTime()/1000;
-
-	document.getElementById('download').setAttribute("endpoint", endpoint);
+	
+	g_downloadEndpoint = "/x-api/loggers/"+channel+"/"+type+"/download?"+"start_time="+dtStart.getTime()/1000+"&end_time="+dtEnd.getTime()/1000;
 	document.getElementById('playback').setAttribute("src", endpoint);
 }
 
@@ -315,8 +316,8 @@ function lastFile(dtEnd)
 
 function requestDownload(event)
 {
-	endpoint = event.target.endpoint;
-	ajaxGet(endpoint, handleDownloadRequest);
+	console.log(g_downloadEndpoint);
+	ajaxGet(g_playback_host, g_downloadEndpoint, handleDownloadRequest);
 }
 
 function handleDownloadRequest(status, jsonObj)
@@ -324,6 +325,7 @@ function handleDownloadRequest(status, jsonObj)
 	if(status == 200)
 	{
 		g_downloadId = jsonObj.id;
+		console.log(g_downloadId);
 		//@todo show modal with progress
 	}
 	else if(jsonObj)
@@ -970,8 +972,5 @@ function createKeyValue(key, value, parentElement)
 
 function downloadUpdate(jsonObj)
 {
-	if(jsonObj.id === g_downloadId)
-	{
-		console.log(jsonObj);
-	}
+	console.log(jsonObj);
 }
