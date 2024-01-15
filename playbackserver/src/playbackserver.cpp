@@ -221,13 +221,18 @@ pml::restgoose::response PlaybackServer::DownloadLoggerFile(const query& theQuer
 
 pml::restgoose::response PlaybackServer::GetFile(const query& theQuery, const postData&, const endpoint&, const userName&) const
 {
-    if(auto itFile = theQuery.find(queryKey("file")); itFile != theQuery.end() && std::filesystem::exists("/tmp/"+itFile->second.Get()))
+    if(auto itFile = theQuery.find(queryKey("file")); itFile != theQuery.end() && std::filesystem::exists("/tmp/out_"+itFile->second.Get()))
     {
-        auto path = std::filesystem::path("/tmp/"+itFile->second.Get());
+        auto path = std::filesystem::path("/tmp/out_"+itFile->second.Get());
         pml::restgoose::response resp;
         resp.bFile = true;
         resp.data = textData(path.string());
-        if(path.extension().string().substr(1) == jsonConsts::opus)
+	if(auto itForce = theQuery.find(queryKey("force")); itForce != theQuery.end() && itForce->second.Get()=="download")
+	{
+	
+            resp.contentType = headerValue("application/octet-stream");
+	}
+	else if(path.extension().string().substr(1) == jsonConsts::opus)
         {
             resp.contentType = headerValue("audio/ogg");
         }
@@ -243,6 +248,7 @@ pml::restgoose::response PlaybackServer::GetFile(const query& theQuery, const po
         {
             resp.contentType = headerValue("application/octet-stream");
         }
+	return resp;
     }
     return pml::restgoose::response(404, std::string("File not found"));
 

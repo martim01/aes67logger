@@ -351,6 +351,13 @@ function lastFile(dtEnd)
 
 function requestDownload(event)
 {
+	document.getElementById('download-button').style.visibility='hidden';
+        let ul = document.getElementById('messages');
+        while(ul.firstChild)
+        {
+            ul.removeChild(ul.lastChild);
+        }
+
 	ajaxGet(g_playback_host, g_downloadEndpoint, handleDownloadRequest);
 }
 
@@ -359,13 +366,6 @@ function handleDownloadRequest(status, jsonObj)
 	if(status == 200)
 	{
 		g_downloadId = jsonObj.id;
-
-		document.getElementById('download-button').style.visibility='hidden';
-		let ul = document.getElementById('messages');
-		while(ul.firstChild)
-		{
-			ul.removeChild(ul.lastChild);
-		}
 
 		UIkit.modal(document.getElementById('download-modal')).show();
 	}
@@ -1014,10 +1014,8 @@ function downloadUpdate(jsonObj)
 {
 	if(jsonObj.id === g_downloadId)
 	{
-		console.log(jsonObj);
 		if(jsonObj.action == "message")
 		{
-			console.log('append '+jsonObj.message);
 			let li = document.createElement('li');
 			li.textContent = jsonObj.message;
 			document.getElementById('messages').appendChild(li);
@@ -1036,7 +1034,6 @@ function downloadUpdate(jsonObj)
 			}
 			else
 			{
-				console.log('create spanValue');
 				let li = document.createElement('li');
 				let spanLabel = document.createElement('span');
 				spanLabel.className = 'uk-text-bold';
@@ -1044,6 +1041,7 @@ function downloadUpdate(jsonObj)
 
 				spanValue = document.createElement('span');
 				spanValue.id = 'time-processed';
+
 				spanValue.textContent = jsonObj.out_time;
 
 				li.appendChild(spanLabel);
@@ -1058,12 +1056,11 @@ function downloadUpdate(jsonObj)
 			li.textContent = "Finished";
 			document.getElementById('messages').appendChild(li);
 			g_downloadEndpoint = jsonObj.location;
-			document.getElementById('download-button').style.visibility='visible';
+			let btn = document.getElementById('download-button');
+			btn.style.visibility='visible';
+			btn.setAttribute("href", location.protocol+"//"+g_playback_host+"/x-api/files?file="+jsonObj.location+"&force=download");
+
 		}
 	}
 }
 
-function doDownload()
-{
-	ajaxGet(g_playback_host, )
-}
