@@ -60,7 +60,7 @@ function showLogger(jsonObj)
     
     if(jsonObj.settings && jsonObj.settings.enable && jsonObj.settings.enable.current !== undefined)
     {
-	if(jsonObj.settings.enable.current === true)
+		if(jsonObj.settings.enable.current === true)
         {
            divBadge.innerHTML = "Enabled";
            divBadge.classList.add('uk-card-badge', 'uk-label', 'uk-label-success');
@@ -95,14 +95,14 @@ function showLogger(jsonObj)
     var divSource  = document.createElement('div');
     if(jsonObj.mixer)
     {
-	divSourceTitle.channels = jsonObj.mixer.length;
+		divSourceTitle.channels = jsonObj.mixer.length;
         for(var i = 0; i < jsonObj.mixer.length; i++)
-	{
-	  var divSourceBadge = document.createElement('div');
-          divSourceBadge.classList.add('uk-label', 'uk-label-danger');
-	  divSourceBadge.innerHTML = jsonObj.mixer[i].source.name+ "-"+jsonObj.mixer[i].source.channel;
-          divSourceBadge.id = 'source_'+jsonObj.name+'_'+i;
-          divSource.appendChild(divSourceBadge);
+		{
+	  	var divSourceBadge = document.createElement('div');
+        divSourceBadge.classList.add('uk-label', 'uk-label-danger');
+	  	divSourceBadge.innerHTML = jsonObj.mixer[i].source.name+ "-"+jsonObj.mixer[i].source.channel;
+         divSourceBadge.id = 'source_'+jsonObj.name+'_'+i;
+         divSource.appendChild(divSourceBadge);
 
 	  if(g_sourceRouting[jsonObj.mixer[i].source.name] === undefined)
 	  {
@@ -1150,6 +1150,11 @@ function handleSourcesAddLogger(status, jsonObj)
 		addSources('sdp', jsonObj);
 		UIkit.modal(document.getElementById('add_logger_modal')).show();	
 	}
+}
+
+function showAddLogger()
+{
+	UIkit.modal(document.getElementById('add_logger_modal')).show();
 }
 
 

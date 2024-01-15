@@ -1,5 +1,4 @@
 {
-    "sonarlint.pathToCompileCommands": "${workspaceFolder}/build/compile_commands.json",
     "files.associations": {
         "string_view": "cpp",
         "any": "cpp",

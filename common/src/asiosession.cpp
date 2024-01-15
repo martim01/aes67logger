@@ -56,7 +56,7 @@ void AsioServer::do_accept()
     }
     catch(asio::system_error &e)
     {
-        pmlLog(pml::LOG_ERROR, "aes67") << "Socket accept error: " << e.what();
+        pmlLog(pml::LOG_ERROR, "asio") << "Socket accept error: " << e.what();
     }
 }
 
@@ -64,7 +64,9 @@ void AsioServer::Run()
 {
     m_pThread = std::make_unique<std::thread>([this]()
     {
+        pmlLog(pml::LOG_INFO, "asio") << "Run";
         m_context.run();
+        pmlLog(pml::LOG_INFO, "asio") << "Finished";
     });
 
 }

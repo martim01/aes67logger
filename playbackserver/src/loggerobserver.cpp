@@ -5,7 +5,8 @@
 #include "inisection.h"
 #include "log.h"
 #include "playbackserver.h"
-    
+#include "threadpool.h"
+
 using namespace std::placeholders;
 
 LoggerObserver::LoggerObserver(PlaybackServer& server, const std::string& sName, const iniManager& config, pml::filewatch::Observer& observer) :
@@ -142,28 +143,41 @@ std::pair<std::chrono::minutes, std::chrono::seconds> LoggerObserver::GetBaseFil
 
 pml::restgoose::response LoggerObserver::CreateDownloadFile(const std::string& sType, const query& theQuery) const
 {
+    auto id = m_sName+"_"+GetCurrentTimeAsString(false);
+    pml::restgoose::ThreadPool::Get().Submit([this](sType, theQuery)
+    {
+        DownloadFileThread(sType, theQuery, id);
+    });
+
+    pml::restgoose::response resp;
+    resp.jsonData["id"] = id;
+    return resp;
+}
+
+bool LoggerObserver::DownloadFileThread(const std::string& sType, const query& theQuery, const std::string& sId)
+{
     if(auto itFiles = GetEncodedFiles().find(sType); itFiles != GetEncodedFiles().end() && itFiles->second.empty() == false)
     {
+        m_server.DownloadFileMessage(m_sName, 200, std::string("Check start and end times"));
         auto itStart = theQuery.find(queryKey("start_time"));
         auto itEnd = theQuery.find(queryKey("end_time"));
         if(itStart == theQuery.end() || itEnd == theQuery.end())
         {
-            return pml::restgoose::response(400, std::string("No start time or end time sent"));
+            m_server.DownloadFileMessage(sId, 400, std::string("No start time or end time sent"));
+            return;
         }
-
 
         try
         {       
             pmlLog(pml::LOG_INFO, "aes67") << "CreateDownloadFile from: " << std::min(std::stoul(itStart->second.Get()), std::stoul(itEnd->second.Get())) << " to " << std::max(std::stoul(itStart->second.Get()), std::stoul(itEnd->second.Get()));
 
+            m_server.DownloadFileMessage(sId, 200, "Find files");
+
             auto [baseStart, diffStart] = GetBaseFileName(std::min(std::stoul(itStart->second.Get()), std::stoul(itEnd->second.Get())));
             auto [baseEnd, diffEnd] = GetBaseFileName(std::max(std::stoul(itStart->second.Get()), std::stoul(itEnd->second.Get())));
         
-//            pmlLog() << "CreateDownloadFile baseStart=" << baseStart << "\tbaseEnd=" << baseEnd;
-
-        
             //check we have all the necessary files
-            std::filesystem::path pathIn("/tmp/in_"+m_sName+"_"+GetCurrentTimeAsString(false));
+            std::filesystem::path pathIn("/tmp/in_"+sId);
             std::ofstream ofs;
             ofs.open(pathIn.string());
             if(ofs.is_open())
@@ -178,65 +192,94 @@ pml::restgoose::response LoggerObserver::CreateDownloadFile(const std::string& s
 
                     if(itFiles->second.find(path) == itFiles->second.end())
                     {
-                        return pml::restgoose::response(500, "File "+path.stem().string()+" is missing");
+                        m_server.DownloadFileMessage(sId, 500, "File "+path.stem().string()+" is missing");
                     }
                     ofs << "file '" << path.string() << "'\n";
                 }
 
                 ofs.close();
-                return ConcatFiles(sType, pathIn);
+                return ConcatFiles(sType, pathIn, sId);
             }
             else
             {
-                return pml::restgoose::response(500, std::string("Could not create file for ffmpeg!"));
+                m_server.DownloadFileMessage(sId, 500, std::string("Could not create file for ffmpeg!"));
             }       
         }
         catch(const std::invalid_argument& e)
         {
-            return pml::restgoose::response(404, std::string("Invalid start or end time"));
+            m_server.DownloadFileMessage(sId, 404, std::string("Invalid start or end time"));
         }
         catch(const std::out_of_range& e)
         {
-            return pml::restgoose::response(404, std::string("Invalid start or end time"));
+            m_server.DownloadFileMessage(sId, 404, std::string("Invalid start or end time"));
         }
 
     }
     else
     {
-        return pml::restgoose::response(404, "Logger has no files of that type "+sType);
+        m_server.DownloadFileMessage(sId, 404, "Logger has no files of that type "+sType);
     }
 }
 
-pml::restgoose::response LoggerObserver::ConcatFiles(const std::string& sType, const std::filesystem::path& pathIn) const
+bool LoggerObserver::ConcatFiles(const std::string& sType, const std::filesystem::path& pathIn, const std::string& sId) const
 {
-    std::filesystem::path pathOut("/tmp/out_"+m_sName+"_"+GetCurrentTimeAsString(false)+"."+sType);
+    m_server.DownloadFileMessage(sId, 200, "Join files together");
+
+    std::filesystem::path pathOut("/tmp/out_"+sId+"."+sType);
     
     //now use ffmpeg to create a single file from these files....
-    std::string sCommand("ffmpeg -f concat -safe 0 -i "+pathIn.string()+ " -c copy "+pathOut.string());
-    if(auto nResult = system(sCommand.c_str()); nResult != 0)
+    std::string sCommand("ffmpeg -f concat -safe 0 -i "+pathIn.string()+ " -c copy "+pathOut.string()+" -nostats -progress - -v panic 2>&1");
+    auto pipe = popen(sCommand.c_str(), "r");
+    if(!pipe)
     {
-        return pml::restgoose::response(500, "Could not launch FFMPEG: "+sCommand);
+        m_server.DownloadFileMessage(sId, 500, "Could not launch FFMPEG: "+sCommand);
+        return false;
     }
 
-    pml::restgoose::response resp;
-    resp.bFile = true;
-    resp.data = textData(pathOut.string());
-    if(sType == jsonConsts::opus)
+    std::array<char, 128> buffer;
+    std::string sResult;
+    Json::Value jsProgress;
+    jsProgress["id"] = sId;
+    jsProgress["action"] = "progress";
+    while(fgets(buffer.data(), 128, pipe) != nullptr)
     {
-        resp.contentType = headerValue("audio/ogg");
+        sResult += buffer.data();
+        //find the last '\n'
+        auto nLast = sResult.rfind('/n');
+        if(nLast != std::string::npos)
+        {
+            auto vSplit = SplitString(sResult.substr(0, nLast+1), '\n');
+            for(const auto& sLine : vSplit)
+            {
+                auto nPos = sLine.find('=');
+                if(nPos != std::string::npos)
+                {
+                    auto sKey = sLine.substr(0, nPos);
+                    auto sValue = sLine.substr(nPos+1);
+                    jsProgress[sKey] = sValue;
+                    if(sKey == "progress")
+                    {
+                        m_server.DownloadFileProgress(jsProgress);
+                        jsProgress.clear();
+                        jsProgress["id"] = sId;
+                        jsProgress["action"] = "progress";
+                    }
+                }
+            }
+
+            if(nLast < sResult.length()-2)
+            {
+                sResult = sResult.substr(nLast+1);
+            }
+            else
+            {
+                sResult.clear();
+            }
+        }
+
     }
-    else if(sType == jsonConsts::flac)
-    {
-        resp.contentType = headerValue("audio/x-flac");
-    }
-    else if(sType == jsonConsts::wav)
-    {
-        resp.contentType = headerValue("audio/wav");
-    }
-    else
-    {
-        resp.contentType = headerValue("application/octet-stream");
-    }
-                
-    return resp;
+    auto nCode = pclose(pipe);
+
+    m_server.DownloadFileDone(sId, pathOut.string());
+    return true;
 }

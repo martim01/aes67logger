@@ -190,8 +190,8 @@ add_subdirectory(${DIR_AOIP} ${DIR_AOIP}/build)
 
 
 
-add_subdirectory(logger)
-add_subdirectory(loggingserver)
+#add_subdirectory(logger)
+#add_subdirectory(loggingserver)
 
 add_subdirectory(encodingserver)
 add_subdirectory(opusencoder)

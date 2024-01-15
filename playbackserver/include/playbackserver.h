@@ -29,6 +29,10 @@ class PlaybackServer : public Server
         void FileCreated(const std::string& sLogger, const std::filesystem::path& path);
         void FileDeleted(const std::string& sLogger, const std::filesystem::path& path);
 
+        void DownloadFileMessage(const std::string& sLogger, unsigned int nHttpCode, const std::string& sMessage);
+        void DownloadFileProgress(const Json::Value& jsProgress);
+        void DownloadFileDone(const std::string& sLogger, const std::string& sLocation);
+
 
     private:
 
@@ -45,6 +49,7 @@ class PlaybackServer : public Server
         static const endpoint EP_LOGGERS;
         static const endpoint EP_WS_LOGGERS;
         static const endpoint EP_DASHBOARD;
+        static const endpoint EP_WS_DOWNLOAD;
         static const std::string LOGGERS;
         static const std::string DOWNLOAD;
         static const std::string DASHBOARD;
