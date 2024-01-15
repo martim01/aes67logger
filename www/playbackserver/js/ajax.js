@@ -196,7 +196,7 @@ function statusUpdatePlayback(jsonObj)
 			if('last_encoded' in jsonObj)
 			{
 				let span = document.getElementById('last_file_'+jsonObj['id']);
-					span.innerHTML = jsonObj['last_encoded'];
+				span.innerHTML = jsonObj['last_encoded'];
 			}
 			if('files_encoded' in jsonObj)
 			{
@@ -269,7 +269,7 @@ function handleFileTypes(status, jsonObj)
 		document.getElementById('div_times').style.visibility = 'hidden';
 		document.getElementById('download').style.visibility = 'hidden';
 		document.getElementById('playback').style.visibility = 'hidden';
-		document.getElementById('last_file').style.visibility = 'hidden';
+//		document.getElementById('last_file').style.visibility = 'hidden';
 		UIkit.notification({message: jsonObj["reason"], status: 'danger', timeout: 3000})
 	}
 	else
@@ -303,7 +303,7 @@ function handleTimes(status, jsonObj)
 			document.getElementById('div_time').style.visibility = '';
 			document.getElementById('download').style.visibility = '';
 //			document.getElementById('playback').style.visibility = '';
-			document.getElementById('last_file').style.visibility = '';
+//			document.getElementById('last_file').style.visibility = '';
 
 			timechange();
 			lastFile(endDate);
@@ -314,7 +314,7 @@ function handleTimes(status, jsonObj)
 		document.getElementById('div_time').style.visibility = 'hidden';
 		document.getElementById('download').style.visibility = 'hidden';
 		document.getElementById('playback').style.visibility = 'hidden';
-		document.getElementById('last_file').style.visibility = 'hidden';
+//		document.getElementById('last_file').style.visibility = 'hidden';
 		UIkit.notification({message: jsonObj["reason"], status: 'danger', timeout: 3000})
 	}
 	else
@@ -335,7 +335,10 @@ function timechange()
 	let endpoint = location.protocol+"//"+g_playback_host+"/x-api/loggers/"+channel+"/"+type+"/download?"+"start_time="+dtStart.getTime()/1000+"&end_time="+dtEnd.getTime()/1000;
 	
 	g_downloadEndpoint = "/x-api/loggers/"+channel+"/"+type+"/download?"+"start_time="+dtStart.getTime()/1000+"&end_time="+dtEnd.getTime()/1000;
-	//document.getElementById('playback').setAttribute("src", endpoint);
+
+	document.getElementById('download-channel').textContent = channel;
+	document.getElementById('download-from').textContent = dtStart.toString();
+	document.getElementById('download-to').textContent = dtEnd.toString();
 }
 
 function lastFile(dtEnd)

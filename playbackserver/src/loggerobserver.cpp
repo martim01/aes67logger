@@ -159,7 +159,8 @@ void LoggerObserver::DownloadFileThread(const std::string& sType, const query& t
     if(auto itFiles = GetEncodedFiles().find(sType); itFiles != GetEncodedFiles().end() && itFiles->second.empty() == false)
     {
         m_server.DownloadFileMessage(sId, 200, std::string("Check start and end times"));
-        auto itStart = theQuery.find(queryKey("start_time"));
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+	auto itStart = theQuery.find(queryKey("start_time"));
         auto itEnd = theQuery.find(queryKey("end_time"));
         if(itStart == theQuery.end() || itEnd == theQuery.end())
         {
@@ -172,6 +173,7 @@ void LoggerObserver::DownloadFileThread(const std::string& sType, const query& t
             pmlLog(pml::LOG_INFO, "aes67") << "CreateDownloadFile from: " << std::min(std::stoul(itStart->second.Get()), std::stoul(itEnd->second.Get())) << " to " << std::max(std::stoul(itStart->second.Get()), std::stoul(itEnd->second.Get()));
 
             m_server.DownloadFileMessage(sId, 200, "Find files");
+	    std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
             auto [baseStart, diffStart] = GetBaseFileName(std::min(std::stoul(itStart->second.Get()), std::stoul(itEnd->second.Get())));
             auto [baseEnd, diffEnd] = GetBaseFileName(std::max(std::stoul(itStart->second.Get()), std::stoul(itEnd->second.Get())));
