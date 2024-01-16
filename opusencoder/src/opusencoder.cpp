@@ -113,7 +113,7 @@ bool OpusEncoder::EncodeFile(const std::filesystem::path& wavFile)
             OutputEncodedStats(wavFile, static_cast<double>(GetSamplesEncoded())/static_cast<double>(sf.GetFileLength()));
             tpStart = std::chrono::system_clock::now();
         }
-	std::this_thread::sleep_for(std::chrono::milliseconds(25));
+	std::this_thread::sleep_for(std::chrono::milliseconds(50));
     } while (bOk && vBuffer.size() == GetBufferSize());
     pmlLog(pml::LOG_INFO, "aes67") << "Encoded " << path;
 

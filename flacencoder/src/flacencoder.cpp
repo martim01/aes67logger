@@ -49,7 +49,7 @@ bool FlacEncoder::EncodeFile(const std::filesystem::path& wavFile)
         {
             sfFlac.WriteAudio(vBuffer);
         }
-
+        std::this_thread::sleep_for(std::chrono::microseconds(50)); //sleep to reduce cpu load
     } while (bOk && vBuffer.size() == GetBufferSize());
     pmlLog(pml::LOG_INFO, "aes67") << "Encoded " << path;
 
