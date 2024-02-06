@@ -290,7 +290,7 @@ pml::restgoose::response WebServer::PostUser(const query&, const postData& theDa
             SaveUserPermission(sSection, jsonConsts::admin, *user, false);
             SaveUserPermission(sSection, jsonConsts::webserver, *user, true);
             SaveUserPermission(sSection, jsonConsts::logger_server, *user, false);
-
+	    m_config.Write();
             return pml::restgoose::response(201, std::string("User added"));
         }
         else

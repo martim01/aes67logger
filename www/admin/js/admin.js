@@ -15,12 +15,14 @@ function findUser(name)
 
 function getUsers()
 {
+    getCookies();
     ajaxGet(location.host, "x-api/users", showUsers);
 }
 
 
 function showUsers(result, jsonObj)
 {
+console.log(jsonObj);
 	if(result == 200)
 	{
         g_jsonUsers = jsonObj;
@@ -195,6 +197,7 @@ function addUser()
 
 function handleUpdateUser(result, jsonObj)
 {
+	console.log(jsonObj);
     UIkit.modal(document.getElementById('user_modal')).hide();
 
 	if(result == 200 || result == 201)

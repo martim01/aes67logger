@@ -706,7 +706,7 @@ function handleRecorderBuilder(status, jsonObj)
 	{
 		g_builderRecorder = jsonObj;
 	}
-	ajaxGet(g_logger_host, "x-api/builders/sources/AoIP", handleAoIpBuilder);
+	ajaxGet(g_logger_host, "x-api/builders/sources/AoIpIn", handleAoIpBuilder);
 
 }
 
@@ -787,7 +787,7 @@ function handleGotSource(status, jsonObj)
 {
     if(status == 200)
     {
-        if(jsonObj.plugin && jsonObj.plugin == "AoIp")
+        if(jsonObj.plugin && jsonObj.plugin == "AoIpIn")
         {
 	    handleGotAoIp(jsonObj);
         }
@@ -1464,15 +1464,20 @@ function handleRecorderSource(status, jsonObj)
 		divBodyGrid.setAttribute('uk-grid', true);
 		divBodyGrid.classList.add('uk-grid-small', 'uk-text-left', 'uk-child-width-1-3');
 		
-		addSourceDetail(divBodyGrid, 'Type:', jsonObj.settings.use_sdp.current == true ? 'SDP' : 'RTSP');
-		if( jsonObj.settings.use_sdp.current)
+		addSourceDetail(divBodyGrid, 'Type:', jsonObj.settings.source.current);
+		if( jsonObj.settings.source.current == "SDP")
 		{
 			addSourceDetail(divBodyGrid, 'SDP File:', jsonObj.settings.sdp.current+'.sdp');
 		}
-		else
+		else if( jsonObj.settings.source.current == "SDP")
+
 		{
 			addSourceDetail(divBodyGrid, 'RTSP URL:', jsonObj.settings.rtsp.current);
                 }
+		else
+		{
+			addSourceDetail(divBodyGrid, 'Livewire:', jsonObj.settings.livewire.current);
+		}
 
 		
 		if(jsonObj.advanced)

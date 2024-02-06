@@ -75,6 +75,7 @@ function ajaxGet(host, endpoint, callback, bJson=true)
 		{
 			if(bJson)
             {
+				console.log(this.responseText);
 				callback(this.status, JSON.parse(this.responseText));
 			}
 			else
