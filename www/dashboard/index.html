@@ -9,7 +9,7 @@
         <script src="../uikit/js/uikit-icons.min.js"></script>
         <script src="../js/common.js"></script>
     </head>
-    <body >
+    <body onload="checkPermissions()">
         <nav class="uk-navbar-container" uk-navbar style="background: #ffffff; border-bottom: 1px solid #a8a8d8;">
 		<div class="uk-navbar-left">
 			<ul class="uk-navbar-nav">
@@ -20,7 +20,7 @@
 		</nav>
         <div class="uk-section uk-section-xsmall uk-section-muted">
             <div class="uk-grid-column-small uk-grid-row-small uk-grid-match uk-text-center" uk-grid>
-                <a class="uk-width-1-4@s uk-width-1-4@xl" href="../loggingserver">
+                <a class="uk-width-1-4@s uk-width-1-4@xl" href="../loggingserver"  id="card_logging" style="display: none">
                     <div class="uk-width-large@l uk-width-medium@m uk-card uk-card-default uk-card-body uk-card-hover uk-card-small">
                         <div class='uk-card-header'>
                                 <h3 class="uk-card-title">Loggers</h3>
@@ -28,7 +28,7 @@
                         <div class='uk-card-body uk-background-norepeat uk-background-center-center' style="background-image: url(../../images/add.png)"><br/><br/><br/></div>
                     </div>
                 </a>
-                <a class="uk-width-1-4@s uk-width-1-4@xl" href="../encodingserver">
+                <a class="uk-width-1-4@s uk-width-1-4@xl" href="../encodingserver" id="card_encoding" style="display: none">
                     <div class="uk-width-large@l uk-width-medium@m uk-card uk-card-default uk-card-body uk-card-hover uk-card-small">
                         <div class='uk-card-header'>
                                 <h3 class="uk-card-title">Encoders</h3>
@@ -36,7 +36,7 @@
                         <div class='uk-card-body uk-background-norepeat uk-background-center-center' style="background-image: url(../../images/add.png)"><br/><br/><br/></div>
                     </div>
                 </a>
-                <a class="uk-width-1-4@s uk-width-1-4@xl" href="../playbackserver">
+                <a class="uk-width-1-4@s uk-width-1-4@xl" href="../playbackserver"  id="card_playback" style="display: none">
                     <div class="uk-width-large@l uk-width-medium@m uk-card uk-card-default uk-card-body uk-card-hover uk-card-small">
                         <div class='uk-card-header'>
                                 <h3 class="uk-card-title">Playback</h3>
@@ -44,7 +44,7 @@
                         <div class='uk-card-body uk-background-norepeat uk-background-center-center' style="background-image: url(../../images/add.png)"><br/><br/><br/></div>
                     </div>
                 </a>
-                <a class="uk-width-1-4@s uk-width-1-4@xl" href="../admin">
+                <a class="uk-width-1-4@s uk-width-1-4@xl" href="../admin"  id="card_admin" style="display: none">
                     <div class="uk-width-large@l uk-width-medium@m uk-card uk-card-default uk-card-body uk-card-hover uk-card-small">
                     <div class='uk-card-header'>
                             <h3 class="uk-card-title">Admin</h3>

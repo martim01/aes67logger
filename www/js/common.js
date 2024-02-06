@@ -62,7 +62,43 @@ function handleLogout(status, jsonObj)
 }
 
 
+function checkPermissions()
+{
+	getCookies();
+	ajaxGet(location.host,"x-api/permissions", handlePermissions);
+}
 
+function handlePermissions(status, jsonObj)
+{
+    if(status !== 200)
+    {
+        UIkit.notification({message: jsonObj["reason"], status: 'danger', timeout: 3000})
+    }
+    else 
+    {
+		console.log(jsonObj);
+		if(jsonObj.loggerserver === true)
+		{
+			console.log("Logger");
+			document.getElementById('card_logging').style.display = 'block';
+		}
+		if(jsonObj.encoderserver === true)
+		{
+			console.log("Encoder");
+			document.getElementById('card_encoding').style.display = 'block';
+		}
+		if(jsonObj.playbackserver === true)
+		{
+			console.log("Playback");
+			document.getElementById('card_playback').style.display = 'block';
+		}
+		if(jsonObj.admin === true)
+		{
+			console.log("Admin");
+			document.getElementById('card_admin').style.display = 'block';
+		}	
+    }
+}
 
 function ajaxGet(host, endpoint, callback, bJson=true)
 {

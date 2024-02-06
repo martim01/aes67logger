@@ -14,6 +14,7 @@ const std::string WebServer::ROOT        = "/";             //GET
 const std::string WebServer::API         = "x-api";          //GET
 const std::string WebServer::LOGIN       = "login";
 const std::string WebServer::USERS       = "users";
+const std::string WebServer::PERMISSIONS       = "permissions";
 
 const std::string WebServer::HASH_KEY    = "PPcBf0tOC7aWvcu";
 
@@ -21,6 +22,7 @@ const endpoint WebServer::EP_ROOT        = endpoint("");
 const endpoint WebServer::EP_API         = endpoint(ROOT+API);
 const endpoint WebServer::EP_LOGIN       = endpoint(EP_API.Get()+"/"+LOGIN);
 const endpoint WebServer::EP_USERS       = endpoint(EP_API.Get()+"/"+USERS);
+const endpoint WebServer::EP_PERMISSIONS       = endpoint(EP_API.Get()+"/"+PERMISSIONS);
 
 std::string Hash(const std::string& sKey, const std::string& sData)
 {
@@ -170,6 +172,7 @@ bool WebServer::CreateEndpoints()
     m_server.AddEndpoint(pml::restgoose::POST, EP_LOGIN, std::bind(&WebServer::PostLogin, this, _1,_2,_3,_4));
     m_server.AddEndpoint(pml::restgoose::HTTP_DELETE, EP_LOGIN, std::bind(&WebServer::DeleteLogin, this, _1,_2,_3,_4));
 
+    m_server.AddEndpoint(pml::restgoose::GET, EP_PERMISSIONS, std::bind(&WebServer::GetPermissions, this, _1,_2,_3,_4));
     m_server.AddEndpoint(pml::restgoose::GET, EP_USERS, std::bind(&WebServer::GetUsers, this, _1,_2,_3,_4));
     m_server.AddEndpoint(pml::restgoose::POST, EP_USERS, std::bind(&WebServer::PostUser, this, _1,_2,_3,_4));
     m_server.AddEndpoint(pml::restgoose::PATCH, EP_USERS, std::bind(&WebServer::PatchUsers, this, _1,_2,_3,_4));
@@ -202,6 +205,7 @@ pml::restgoose::response WebServer::GetApi(const query&, const postData&, const 
     theResponse.jsonData = Json::Value(Json::arrayValue);
     theResponse.jsonData.append(LOGIN);
     theResponse.jsonData.append(USERS);
+    theResponse.jsonData.append(PERMISSIONS);
     return theResponse;
 }
 
@@ -264,6 +268,59 @@ pml::restgoose::response WebServer::GetUsers(const query&, const postData&, cons
     }
     
     return theResponse;
+}
+
+bool WebServer::GetPermission(const jwt::decoded_jwt<jwt::traits::kazuho_picojson>& decoded_token, const std::string& sPermission) const
+{
+    try
+    {
+        return decoded_token.get_payload_claim(sPermission).as_boolean();
+    }
+    catch(const jwt::error::claim_not_present_exception& e)
+    {
+        return false;
+    }
+    
+}
+
+pml::restgoose::response WebServer::GetPermissions(const query&, const postData&, const endpoint&, const userName& token) const
+{
+    pmlLog(pml::LOG_DEBUG, "aes67") << "Endpoints\t" << "GetPermissions" ;
+    pml::restgoose::response theResponse;
+    
+    try
+    {  
+        auto decoded_token = jwt::decode(token.Get());
+        
+        theResponse.jsonData[jsonConsts::logger_server] = GetPermission(decoded_token, jsonConsts::logger_server);
+        theResponse.jsonData[jsonConsts::encoder_server] = GetPermission(decoded_token, jsonConsts::encoder_server);
+        theResponse.jsonData[jsonConsts::playback_server] = GetPermission(decoded_token, jsonConsts::playback_server);
+        theResponse.jsonData[jsonConsts::admin] = GetPermission(decoded_token, jsonConsts::admin);
+
+        return theResponse;        
+    }
+    catch(const jwt::error::token_verification_exception& e)
+    {
+        pmlLog(pml::LOG_WARN, "aes67") << "Could not verify token " << e.what();
+        return pml::restgoose::response(400, std::string("Could not verify token - ") +e.what());
+    }
+    
+    catch(const std::invalid_argument& e)
+    {
+        pmlLog(pml::LOG_WARN, "aes67") << "Could not decode token - invalid format " << e.what();
+        return pml::restgoose::response(400, std::string("Could not decode toekn - ") +e.what());
+    }
+    catch(const std::bad_cast& e)
+    {
+        pmlLog(pml::LOG_WARN, "aes67") << "Could not decode token - invalid format " << e.what();
+        return pml::restgoose::response(400, std::string("Could not decode toekn - ") +e.what());
+    }
+    catch(const std::runtime_error& e)
+    {
+        pmlLog(pml::LOG_WARN, "aes67") << "Could not decode token - invalid base64 or json " << e.what();
+        return pml::restgoose::response(400, std::string("Could not decode toekn - ") +e.what());
+    }
+
 }
 
 pml::restgoose::response WebServer::PostUser(const query&, const postData& theData, const endpoint&, const userName&)
@@ -357,6 +414,7 @@ pml::restgoose::response WebServer::CreateJwt(const std::string& sUsername) cons
                 .set_payload_claim(jsonConsts::logger_server, jwt::claim(picojson::value(m_config.GetBool(sUsername, jsonConsts::logger_server, false))))
                 .set_payload_claim(jsonConsts::encoder_server, jwt::claim(picojson::value(m_config.GetBool(sUsername, jsonConsts::encoder_server, false))))
                 .set_payload_claim(jsonConsts::playback_server, jwt::claim(picojson::value(m_config.GetBool(sUsername, jsonConsts::playback_server, false))))
+                .set_payload_claim(jsonConsts::admin, jwt::claim(picojson::value(m_config.GetBool(sUsername, jsonConsts::admin, false))))
                 .set_payload_claim(jsonConsts::webserver, jwt::claim(picojson::value(m_config.GetBool(sUsername, jsonConsts::webserver, false))))
                 .sign(jwt::algorithm::hs256{m_config.Get(jsonConsts::restricted_authentication, jsonConsts::secret, "")});
 
@@ -377,23 +435,45 @@ bool WebServer::AuthenticateToken(const methodpoint& aPoint, const std::string& 
 
     pmlLog(pml::LOG_INFO, "aes67") << "AuthenticateToken " << m_server.GetCurrentPeer() << "=" << sToken;
     
-    //If we haven't got a secret then just say ok - only for debugging!!
-    if(m_config.Get(jsonConsts::restricted_authentication, jsonConsts::secret, "").empty())
-    {
-        return true;
-    }
-
+    auto vSplit = SplitString(aPoint.second.Get(),'/');
     auto bAllowed = false;
     try
     {  
         auto decoded_token = jwt::decode(sToken);
-        if(aPoint.second == EP_USERS)
+        if(aPoint.second == EP_USERS || vSplit[0] == "admin")
         {
             auto verifier = jwt::verify()
                         .allow_algorithm(jwt::algorithm::hs256(m_config.Get(jsonConsts::restricted_authentication, jsonConsts::secret, "")))
                         .expires_at_leeway(m_config.Get(jsonConsts::restricted_authentication, jsonConsts::leeway, 60L))
                         .issued_at_leeway(m_config.Get(jsonConsts::restricted_authentication, jsonConsts::leeway, 60L))
-                        .with_claim(jsonConsts::webserver, jwt::claim(picojson::value(true)));
+                        .with_claim(jsonConsts::admin, jwt::claim(picojson::value(true)));
+            verifier.verify(decoded_token);
+        }
+        else if(vSplit[0] == "loggingserver")
+        {
+            auto verifier = jwt::verify()
+                        .allow_algorithm(jwt::algorithm::hs256(m_config.Get(jsonConsts::restricted_authentication, jsonConsts::secret, "")))
+                        .expires_at_leeway(m_config.Get(jsonConsts::restricted_authentication, jsonConsts::leeway, 60L))
+                        .issued_at_leeway(m_config.Get(jsonConsts::restricted_authentication, jsonConsts::leeway, 60L))
+                        .with_claim(jsonConsts::logger_server, jwt::claim(picojson::value(true)));
+            verifier.verify(decoded_token);
+        }
+        else if(vSplit[0] == "encodingserver")
+        {
+            auto verifier = jwt::verify()
+                        .allow_algorithm(jwt::algorithm::hs256(m_config.Get(jsonConsts::restricted_authentication, jsonConsts::secret, "")))
+                        .expires_at_leeway(m_config.Get(jsonConsts::restricted_authentication, jsonConsts::leeway, 60L))
+                        .issued_at_leeway(m_config.Get(jsonConsts::restricted_authentication, jsonConsts::leeway, 60L))
+                        .with_claim(jsonConsts::encoder_server, jwt::claim(picojson::value(true)));
+            verifier.verify(decoded_token);
+        }
+        else if(vSplit[0] == "playbackserver")
+        {
+            auto verifier = jwt::verify()
+                        .allow_algorithm(jwt::algorithm::hs256(m_config.Get(jsonConsts::restricted_authentication, jsonConsts::secret, "")))
+                        .expires_at_leeway(m_config.Get(jsonConsts::restricted_authentication, jsonConsts::leeway, 60L))
+                        .issued_at_leeway(m_config.Get(jsonConsts::restricted_authentication, jsonConsts::leeway, 60L))
+                        .with_claim(jsonConsts::playback_server, jwt::claim(picojson::value(true)));
             verifier.verify(decoded_token);
         }
         else
