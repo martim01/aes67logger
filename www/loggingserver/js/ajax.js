@@ -100,18 +100,18 @@ function showLogger(jsonObj)
 		divSourceTitle.channels = jsonObj.mixer.length;
         for(var i = 0; i < jsonObj.mixer.length; i++)
 		{
-	  	var divSourceBadge = document.createElement('div');
-        divSourceBadge.classList.add('uk-label', 'uk-label-danger');
-	  	divSourceBadge.innerHTML = jsonObj.mixer[i].source.name+ "-"+jsonObj.mixer[i].source.channel;
-         divSourceBadge.id = 'source_'+jsonObj.name+'_'+i;
-         divSource.appendChild(divSourceBadge);
+	  		var divSourceBadge = document.createElement('div');
+			divSourceBadge.classList.add('uk-label', 'uk-label-danger');
+			divSourceBadge.innerHTML = jsonObj.mixer[i].source.name+ "-"+jsonObj.mixer[i].source.channel;
+			divSourceBadge.id = 'source_'+jsonObj.name+'_'+i;
+			divSource.appendChild(divSourceBadge);
 
-	  if(g_sourceRouting[jsonObj.mixer[i].source.name] === undefined)
-	  {
-	      g_sourceRouting[jsonObj.mixer[i].source.name] = new Array();
-	  }
-	  g_sourceRouting[jsonObj.mixer[i].source.name].push(jsonObj.name);
-	}
+			if(g_sourceRouting[jsonObj.mixer[i].source.name] === undefined)
+			{
+				g_sourceRouting[jsonObj.mixer[i].source.name] = new Array();
+			}
+			g_sourceRouting[jsonObj.mixer[i].source.name].push(jsonObj.name);
+		}
     }
     //divUpTime.classList.add('uk-label');
     divSource.id = 'up_time_'+jsonObj.name; 
@@ -315,9 +315,14 @@ function statusUpdateLogger(jsonObj)
 
 function serverOffline()
 {
+	console.log("ws timeout");
+
     var elm = document.getElementById('current_time');
-    elm.className = 'uk-h3';
-    elm.classList.add('uk-text-danger');
+	if(elm)
+    {
+		elm.className = 'uk-h3';
+    	elm.classList.add('uk-text-danger');
+		}
 }
 
 function ws_connect(endpoint, callbackMessage)
@@ -334,8 +339,8 @@ function ws_connect(endpoint, callbackMessage)
 	g_ws = new WebSocket(ws_protocol+"//"+g_logger_host+"/x-api/ws/"+endpoint+"?access_token="+g_access_token);
     g_ws.timeout = true;
 	g_ws.onopen = function(ev)  { console.log("Ws_open"); this.tm = setTimeout(serverOffline, 4000) };
-	g_ws.onerror = function(ev) { serverOffline(); };
-	g_ws.onclose = function(ev) { serverOffline(); };
+	g_ws.onerror = function(ev) { console.log(ev); };
+	g_ws.onclose = function(ev) { console.log("WS closed") };
 	
 	
 	g_ws.onmessage = function(ev) 
@@ -733,7 +738,7 @@ function handleDestinations(status, jsonObj)
 		else
 		{
 			ajaxGet(g_logger_host, "x-api/plugins/sources", handleSources);
-                }
+		}
 	}
 }
 
@@ -756,11 +761,11 @@ function handleGotLogger(status, jsonObj)
 		{
 			getLogger();
 		}
-		 else
-                {
-                        ajaxGet(g_logger_host, "x-api/plugins/sources", handleSources);
-                }
-         }
+		else
+		{
+				ajaxGet(g_logger_host, "x-api/plugins/sources", handleSources);
+		}
+	}
 }
 
 function handleSources(status, jsonObj)
@@ -796,10 +801,10 @@ function handleGotSource(status, jsonObj)
         {
             getSource();
         }
-	else
-	{
-	    ws_connect('plugins', handleRecorderInfo);
-	}
+		else
+		{
+			ws_connect('', handleRecorderInfo);
+		}
     }
 }
 
@@ -1043,7 +1048,6 @@ function handleRestartLogger(status, jsonObj)
 
 function handleDeleteLogger(status, jsonObj)
 {
-	UIkit.modal(document.getElementById('password_modal')).hide();
 	
 	if(status != 200)
 	{
@@ -1051,7 +1055,7 @@ function handleDeleteLogger(status, jsonObj)
 	}
 	else
 	{
-		window.location.pathname = "../dashboard";
+		window.location.pathname = "/loggingserver/index.html";
 	}
 }
 
@@ -1085,13 +1089,20 @@ function showAdminPassword(action)
 	g_action = action;
 	if(action == 'restart')
 	{
-		document.getElementById('logger_admin').innerHTML = "Restart Logger";
+		document.getElementById('logger_admin').textContent = "Restart Logger";
 	}
 	else if(action == 'remove')
 	{
-		document.getElementById('logger_admin').innerHTML = "Remove Logger";
+		document.getElementById('logger-admin').textContent = "Remove Logger";
 	}
-	UIkit.modal(document.getElementById('password_modal')).show();	
+	UIkit.modal(document.getElementById('password-modal')).show();	
+}
+
+function deleteLogger()
+{
+	UIkit.modal.confirm('Delete '+g_logger+'?').then(function(){
+		ajaxDelete(g_logger_host, "x-api/plugins/destinations/"+g_logger, handleDeleteLogger);
+	}, function(){});
 }
 
 
@@ -1192,8 +1203,14 @@ function showAddLogger()
 	
 	if(g_builderAoIp.plugin !== undefined)
 	{
-		addOptions('select-rtsp', g_builderAoIp.plugin.rtsp.options);
-		addOptions('select-sdp', g_builderAoIp.plugin.sdp.options);
+		if(g_builderAoIp.plugin.rtsp !== undefined && g_builderAoIp.plugin.rtsp.options !== undefined)
+		{
+			addOptions('select-rtsp', g_builderAoIp.plugin.rtsp.options);
+		}
+		if(g_builderAoIp.plugin.rtsp !== undefined && g_builderAoIp.plugin.sdp.options !== undefined)
+		{
+			addOptions('select-sdp', g_builderAoIp.plugin.sdp.options);
+		}
 	}
 
 	
@@ -1209,13 +1226,13 @@ function sourceSelected()
 	}
 	else
 	{
-	          document.getElementById('new-source').style.display = 'none';
+	    document.getElementById('new-source').style.display = 'none';
 	}
 }
 
 function addLogger()
 {
-	var name = document.getElementById('logger_name').value;
+	var name = document.getElementById('logger-name').value;
 	if(name == "")
 	{
 		UIkit.notification({message: "Logger name cannot be empty", status: 'danger', timeout: 3000});
@@ -1232,56 +1249,70 @@ function addLogger()
 		return;
 	}
 	
-	var rtsp = '';
-	var sdp = '';
-	if(g_method == 'rtsp')
-	{
-		rtsp = document.getElementById('select_rtsp').value;
-		if(rtsp == '')
-		{
-			UIkit.notification({message: 'RTSP may not be empty', status: 'warning', timeout: 2000});
-			return;
-		}
-	}
-	else
-	{
-		sdp = document.getElementById('select_sdp').value;
-		if(sdp == '')
-		{
-			UIkit.notification({message: 'RTSP may not be empty', status: 'warning', timeout: 2000});
-			return;
-		}
-	}
 		
-	var jsonObj = {	'name' : name,
-					'source' : document.getElementById('config_name').value,
-					'rtsp' : rtsp, 
-					'sdp' : sdp,
-					'wav' : parseInt(document.getElementById('keep_wav').value),
-					'opus' : parseInt(document.getElementById('keep_opus').value),
-					'flac' : parseInt(document.getElementById('keep_flac').value),
-					'filelength' : parseInt(document.getElementById('filelength').value)};
-		
-					ajaxPostPutPatch(g_logger_host, 'POST', 'x-api/loggers', JSON.stringify(jsonObj), handleAddLogger);
+	var jsonObj = {	
+		'plugin': 'Recorder',
+		'name': name,
+		'settings':{
+			'split_mode': 2,
+			'append': 3,
+			'dir': true,
+			'enable': true,
+			'channels': 2,
+			'mixer': [
+				{
+					'channel': 0,
+					'source': {
+						'name': document.getElementById('source-select').value,
+						'channel': 0
+					}
+				},
+				{
+					'channel': 1,
+					'source': {
+						'name': document.getElementById('source-select').value,
+						'channel': 1
+					}
+				}
+			],
+			'user_data': {
+				'wav' : document.getElementById('keep-wav').value,
+				'opus' : document.getElementById('keep-opus').value,
+				'flac' : document.getElementById('keep-flac').value,
+			}
+		}
+	};
+
+	ajaxPostPutPatch(g_logger_host, 'POST', 'x-api/plugins/destinations', JSON.stringify(jsonObj), handleAddRecorder);
 
 }
 
-function handleAddLogger(status, jsonObj)
+function handleAddRecorder(status, jsonObj)
 {
-	UIkit.modal(document.getElementById('add_logger_modal')).hide();
-
-	if(status != 200 || !('logger' in jsonObj))
+	console.log(status);
+	console.log(jsonObj);
+	if(status != 201)
 	{
 		UIkit.notification({message: jsonObj.reason, status: 'danger', timeout: 3000});	
 	}
 	else
 	{
-		g_loggerArray.push(jsonObj.logger);
-		showLogger(jsonObj.logger);
+		UIkit.modal(document.getElementById('add-logger-modal')).hide();
+		ajaxGet(g_logger_host, "x-api/plugins/destinations/"+document.getElementById('logger-name').value, handleGotNewRecorder);
 	}
 }
 
-
+function handleGotNewRecorder(status, jsonObj)
+{
+	if(status != 200)
+	{
+		UIkit.notification({message: jsonObj.reason, status: 'danger', timeout: 3000});	
+	}
+	else
+	{
+		showLogger(jsonObj);
+	}
+}
 
 function handleConfig(result, jsonObj)
 {
@@ -1400,9 +1431,12 @@ function handleRecorder(status, jsonObj)
 
 function getRecorderSources()
 {
+	console.log('recorder');
+	console.log(g_loggerDetails);
+
 	if(g_loggerDetails.mixer !== undefined && g_count < g_loggerDetails.mixer.length)
 	{
-		if(g_loadedSources[g_loggerDetails.mixer[g_count].source.name] === undefined)
+		if(g_loadedSources[g_loggerDetails.mixer[g_count].source.name] === undefined && g_loadedSources[g_loggerDetails.mixer[g_count].source.name] != '')
 		{
 			ajaxGet(g_logger_host, "x-api/plugins/sources/"+g_loggerDetails.mixer[g_count].source.name, handleRecorderSource);
 			++g_count;
@@ -1425,6 +1459,9 @@ function handleRecorderSource(status, jsonObj)
 {
 	if(status == 200)
 	{
+		console.log('source');
+		console.log(jsonObj);
+
 		g_loadedSources[jsonObj.name] = jsonObj;
 
 		var grid = document.getElementById('grid');
@@ -1464,19 +1501,20 @@ function handleRecorderSource(status, jsonObj)
 		divBodyGrid.setAttribute('uk-grid', true);
 		divBodyGrid.classList.add('uk-grid-small', 'uk-text-left', 'uk-child-width-1-3');
 		
-		addSourceDetail(divBodyGrid, 'Type:', jsonObj.settings.source.current);
-		if( jsonObj.settings.source.current == "SDP")
-		{
-			addSourceDetail(divBodyGrid, 'SDP File:', jsonObj.settings.sdp.current+'.sdp');
-		}
-		else if( jsonObj.settings.source.current == "SDP")
+		console.log(jsonObj.settings);
 
+		addSourceDetail(divBodyGrid, 'Type:', jsonObj.settings['source:'].current);
+		if( jsonObj.settings['source:'].current == "SDP")
 		{
-			addSourceDetail(divBodyGrid, 'RTSP URL:', jsonObj.settings.rtsp.current);
-                }
+			addSourceDetail(divBodyGrid, 'SDP File:', jsonObj.settings['source:sdp'].current+'.sdp');
+		}
+		else if( jsonObj.settings['source:'].current == "RTSP")
+		{
+			addSourceDetail(divBodyGrid, 'RTSP URL:', jsonObj.settings['source:rtsp'].current);
+		}
 		else
 		{
-			addSourceDetail(divBodyGrid, 'Livewire:', jsonObj.settings.livewire.current);
+			addSourceDetail(divBodyGrid, 'Livewire:', jsonObj.settings['source:livewire'].current);
 		}
 
 		
@@ -1603,11 +1641,11 @@ function handlePluginMessage(jsonObj)
 {
 	if(jsonObj.type !== undefined)
 	{
-		if(jsonObj.type == 'Destination' && jsonObj.name == g_logger)
+		if(jsonObj.type == 'destination' && jsonObj.name == g_logger)
 		{
 			handlePluginRecorderMessage(jsonObj);
 		}
-		else if(jsonObj.type == 'Source' && g_loadedSources[jsonObj.name] !== undefined)
+		else if(jsonObj.type == 'source' && g_loadedSources[jsonObj.name] !== undefined)
 		{
 			handlePluginStreamMessage(jsonObj);
 		}

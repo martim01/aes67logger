@@ -5,6 +5,8 @@
 #include "jsonconsts.h"
 #include "aes67utils.h"
 #include "inisection.h"
+#include "httpclient.h"
+
 using namespace std::placeholders;
 
 LaunchManager::LaunchManager()=default;
@@ -22,7 +24,6 @@ LaunchManager::~LaunchManager()
 void LaunchManager::Init(const iniManager& iniConfig, const std::function<void(const std::string&, const std::string&, bool bAdded)>& encoderCallback, const std::function<void(const std::string&, const Json::Value&)>& statusCallback, 
 const std::function<void(const std::string&, int, bool)>& exitCallback)
 {
-    m_pathLaunchers.assign(iniConfig.Get(jsonConsts::path, jsonConsts::loggers, "/usr/local/etc/loggers"));
     m_pathSockets.assign(iniConfig.Get(jsonConsts::path, jsonConsts::sockets, "/var/local/loggers/sockets"));
     m_pathAudio.assign(iniConfig.Get(jsonConsts::path, jsonConsts::audio, "/var/local/loggers/audio"));
 
@@ -54,6 +55,10 @@ void LaunchManager::EnumLoggers()
     pmlLog(pml::LOG_INFO, "aes67") << "EnumLoggers...";
 
     std::scoped_lock<std::mutex> lg(m_mutex);
+
+    //Ask VAM for a list of loggers
+
+
 
     try
     {
