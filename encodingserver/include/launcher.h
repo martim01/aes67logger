@@ -12,9 +12,10 @@
 class Launcher
 {
     public:
-        Launcher(asio::io_context& context, std::string_view sEncoderApp, const std::filesystem::path& pathConfig, const std::filesystem::path& pathSocket, 
-        const std::function<void(const std::string&, const Json::Value&)>& statusCallback, 
-        const std::function<void(const std::string&, int, bool)>& exitCallback);
+        Launcher(asio::io_context& context, std::string_view sEncoderApp, const std::string& sRecorder);
+        
+        void SetPaths(const std::string& sWav, const std::string& sEncoded, const std::filesystem::path& socket);
+        void SetCallbacks(const std::function<void(const std::string&, const Json::Value&)>& statusCallback, const std::function<void(const std::string&, int, bool)>& exitCallback);
         ~Launcher();
 
 
@@ -55,8 +56,11 @@ class Launcher
         asio::steady_timer m_timer;
         std::string m_sEncoderApp = "/usr/local/bin/opusencoder";
         
-        std::filesystem::path m_pathConfig;
+        std::string m_sRecorder;
         std::filesystem::path m_pathSocket;
+        std::string m_sPathWav;
+        std::string m_sPathEncoded;
+        std::string m_sPathSocket;
         int m_nExitCode = 0;
 
 
@@ -66,8 +70,8 @@ class Launcher
         std::string m_sOut;
         std::array<char, 4096> m_data;
 
-        std::function<void(const std::string&, const Json::Value&)> m_statusCallback;
-        std::function<void(const std::string&, int, bool)> m_exitCallback;
+        std::function<void(const std::string&, const Json::Value&)> m_statusCallback = nullptr;
+        std::function<void(const std::string&, int, bool)> m_exitCallback = nullptr;
 
         Json::Value m_jsStatus;
         Json::Value m_jsStatusSummary;

@@ -14,22 +14,34 @@
 
 using namespace std::placeholders;
 
-Launcher::Launcher(asio::io_context& context, std::string_view sEncoderApp, const std::filesystem::path& pathConfig, const std::filesystem::path& pathSocket,
-const std::function<void(const std::string&, const Json::Value&)>& statusCallback, 
-const std::function<void(const std::string&, int, bool)>& exitCallback) :
+Launcher::Launcher(asio::io_context& context, std::string_view sEncoderApp, const std::string& sRecorder) :
     m_context(context),
     m_timer(context),
     m_sEncoderApp(sEncoderApp),
-    m_pathConfig(pathConfig),
-    m_pathSocket(pathSocket),
-    m_statusCallback(statusCallback),
-    m_exitCallback(exitCallback)
+    m_sRecorder(sRecorder)
 {
-    m_jsStatus["id"] = m_pathSocket.stem().string();
+    
 }
 
 Launcher::~Launcher() = default;
 
+void Launcher::SetPaths(const std::string& sWav, const std::string& sEncoded, const std::filesystem::path& socket)
+{
+    m_sPathWav = sWav;
+    m_sPathEncoded = sEncoded;
+    
+    m_pathSocket = socket;
+    m_sPathSocket = m_pathSocket.string();
+
+    m_jsStatus["id"] = m_pathSocket.stem().string();
+}
+
+
+void Launcher::SetCallbacks(const std::function<void(const std::string&, const Json::Value&)>& statusCallback, const std::function<void(const std::string&, int, bool)>& exitCallback)
+{
+    m_statusCallback = statusCallback;
+    m_exitCallback = exitCallback;
+}
 
 bool Launcher::IsRunning() const
 {
@@ -38,7 +50,7 @@ bool Launcher::IsRunning() const
 
 int Launcher::LaunchEncoder()
 {
-    pmlLog(pml::LOG_DEBUG, "aes67") << "LaunchEncoder: " << m_pathSocket.stem().string();
+    pmlLog(pml::LOG_DEBUG, m_sRecorder) << "LaunchEncoder: " << m_pathSocket.stem().string();
     if(CheckForOrphanedEncoder())
     {
         return m_pid;
@@ -48,13 +60,13 @@ int Launcher::LaunchEncoder()
         m_pid = fork();
         if(m_pid < 0)
         {
-            pmlLog(pml::LOG_ERROR, "aes67") << "could not fork: " << strerror(errno) << std::endl;
+            pmlLog(pml::LOG_ERROR, m_sRecorder) << "could not fork: " << strerror(errno) << std::endl;
 
             return FORK_ERROR;
         }
         else if(m_pid > 0)
         {   // Parent
-            pmlLog(pml::LOG_INFO, "aes67") << "Encoder launched";
+            pmlLog(pml::LOG_INFO, m_sRecorder) << "Encoder launched";
             m_pathSocket.replace_extension(std::to_string(m_pid));
             m_pSocket = std::make_shared<asio::local::stream_protocol::socket>(m_context);
             Connect(std::chrono::milliseconds(50));
@@ -64,8 +76,9 @@ int Launcher::LaunchEncoder()
         {   //child
 
             //create the args and launch the Encoder
-            m_sConfigArg = m_pathConfig.string();
-            char* args[] = {&m_sEncoderApp[0], &m_sConfigArg[0], nullptr};
+            //name, audio path, socket path, logging
+            m_sPathSocket = m_pathSocket.string();
+            char* args[] = {&m_sEncoderApp[0], &m_sRecorder[0], &m_sPathWav[0], &m_sPathEncoded[0], &m_sPathSocket[0], nullptr};
             if(execv(m_sEncoderApp.c_str(), args) != 0)
             {
                 std::cout << "Exec failed: " << m_sEncoderApp << std::endl;
@@ -76,44 +89,45 @@ int Launcher::LaunchEncoder()
     }
 }
 
+
 void Launcher::Connect(const std::chrono::milliseconds& wait)
 {
     try
     {
-        pmlLog(pml::LOG_INFO, "aes67") << "Start timer to connect to " << m_pathSocket.stem().string();
+        pmlLog(pml::LOG_INFO, m_sRecorder) << "Start timer to connect to " << m_pathSocket.stem().string();
         if(m_context.stopped())
         {
-            pmlLog(pml::LOG_ERROR, "aes67") << "Context has stopped!!";
+            pmlLog(pml::LOG_ERROR, m_sRecorder) << "Context has stopped!!";
         }
         m_timer.expires_from_now(wait);
         m_timer.async_wait([this](const asio::error_code& e)
         {
             if(!e && m_pSocket)
             {
-                pmlLog(pml::LOG_INFO, "aes67") << "Try to connect to " << m_pathSocket.stem().string();
+                pmlLog(pml::LOG_INFO, m_sRecorder) << "Try to connect to " << m_pathSocket.stem().string();
                 m_pSocket->async_connect(asio::local::stream_protocol::endpoint(m_pathSocket.string()), 
                 std::bind(&Launcher::HandleConnect, this, _1));
             }
             else if(e != asio::error::operation_aborted)
             {
-                pmlLog(pml::LOG_ERROR, "aes67") << "deadline timer failed!";
+                pmlLog(pml::LOG_ERROR, m_sRecorder) << "deadline timer failed!";
             }
             else
             {
-                pmlLog(pml::LOG_DEBUG, "aes67") << "deadline aborted";
+                pmlLog(pml::LOG_DEBUG, m_sRecorder) << "deadline aborted";
             }
          });
     }
     catch(asio::system_error& e)
     {
-        pmlLog(pml::LOG_ERROR, "aes67") << "Could not connect create timer to connect to Encoder!";
+        pmlLog(pml::LOG_ERROR, m_sRecorder) << "Could not connect create timer to connect to Encoder!";
     }
 }
 
 
 bool Launcher::RestartEncoder()
 {
-    pmlLog(pml::LOG_INFO, "aes67") << m_pathSocket.stem().string() << " restart Encoder";
+    pmlLog(pml::LOG_INFO, m_sRecorder) << m_pathSocket.stem().string() << " restart Encoder";
     m_bMarkedForRemoval = false;
     CloseAndLaunchOrRemove(SIGKILL);
     return true;
@@ -121,7 +135,7 @@ bool Launcher::RestartEncoder()
 
 bool Launcher::RemoveEncoder()
 {
-    pmlLog(pml::LOG_INFO, "aes67") << m_pathSocket.stem().string() << " remove Encoder";
+    pmlLog(pml::LOG_INFO, m_sRecorder) << m_pathSocket.stem().string() << " remove Encoder";
     m_bMarkedForRemoval = true;
     CloseAndLaunchOrRemove(SIGKILL);
     return true;
@@ -132,22 +146,22 @@ int Launcher::CloseEncoder(int nSignal)
 {
     if(m_pid != 0)
     {
-        pmlLog(pml::LOG_INFO, "aes67") << m_pathSocket.stem().string() << " stop read socket timer";
+        pmlLog(pml::LOG_INFO, m_sRecorder) << m_pathSocket.stem().string() << " stop read socket timer";
         m_timer.cancel();
 
-        pmlLog(pml::LOG_INFO, "aes67") << m_pathSocket.stem().string() << " close the socket";
+        pmlLog(pml::LOG_INFO, m_sRecorder) << m_pathSocket.stem().string() << " close the socket";
         m_pSocket->close();
 
         m_pSocket = nullptr;
 
-        pmlLog(pml::LOG_INFO, "aes67") << m_pathSocket.stem().string() << " send " << nSignal << " to pid " << m_pid;
+        pmlLog(pml::LOG_INFO, m_sRecorder) << m_pathSocket.stem().string() << " send " << nSignal << " to pid " << m_pid;
         kill(m_pid, nSignal);
         int nStatus;
 
-        pmlLog(pml::LOG_INFO, "aes67") << m_pathSocket.stem().string() << " waitpid";
+        pmlLog(pml::LOG_INFO, m_sRecorder) << m_pathSocket.stem().string() << " waitpid";
         waitpid(m_pid, &nStatus,0);
 
-        pmlLog(pml::LOG_INFO, "aes67") << m_pathSocket.stem().string() << " waitpid returned " << nStatus << " now remove socket file it still there";
+        pmlLog(pml::LOG_INFO, m_sRecorder) << m_pathSocket.stem().string() << " waitpid returned " << nStatus << " now remove socket file it still there";
 
         if(m_pathSocket.has_extension())
         {
@@ -158,7 +172,7 @@ int Launcher::CloseEncoder(int nSignal)
             }
             catch(std::filesystem::filesystem_error& e)
             {
-                pmlLog(pml::LOG_WARN, "aes67") << "Could not remove socket " << e.what();
+                pmlLog(pml::LOG_WARN, m_sRecorder) << "Could not remove socket " << e.what();
             }
         }
         return nStatus;
@@ -190,12 +204,12 @@ void Launcher::Read()
     {
         if(!e)
         {
-            pmlLog(pml::LOG_ERROR, "aes67") << m_pathSocket << "\tTimeout - close Encoder and relaunch" << std::endl;
+            pmlLog(pml::LOG_ERROR, m_sRecorder) << m_pathSocket << "\tTimeout - close Encoder and relaunch" << std::endl;
             CloseAndLaunchOrRemove(SIGKILL);
         }
         else if(e != asio::error::operation_aborted)
         {
-            pmlLog(pml::LOG_ERROR, "aes67") << "deadline timer failed!";
+            pmlLog(pml::LOG_ERROR, m_sRecorder) << "deadline timer failed!";
         }
     });
 
@@ -231,7 +245,7 @@ void Launcher::HandleRead(std::error_code ec, std::size_t nLength)
     }
     else if(ec != asio::error::operation_aborted)
     {
-        pmlLog(pml::LOG_ERROR, "aes67") << m_pathSocket << "\tEOF or Read Error: " << ec.message();
+        pmlLog(pml::LOG_ERROR, m_sRecorder) << m_pathSocket << "\tEOF or Read Error: " << ec.message();
         CloseAndLaunchOrRemove(SIGKILL);
     }
 }
@@ -264,12 +278,12 @@ void Launcher::HandleConnect(const asio::error_code& e)
 {
     if(!e)
     {
-        pmlLog(pml::LOG_INFO, "aes67") << "Connected to " << m_pathSocket.stem().string();
+        pmlLog(pml::LOG_INFO, m_sRecorder) << "Connected to " << m_pathSocket.stem().string();
         Read();
     }
     else
     {
-        pmlLog(pml::LOG_ERROR, "aes67") << "Could not connect to Encoder " << m_pathSocket.stem().string() << " " << e.message() << " " << m_pathSocket;
+        pmlLog(pml::LOG_ERROR, m_sRecorder) << "Could not connect to Encoder " << m_pathSocket.stem().string() << " " << e.message() << " " << m_pathSocket;
         Connect(std::chrono::seconds(1));
     }
 }
@@ -290,7 +304,7 @@ bool Launcher::CheckForOrphanedEncoder()
 {
     auto pathOrphan = m_pathSocket.parent_path();
 
-    pmlLog(pml::LOG_INFO, "aes67") << "CheckForOrphanedEncoder in " << pathOrphan;
+    pmlLog(pml::LOG_INFO, m_sRecorder) << "CheckForOrphanedEncoder in " << pathOrphan;
 
     for(const auto& entry : std::filesystem::directory_iterator(pathOrphan))
     {
@@ -310,7 +324,7 @@ bool Launcher::CheckForOrphanedEncoder()
             {
                 if(kill(nPid, 0) == 0)
                 {
-                    pmlLog(pml::LOG_INFO, "aes67") << "Encoder " << m_pathSocket.stem().string() << " is still running on pid " << nPid;
+                    pmlLog(pml::LOG_INFO, m_sRecorder) << "Encoder " << m_pathSocket.stem().string() << " is still running on pid " << nPid;
                     m_pid = nPid;
                     m_pathSocket.replace_extension(std::to_string(m_pid));
                     m_pSocket = std::make_shared<asio::local::stream_protocol::socket>(m_context);
@@ -319,14 +333,14 @@ bool Launcher::CheckForOrphanedEncoder()
                 }
                 else
                 {
-                    pmlLog(pml::LOG_INFO, "aes67") << "Encoder " << m_pathSocket.stem().string() << " was running on pid " << nPid << " and has left socket open. Close it";
+                    pmlLog(pml::LOG_INFO, m_sRecorder) << "Encoder " << m_pathSocket.stem().string() << " was running on pid " << nPid << " and has left socket open. Close it";
                     try
                     {
                         std::filesystem::remove(entry.path());
                     }
                     catch(std::filesystem::filesystem_error& e)
                     {
-                        pmlLog(pml::LOG_WARN, "aes67") << "Could not remove socket " << e.what();
+                        pmlLog(pml::LOG_WARN, m_sRecorder) << "Could not remove socket " << e.what();
                     }
                 }
             }
@@ -340,10 +354,10 @@ void Launcher::DoRemoveEncoder()
     try
     {
         std::filesystem::remove(m_pathSocket);
-        pmlLog(pml::LOG_INFO, "aes67") << "Sockets for " << m_pathSocket.stem().string() << " removed";
+        pmlLog(pml::LOG_INFO, m_sRecorder) << "Sockets for " << m_pathSocket.stem().string() << " removed";
     }
     catch(std::filesystem::filesystem_error& e)
     {
-        pmlLog(pml::LOG_INFO, "aes67") << m_pathSocket.stem().string() << " failed to remove all files " << e.what();
+        pmlLog(pml::LOG_INFO, m_sRecorder) << m_pathSocket.stem().string() << " failed to remove all files " << e.what();
     }
 }

@@ -85,24 +85,28 @@ void OutputVersion()
 
 int main(int argc,  char** argv)
 {
-    if(argc < 2)
+    if(argc == 1)
     {
-        std::cout << "Usage: flacencoder.exe [full path to config file]" << std::endl;
+        std::string sArg(argv[1]);
+
+        if(sArg == "-v" || sArg == "--version")
+        {
+            OutputVersion();
+            return 0;
+        }
+    }
+
+    if(argc < 4)
+    {
+        std::cout << "Usage: flacencoder.exe [name wav_path encoded_path socket_path]" << std::endl;
         return -1;
     }
-    std::string sArg(argv[1]);
-    if(sArg == "-v" || sArg == "--version")
-    {
-        OutputVersion();
-        return 0;
-    }
-    else
-    {
-        init_signals();
-        init_back_trace(argv[0]);
-        theApp.Init(argv[1]);
-        return theApp.Run();
-    }
+        
+        
+    init_signals();
+    init_back_trace(argv[0]);
+    theApp.Init(argv[1], argv[2], argv[3], argv[4], -1);    //@todo think about the logging
+    return theApp.Run();
 }
 
 

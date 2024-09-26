@@ -134,7 +134,7 @@ int WebServer::Run(const std::string& sConfigFile)
                      EP_API, false,false))
     {
         
-        m_server.SetAuthorizationTypeBearer(std::bind(&WebServer::AuthenticateToken, this, _1,_2), [](){
+        m_server.SetAuthorizationTypeBearer(std::bind(&WebServer::AuthenticateToken, this, _1,_2), [](const endpoint&, bool){
                                 pml::restgoose::response theResponse(302);
                                 theResponse.mHeaders = {{headerName("Location"), headerValue("/")}};
                                 return theResponse;

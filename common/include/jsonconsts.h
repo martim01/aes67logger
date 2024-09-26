@@ -139,5 +139,12 @@ struct jsonConsts
     static const std::string playback_server;
     static const std::string webserver;
     static const std::string admin;
+    static const std::string vam;
+    static const std::string plugin;
+    static const std::string user_data;
+    static const std::string update;
+    static const std::string patch_version;
+    static const std::string settings;
+    static const std::string current;
 
 };

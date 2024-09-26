@@ -73,7 +73,13 @@
         "variant": "cpp",
         "bitset": "cpp",
         "netfwd": "cpp",
-        "*.ipp": "cpp"
+        "*.ipp": "cpp",
+        "csetjmp": "cpp",
+        "complex": "cpp",
+        "unordered_set": "cpp",
+        "cfenv": "cpp",
+        "typeindex": "cpp",
+        "valarray": "cpp"
     },
     "cmake.configureOnOpen": false,
     "sonarlint.pathToCompileCommands": "${workspaceFolder}/build/compile_commands.json"

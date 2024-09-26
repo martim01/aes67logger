@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 include(FetchContent)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-project(aes67logger LANGUAGES CXX C VERSION 1.0.0)
+project(aes67logger LANGUAGES CXX C VERSION 1.1.0)
 
 SET(DIR_BASE $ENV{HOME} CACHE STRING "base location for external libraries' source")
 SET(DIR_AOIP ${DIR_BASE}/pml-aoip CACHE STRING "location of pml-aoip library")

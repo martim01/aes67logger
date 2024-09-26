@@ -12,6 +12,8 @@
 #include "asio.hpp"
 #include "observer.h"
 
+#include "websocketclient.h"
+
 class Launcher;
 class iniManager;
 class iniSection;
@@ -40,44 +42,37 @@ class LaunchManager
     private:
         void PipeThread();
 
+        void GetWavPath();
         void EnumLoggers();
-        void WatchLoggerPath();
-        void OnLoggerCreated(int nWd, const std::filesystem::path& path, uint32_t mask, bool bDirectory);
-        void OnLoggerDeleted(int nWd, const std::filesystem::path& path, uint32_t mask, bool bDirectory);
+        void GetDestinationDetails(const std::string& sPlugin);
 
-        std::filesystem::path MakeConfigFullPath(const std::string& sEncoder) const;
         std::filesystem::path MakeSocketFullPath(const std::string& sEncoder) const;
 
         void ExitCallback(const std::string& sEncoder, int nExitCode, bool bRemove);
 
         void LaunchEncoder(std::shared_ptr<Launcher> pLauncher) const;
 
-        void CheckLoggerConfig(const std::filesystem::path& pathConfig);
+        void CheckLoggerConfig(const std::string& sRecorder, const Json::Value& jsUserData);
 
-        void LaunchEncoders(const std::filesystem::path& pathConfig, std::shared_ptr<iniSection> pSection);
-        void LaunchEncoder(const std::filesystem::path& pathConfig, const std::string& sType);
+        void CreateLauncher(const std::string& sRecorder, const std::string& sType, const std::string& sApp);
+        void StopEncoder(const std::string& sRecorder, const std::string& sType);
+
+        bool WebsocketConnection(const endpoint& anEnpoint, bool bConnected, int nError);
+        bool WebsocketMessage(const endpoint& anEndpoint, const std::string& sMessage);
+
+        void CheckUpdate(const Json::Value& jsUpdate);
+        void CheckForRecorderRemoval(const std::string& sRecorder);
+        void CheckForRecorderUpdate(const std::string& sRecorder, uint64_t nPatchVersion);
         
         
-        std::filesystem::path m_pathLaunchers;
-        std::filesystem::path m_pathSdp;
-        std::filesystem::path m_pathSockets;
-        std::filesystem::path m_pathAudio;
+        std::string m_sPathSockets;
+        std::string m_sPathWav;
+        std::string m_sPathEncoded;
 
         std::map<std::string, std::string> m_mEncoderApps;
         std::map<std::string, std::shared_ptr<Launcher>> m_mLaunchers;
-
-
-        ssize_t m_nLogConsoleLevel = -1;
-        ssize_t m_nLogFileLevel = 2;
-        std::string m_sLogPath = "/var/log/encoders/";
-        
-        long m_nHeartbeatGap = 10000;
-        long m_nAoipBuffer = 4096;
-        bool m_bUseTransmissionTime = false;
-        long m_nLoggerConsoleLevel = -1;
-        long m_nLoggerFileLevel = 2;
-
-        
+        std::map<std::string, uint64_t> m_mRecorders;
+       
         std::mutex m_mutex;
         std::unique_ptr<std::thread> m_pThread = nullptr;
 
@@ -87,5 +82,14 @@ class LaunchManager
 
         asio::io_context m_context;
 
-        pml::filewatch::Observer m_observer;
+        std::string m_sVamUrl;
+        std::string m_sSecret;
+        std::string m_sHttpProtocol{"http"};
+        std::string m_sWsProtocol{"ws"};
+
+        pml::restgoose::WebSocketClient m_client;
+
+        enum class enumUpdate {REMOVE, ADD, PATCH};
+
+        static const std::string LOG_PREFIX;
 };

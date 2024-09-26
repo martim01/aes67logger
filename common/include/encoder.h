@@ -15,15 +15,14 @@ class Encoder
         virtual ~Encoder();
 
 
-        bool Init(const std::filesystem::path& config);
+        bool Init(const std::string& sName, const std::filesystem::path& pathWav, const std::filesystem::path& pathEncoded, const std::filesystem::path& pathSocket, unsigned long nLogging);
         int Run();
         void Exit() { m_bRun = false;}
 
 
     protected:
 
-        bool LoadConfig(const std::filesystem::path& config);
-        void CreateLogging();
+        void CreateLogging(unsigned long nLogging);
 
         void CreateInitialFileQueue();
         void StartObserver();
@@ -70,7 +69,6 @@ class Encoder
         std::queue<std::filesystem::path> m_qToEncode;
         size_t m_nBufferSize = 65536;
 
-        iniManager m_config;
         std::filesystem::path m_pathSockets;
         std::filesystem::path m_pathWav;
         std::filesystem::path m_pathEncoded;

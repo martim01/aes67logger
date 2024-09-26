@@ -154,7 +154,7 @@ int Server::Run(const std::string& sConfigFile)
                      EP_API, true,true))
     {
 
-        m_server.SetAuthorizationTypeBearer(std::bind(&Server::AuthenticateToken, this, _1,_2), [](){return pml::restgoose::response(401, std::string("Bearer token incorrect"));}, true);
+        m_server.SetAuthorizationTypeBearer(std::bind(&Server::AuthenticateToken, this, _1,_2), [](const endpoint&, bool){return pml::restgoose::response(401, std::string("Bearer token incorrect"));}, true);
 
         //Derived class init
         Init();

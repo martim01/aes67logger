@@ -22,16 +22,29 @@ Encoder::~Encoder()
 }
 
 
-bool Encoder::Init(const std::filesystem::path& config)
+bool Encoder::Init(const std::string& sName, const std::filesystem::path& pathWav, const std::filesystem::path& pathEncoded, const std::filesystem::path& pathSocket, unsigned long nLogging)
 {
-    if(!LoadConfig(config))
-    {
-        std::cout << "Could not load config file: " << config << std::endl;
-        return false;
-    }
+    m_sName = sName;
 
-    m_pathSockets /= m_sName+"_"+m_sType;
+    m_pathWav = pathWav;
+    m_pathWav /= m_sName;
+
+    m_pathEncoded = pathEncoded;
+    m_pathEncoded /= m_sType;
+    m_pathEncoded /= m_sName;
+    
+    m_pathSockets = pathSocket;
     m_pathSockets.replace_extension(std::to_string(getpid()));
+
+    try
+    {
+        std::filesystem::create_directories(m_pathEncoded);
+        std::filesystem::create_directories(m_pathSockets);
+    }
+    catch(std::filesystem::filesystem_error& e)
+    {
+        pmlLog(pml::LOG_ERROR, "aes67") << "Could not create " << m_sType << " file directory " << m_pathEncoded;
+    }
 
     //make sure the file does not exist
     std::filesystem::remove(m_pathSockets);
@@ -43,63 +56,19 @@ bool Encoder::Init(const std::filesystem::path& config)
 }
 
 
-
-bool Encoder::LoadConfig(const std::filesystem::path& config)
+void Encoder::CreateLogging(unsigned long nLogging)
 {
-    if(m_config.Read(config))
+    int nConsole = nLogging & 0xFF;
+    int nFile = (nLogging >> 8) & 0xFF;
+    if(nConsole > -1 )
     {
-        m_sName = m_config.Get(jsonConsts::general, jsonConsts::name, "");
-        CreateLogging();
-
-        m_pathWav.assign(m_config.Get(jsonConsts::path, jsonConsts::audio, "/var/loggers/audio"));
-        m_pathWav /= "wav";
-        m_pathWav /= m_sName;
-
-        m_pathEncoded.assign(m_config.Get(jsonConsts::path, jsonConsts::audio, "/var/loggers/audio"));
-        m_pathEncoded /= m_sType;
-        m_pathEncoded /= m_sName;
-
-        m_pathSockets = std::filesystem::path(m_config.Get(jsonConsts::path, jsonConsts::sockets, "/var/loggers/sockets"));
-
-        try
-        {
-            std::filesystem::create_directories(m_pathEncoded);
-            std::filesystem::create_directories(m_pathSockets);
-        }
-        catch(std::filesystem::filesystem_error& e)
-        {
-            pmlLog(pml::LOG_ERROR, "aes67") << "Could not create " << m_sType << " file directory " << m_pathEncoded;
-        }
-
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
-
-
-void Encoder::CreateLogging()
-{
-    if(m_config.Get(jsonConsts::log, jsonConsts::console, -1L) > -1 )
-    {
-        if(m_nLogToConsole == -1)
-        {
-            m_nLogToConsole = pml::LogStream::AddOutput(std::make_unique<pml::LogOutput>());
-        }
-        pml::LogStream::SetOutputLevel(m_nLogToConsole, pml::enumLevel(m_config.Get(jsonConsts::log, jsonConsts::console,(long) pml::LOG_TRACE)));
-    }
-    else if(m_nLogToConsole != -1)
-    {
-        pml::LogStream::RemoveOutput(m_nLogToConsole);
-        m_nLogToConsole = -1;
+        m_nLogToConsole = pml::LogStream::AddOutput(std::make_unique<pml::LogOutput>());
+        pml::LogStream::SetOutputLevel(m_nLogToConsole, pml::enumLevel(nConsole));
     }
 
-    if(m_config.Get(jsonConsts::log, jsonConsts::file, (long)pml::LOG_INFO) > -1)
+    /*
+    if(nFile > -1)
     {
-        if(m_nLogToFile == -1)
-        {
             std::filesystem::path pathLog = m_config.Get(jsonConsts::path,jsonConsts::logs,".");
             pathLog /= (m_sName+"_"+m_sType);
 
@@ -112,7 +81,7 @@ void Encoder::CreateLogging()
         pml::LogStream::RemoveOutput(m_nLogToFile);
         m_nLogToFile = -1;
     }
-
+    */
 }
 
 std::filesystem::path Encoder::GetNextFile()

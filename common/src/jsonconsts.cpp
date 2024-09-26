@@ -132,3 +132,11 @@ const std::string jsonConsts::encoder_server            = "encoderserver";
 const std::string jsonConsts::playback_server           = "playbackserver";
 const std::string jsonConsts::webserver                 = "webserver";
 const std::string jsonConsts::admin                     = "admin";
+
+const std::string jsonConsts::vam                       = "vam";
+const std::string jsonConsts::plugin                    = "plugin";
+const std::string jsonConsts::user_data                 = "user_data";
+const std::string jsonConsts::update                    = "update";
+const std::string jsonConsts::patch_version             = "patch_version";
+const std::string jsonConsts::settings                  = "settings";
+const std::string jsonConsts::current                   = "current";
